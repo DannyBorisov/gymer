@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     oauth2Client.setCredentials({ access_token: session.accessToken })
 
     const sheets = google.sheets({ version: "v4", auth: oauth2Client })
+    const drive = google.drive({ version: "v3", auth: oauth2Client })
 
     // Create a new spreadsheet
     const spreadsheet = await sheets.spreadsheets.create({
@@ -67,6 +68,16 @@ export async function POST(request: Request) {
 
     const spreadsheetId = spreadsheet.data.spreadsheetId!
     const sheetId = spreadsheet.data.sheets?.[0]?.properties?.sheetId ?? 0
+
+    // Mark this spreadsheet as created by Gymer
+    await drive.files.update({
+      fileId: spreadsheetId,
+      requestBody: {
+        appProperties: {
+          createdBy: "gymer",
+        },
+      },
+    })
 
     // Build the data rows (Date is first column)
     const headers = [

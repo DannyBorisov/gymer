@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { ExerciseCombobox } from "@/app/components/ExerciseCombobox"
 
 interface SetData {
   rowIndex: number
@@ -157,11 +158,24 @@ function sortWorkoutsByDate(workouts: Workout[]): Workout[] {
   })
 }
 
+interface NewSessionExercise {
+  exercise: string
+  targetReps: string
+  targetRir: string
+}
+
 export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
   const [data, setData] = useState<SheetData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null)
+  const [showAddSession, setShowAddSession] = useState(false)
+  const [addingSession, setAddingSession] = useState(false)
+  const [newSession, setNewSession] = useState(() => ({
+    name: "",
+    date: new Date().toISOString().split("T")[0],
+    exercises: [{ exercise: "", targetReps: "", targetRir: "" }] as NewSessionExercise[],
+  }))
 
   useEffect(() => {
     async function fetchSheet() {
@@ -211,6 +225,11 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
   // Sort workouts by date
   const sortedWorkouts = sortWorkoutsByDate(data.workouts)
 
+  // Get all unique exercise names across all workouts (for combobox suggestions)
+  const allExerciseNames = Array.from(
+    new Set(sortedWorkouts.flatMap((w) => w.exercises.map((e) => e.exercise)))
+  ).filter(Boolean).sort()
+
   // Calculate total unique exercises across all workouts
   const totalUniqueExercises = sortedWorkouts.reduce((sum, w) => {
     return sum + getUniqueExercises(w.exercises).length
@@ -234,12 +253,106 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
     )
   }
 
+  // Add new session
+  const handleAddSession = async () => {
+    const validExercises = newSession.exercises.filter((e) => e.exercise.trim())
+    if (!newSession.name.trim() || validExercises.length === 0) return
+
+    setAddingSession(true)
+    try {
+      const res = await fetch(`/api/sheets/${spreadsheetId}/add-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionName: newSession.name,
+          date: newSession.date,
+          exercises: validExercises,
+        }),
+      })
+
+      if (!res.ok) throw new Error("Failed to add session")
+
+      // Refresh data
+      const refreshRes = await fetch(`/api/sheets/${spreadsheetId}`)
+      if (refreshRes.ok) {
+        const sheetData = await refreshRes.json()
+        setData(sheetData)
+      }
+
+      // Reset form
+      setNewSession({
+        name: "",
+        date: new Date().toISOString().split("T")[0],
+        exercises: [{ exercise: "", targetReps: "", targetRir: "" }],
+      })
+      setShowAddSession(false)
+    } catch (err) {
+      console.error("Add session error:", err)
+      alert("Failed to add session")
+    } finally {
+      setAddingSession(false)
+    }
+  }
+
+  const addExerciseToNewSession = () => {
+    setNewSession((prev) => ({
+      ...prev,
+      exercises: [...prev.exercises, { exercise: "", targetReps: "", targetRir: "" }],
+    }))
+  }
+
+  const updateNewSessionExercise = (index: number, field: keyof NewSessionExercise, value: string) => {
+    setNewSession((prev) => ({
+      ...prev,
+      exercises: prev.exercises.map((e, i) => (i === index ? { ...e, [field]: value } : e)),
+    }))
+  }
+
+  const removeExerciseFromNewSession = (index: number) => {
+    setNewSession((prev) => ({
+      ...prev,
+      exercises: prev.exercises.filter((_, i) => i !== index),
+    }))
+  }
+
+  // Delete an entire session/workout
+  const handleDeleteSession = async (workout: Workout, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent row click
+
+    if (!confirm(`Delete workout #${workout.id} (Session ${workout.session})? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const rowIndices = workout.exercises.map((ex) => ex.rowIndex)
+
+      const res = await fetch(`/api/sheets/${spreadsheetId}/delete-rows`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowIndices }),
+      })
+
+      if (!res.ok) throw new Error("Failed to delete session")
+
+      // Refresh data
+      const refreshRes = await fetch(`/api/sheets/${spreadsheetId}`)
+      if (refreshRes.ok) {
+        const sheetData = await refreshRes.json()
+        setData(sheetData)
+      }
+    } catch (err) {
+      console.error("Delete session error:", err)
+      alert("Failed to delete session")
+    }
+  }
+
   // If a workout is selected, show the detail view
   if (selectedWorkout) {
     return (
       <WorkoutDetail
         workout={selectedWorkout}
         allWorkouts={sortedWorkouts}
+        allExerciseNames={allExerciseNames}
         spreadsheetId={spreadsheetId}
         onBack={() => setSelectedWorkout(null)}
         onUpdate={handleWorkoutUpdate}
@@ -249,13 +362,24 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-          {data.spreadsheetTitle}
-        </h2>
-        <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mt-1">
-          {sortedWorkouts.length} workouts • {totalUniqueExercises} exercises • {data.totalRows} sets
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+            {data.spreadsheetTitle}
+          </h2>
+          <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 mt-1">
+            {sortedWorkouts.length} workouts • {totalUniqueExercises} exercises • {data.totalRows} sets
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddSession(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Session
+        </button>
       </div>
 
       {/* Compact table view */}
@@ -267,7 +391,8 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
               <th className="px-3 py-2.5 text-left font-semibold text-zinc-600 dark:text-zinc-400">Session</th>
               <th className="px-3 py-2.5 text-left font-semibold text-zinc-600 dark:text-zinc-400">Date</th>
               <th className="px-3 py-2.5 text-left font-semibold text-zinc-600 dark:text-zinc-400">Progress</th>
-              <th className="px-3 py-2.5 text-center font-semibold text-zinc-600 dark:text-zinc-400 w-12"></th>
+              <th className="px-3 py-2.5 text-center font-semibold text-zinc-600 dark:text-zinc-400 w-10"></th>
+              <th className="px-3 py-2.5 text-center font-semibold text-zinc-600 dark:text-zinc-400 w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -342,12 +467,144 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
                       </svg>
                     )}
                   </td>
+                  <td className="px-2 py-2.5 text-center">
+                    <button
+                      onClick={(e) => handleDeleteSession(workout, e)}
+                      className="p-1.5 text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      title="Delete session"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </td>
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
+
+      {/* Add Session Modal */}
+      {showAddSession && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-700">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                Add New Session
+              </h3>
+              <button
+                onClick={() => setShowAddSession(false)}
+                className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                    Session Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newSession.name}
+                    onChange={(e) => setNewSession((prev) => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
+                    placeholder="e.g., A or Upper"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={newSession.date}
+                    onChange={(e) => setNewSession((prev) => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
+                  Exercises
+                </label>
+                <div className="space-y-3">
+                  {newSession.exercises.map((ex, idx) => (
+                    <div key={idx} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-2">
+                        <div className="sm:col-span-1">
+                          <ExerciseCombobox
+                            value={ex.exercise}
+                            onChange={(value) => updateNewSessionExercise(idx, "exercise", value)}
+                            exercises={allExerciseNames}
+                            placeholder="Exercise"
+                            className="!px-3 !py-2.5 !rounded-lg text-sm"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={ex.targetReps}
+                          onChange={(e) => updateNewSessionExercise(idx, "targetReps", e.target.value)}
+                          className="w-full px-3 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none text-sm"
+                          placeholder="Reps"
+                        />
+                        <input
+                          type="text"
+                          value={ex.targetRir}
+                          onChange={(e) => updateNewSessionExercise(idx, "targetRir", e.target.value)}
+                          className="w-full px-3 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none text-sm"
+                          placeholder="RIR"
+                        />
+                      </div>
+                      {newSession.exercises.length > 1 && (
+                        <button
+                          onClick={() => removeExerciseFromNewSession(idx)}
+                          className="p-2.5 text-zinc-400 hover:text-red-500 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={addExerciseToNewSession}
+                  className="mt-3 w-full py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center justify-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Exercise
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-6 border-t border-zinc-200 dark:border-zinc-700">
+              <button
+                onClick={() => setShowAddSession(false)}
+                className="flex-1 py-3 px-4 rounded-xl border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSession}
+                disabled={addingSession || !newSession.name.trim() || !newSession.exercises.some((e) => e.exercise.trim())}
+                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {addingSession ? "Adding..." : "Add Session"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -381,12 +638,14 @@ function findExercisePreviousPerformance(
 function WorkoutDetail({
   workout,
   allWorkouts,
+  allExerciseNames,
   spreadsheetId,
   onBack,
   onUpdate,
 }: {
   workout: Workout
   allWorkouts: Workout[]
+  allExerciseNames: string[]
   spreadsheetId: string
   onBack: () => void
   onUpdate: (workoutId: number, updatedExercises: SetData[]) => void
@@ -473,6 +732,109 @@ function WorkoutDetail({
       alert("Failed to save changes")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleAddSet = async () => {
+    if (!newSet.exercise.trim()) return
+
+    setAddingSet(true)
+    try {
+      const res = await fetch(`/api/sheets/${spreadsheetId}/add-set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          afterRowIndex: workout.endRow,
+          sessionName: workout.session,
+          exercise: newSet.exercise,
+          targetReps: newSet.targetReps,
+          targetRir: newSet.targetRir,
+        }),
+      })
+
+      if (!res.ok) throw new Error("Failed to add set")
+
+      const data = await res.json()
+
+      // Add the new set to local state
+      const newSetData: SetData = {
+        rowIndex: data.newRowIndex,
+        session: workout.session,
+        exercise: newSet.exercise,
+        targetReps: newSet.targetReps,
+        targetRir: newSet.targetRir,
+        weight: "",
+        repsAchieved: "",
+        notes: "",
+      }
+
+      setSets((prev) => [...prev, newSetData])
+      setOriginalSets((prev) => [...prev, newSetData])
+      onUpdate(workout.id, [...sets, newSetData])
+
+      // Reset form
+      setNewSet({ exercise: "", targetReps: "", targetRir: "" })
+      setShowAddSet(false)
+    } catch (err) {
+      console.error("Add set error:", err)
+      alert("Failed to add set")
+    } finally {
+      setAddingSet(false)
+    }
+  }
+
+  // Delete all sets of an exercise
+  const handleDeleteExercise = async (exerciseName: string) => {
+    if (!confirm(`Delete all sets of "${exerciseName}"? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const exerciseSets = sets.filter((s) => s.exercise === exerciseName)
+      const rowIndices = exerciseSets.map((s) => s.rowIndex)
+
+      const res = await fetch(`/api/sheets/${spreadsheetId}/delete-rows`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowIndices }),
+      })
+
+      if (!res.ok) throw new Error("Failed to delete exercise")
+
+      // Update local state
+      const remainingSets = sets.filter((s) => s.exercise !== exerciseName)
+      setSets(remainingSets)
+      setOriginalSets(remainingSets)
+      onUpdate(workout.id, remainingSets)
+    } catch (err) {
+      console.error("Delete exercise error:", err)
+      alert("Failed to delete exercise")
+    }
+  }
+
+  // Delete a single set
+  const handleDeleteSet = async (rowIndex: number) => {
+    if (!confirm("Delete this set? This cannot be undone.")) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/sheets/${spreadsheetId}/delete-rows`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rowIndices: [rowIndex] }),
+      })
+
+      if (!res.ok) throw new Error("Failed to delete set")
+
+      // Update local state
+      const remainingSets = sets.filter((s) => s.rowIndex !== rowIndex)
+      setSets(remainingSets)
+      setOriginalSets(remainingSets)
+      onUpdate(workout.id, remainingSets)
+    } catch (err) {
+      console.error("Delete set error:", err)
+      alert("Failed to delete set")
     }
   }
 
@@ -565,7 +927,18 @@ function WorkoutDetail({
                       ? "text-green-800 dark:text-green-200"
                       : "text-zinc-900 dark:text-zinc-100"
                   }`}>{group.name}</span>
-                  {isComplete && <span className="text-green-800 dark:text-green-200">✓</span>}
+                  <div className="flex items-center gap-2">
+                    {isComplete && <span className="text-green-800 dark:text-green-200">✓</span>}
+                    <button
+                      onClick={() => handleDeleteExercise(group.name)}
+                      className="p-1.5 text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-white/50 dark:hover:bg-zinc-900/50"
+                      title="Delete exercise"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 {/* Previous performance at exercise level */}
                 {previous && (
@@ -612,6 +985,15 @@ function WorkoutDetail({
                             • {set.targetReps} reps @ RIR {set.targetRir}
                           </span>
                         </div>
+                        <button
+                          onClick={() => handleDeleteSet(set.rowIndex)}
+                          className="p-1.5 text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          title="Delete set"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </div>
 
                       {/* Input row */}
@@ -662,11 +1044,116 @@ function WorkoutDetail({
                       </div>
                     </div>
                   ))}
+
+                {/* Quick Add Set for this exercise */}
+                <button
+                  onClick={() => {
+                    setNewSet({ exercise: group.name, targetReps: "", targetRir: "" })
+                    setShowAddSet(true)
+                  }}
+                  className="w-full py-2.5 text-sm text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Set
+                </button>
               </div>
             </div>
           )
         })}
+
+        {/* Add Exercise Button */}
+        <button
+          onClick={() => {
+            setNewSet({ exercise: "", targetReps: "", targetRir: "" })
+            setShowAddSet(true)
+          }}
+          className="w-full mt-4 py-3 px-4 rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:border-blue-500 hover:text-blue-600 dark:hover:border-blue-500 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Exercise
+        </button>
       </div>
+
+      {/* Add Set Modal */}
+      {showAddSet && (
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                {newSet.exercise ? `Add Set to ${newSet.exercise}` : "Add New Exercise"}
+              </h3>
+              <button
+                onClick={() => setShowAddSet(false)}
+                className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                Exercise Name
+              </label>
+              <ExerciseCombobox
+                value={newSet.exercise}
+                onChange={(value) => setNewSet((prev) => ({ ...prev, exercise: value }))}
+                exercises={allExerciseNames}
+                placeholder="e.g., Bench Press"
+                autoFocus
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Target Reps
+                </label>
+                <input
+                  type="text"
+                  value={newSet.targetReps}
+                  onChange={(e) => setNewSet((prev) => ({ ...prev, targetReps: e.target.value }))}
+                  className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  placeholder="8-12"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                  Target RIR
+                </label>
+                <input
+                  type="text"
+                  value={newSet.targetRir}
+                  onChange={(e) => setNewSet((prev) => ({ ...prev, targetRir: e.target.value }))}
+                  className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
+                  placeholder="2"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setShowAddSet(false)}
+                className="flex-1 py-3 px-4 rounded-xl border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSet}
+                disabled={addingSet || !newSet.exercise.trim()}
+                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {addingSet ? "Adding..." : "Add Set"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sticky save button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800">
