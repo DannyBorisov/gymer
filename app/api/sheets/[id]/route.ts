@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { google } from "googleapis"
 import { NextResponse } from "next/server"
+import { COLUMNS, normalizeRow, COLUMN_COUNT } from "@/app/lib/columns"
 
 export const runtime = "nodejs"
 
@@ -88,55 +89,47 @@ function parseWorkouts(rows: string[][], headers: string[]): Workout[] {
   let currentWorkout: Workout | null = null
   let workoutId = 0
 
-  // Find column indices (case-insensitive)
-  const findIndex = (keyword: string) =>
-    headers.findIndex((h) => h?.toLowerCase().includes(keyword.toLowerCase()))
+  // Use canonical column positions from columns.ts
+  // This ensures consistent reading regardless of header names or empty cells
+  rows.forEach((rawRow, index) => {
+    // Normalize row to ensure it has all columns (handles Google Sheets trimming)
+    const row = normalizeRow(rawRow)
 
-  const sessionIdx = findIndex("session")
-  const exerciseIdx = findIndex("exercise")
-  const targetRepsIdx = findIndex("target reps")
-  const targetRirIdx = headers.findIndex(
-    (h) =>
-      h?.toLowerCase().includes("target rir") ||
-      h?.toLowerCase().includes("rir")
-  )
-  const weightIdx = findIndex("weight")
-  const repsAchievedIdx = headers.findIndex(
-    (h) =>
-      h?.toLowerCase().includes("reps achieved") ||
-      h?.toLowerCase().includes("achieved")
-  )
-  const notesIdx = findIndex("notes")
-  const dateIdx = findIndex("date")
-
-  rows.forEach((row, index) => {
-    const sessionValue = row[sessionIdx] || ""
+    const sessionValue = row[COLUMNS.SESSION]
+    const exerciseValue = row[COLUMNS.EXERCISE]
 
     // Skip empty rows
-    if (!sessionValue && !row[exerciseIdx]) {
+    if (!sessionValue && !exerciseValue) {
       return
     }
 
     const setData: SetData = {
       rowIndex: index + 2, // +2 because: +1 for header row, +1 for 1-based indexing
       session: sessionValue,
-      exercise: row[exerciseIdx] || "",
-      targetReps: row[targetRepsIdx] || "",
-      targetRir: row[targetRirIdx] || "",
-      weight: row[weightIdx] || "",
-      repsAchieved: row[repsAchievedIdx] || "",
-      notes: row[notesIdx] || "",
+      exercise: exerciseValue,
+      targetReps: row[COLUMNS.TARGET_REPS],
+      targetRir: row[COLUMNS.TARGET_RIR],
+      weight: row[COLUMNS.WEIGHT],
+      repsAchieved: row[COLUMNS.REPS_ACHIEVED],
+      notes: row[COLUMNS.NOTES],
     }
 
-    // Check if this is a new workout (different session or first row)
-    if (!currentWorkout || currentWorkout.session !== sessionValue) {
+    // Extract date from this row
+    const dateValue = row[COLUMNS.DATE] || null
+
+    // Check if this is a new workout:
+    // - No current workout, OR
+    // - Different session name, OR
+    // - Same session but has a date (indicates a new workout block)
+    const isNewWorkout = !currentWorkout ||
+      currentWorkout.session !== sessionValue ||
+      (dateValue && currentWorkout.session === sessionValue)
+
+    if (isNewWorkout) {
       // Save previous workout
       if (currentWorkout) {
         workouts.push(currentWorkout)
       }
-
-      // Extract date from first row of workout (if date column exists)
-      const dateValue = dateIdx >= 0 ? row[dateIdx] || null : null
 
       // Start new workout
       workoutId++
@@ -148,7 +141,7 @@ function parseWorkouts(rows: string[][], headers: string[]): Workout[] {
         startRow: index + 2,
         endRow: index + 2,
       }
-    } else {
+    } else if (currentWorkout) {
       // Same session, add to current workout
       currentWorkout.exercises.push(setData)
       currentWorkout.endRow = index + 2

@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { google } from "googleapis"
 import { NextResponse } from "next/server"
+import { COLUMNS } from "@/app/lib/columns"
 
 export const runtime = "nodejs"
 
@@ -31,13 +32,14 @@ export async function POST(
 
     const sheetName = spreadsheet.data.sheets?.[0]?.properties?.title || "Sheet1"
 
-    // Update the row - columns F, G, H (weight, reps achieved, notes)
-    // Column F = weight
-    // Column G = reps achieved
-    // Column H = notes
+    // Update the row using canonical column positions
+    // Convert column indices to letters (A=0, B=1, etc.)
+    const weightCol = String.fromCharCode(65 + COLUMNS.WEIGHT)
+    const notesCol = String.fromCharCode(65 + COLUMNS.NOTES)
+
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${sheetName}!F${rowIndex}:H${rowIndex}`,
+      range: `${sheetName}!${weightCol}${rowIndex}:${notesCol}${rowIndex}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [[weight, repsAchieved, notes]],

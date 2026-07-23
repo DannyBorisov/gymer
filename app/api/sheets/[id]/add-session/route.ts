@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { google } from "googleapis"
 import { NextResponse } from "next/server"
+import { buildRow, COLUMNS, formatDateForSheet } from "@/app/lib/columns"
 
 export const runtime = "nodejs"
 
@@ -32,45 +33,100 @@ export async function POST(
     const sheet = spreadsheet.data.sheets?.[0]
     const sheetName = sheet?.properties?.title || "Sheet1"
 
-    // Get current data to find the last row
+    // Get current data to check if there's existing data (for separator row)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${sheetName}!A:A`,
+      range: `${sheetName}!A:H`,
     })
 
-    const lastRow = (response.data.values?.length || 1) + 1
+    const existingRows = response.data.values || []
+    const hasExistingData = existingRows.length > 1 // More than just header row
 
-    // Build rows for the new session
-    // Columns: A=Session, B=Exercise, C=Target Reps, D=Target RIR, E=Date, F=Weight, G=Reps, H=Notes
-    const rows = exercises.map((ex: { exercise: string; targetReps: string; targetRir: string }, index: number) => [
-      sessionName,
-      ex.exercise,
-      ex.targetReps,
-      ex.targetRir,
-      index === 0 ? date : "", // Only put date on first row
-      "",
-      "",
-      "",
-    ])
+    // Build rows for the new session using canonical column mapping
+    const rows: string[][] = []
 
-    // Append the new rows
-    await sheets.spreadsheets.values.append({
+    // Add empty row between sessions for visual separation (if there's existing data)
+    if (hasExistingData) {
+      rows.push(buildRow({})) // Empty row
+    }
+
+    // Format date from yyyy-mm-dd to dd.mm.yyyy for the sheet
+    const formattedDate = formatDateForSheet(date)
+
+    let isFirstRow = true
+    for (const ex of exercises as { exercise: string; sets: string; targetReps: string; targetRir: string }[]) {
+      const setCount = parseInt(ex.sets) || 1
+
+      for (let i = 0; i < setCount; i++) {
+        rows.push(
+          buildRow({
+            date: isFirstRow ? formattedDate : "",
+            session: sessionName,
+            exercise: ex.exercise,
+            targetReps: ex.targetReps,
+            targetRir: ex.targetRir,
+          })
+        )
+        isFirstRow = false
+      }
+    }
+
+    // Get sheet ID for formatting
+    const sheetId = sheet?.properties?.sheetId || 0
+
+    // Let Google Sheets find the correct append position automatically
+    // Using A1 as range tells the API to append after all existing data in the table
+    const appendResult = await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${sheetName}!A${lastRow}`,
+      range: `${sheetName}!A1`,
       valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS", // Insert new rows instead of overwriting
       requestBody: {
         values: rows,
       },
     })
 
+    // Extract the starting row from the append result
+    const updatedRange = appendResult.data.updates?.updatedRange || ""
+    const startRowMatch = updatedRange.match(/!A(\d+):/)
+    const startRow = startRowMatch ? parseInt(startRowMatch[1]) : existingRows.length + 1
+
+    // Clear formatting on appended rows to avoid inheriting header styles
+    if (startRowMatch) {
+      const startRowIndex = parseInt(startRowMatch[1]) - 1 // Convert to 0-based
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              repeatCell: {
+                range: {
+                  sheetId,
+                  startRowIndex,
+                  endRowIndex: startRowIndex + rows.length,
+                },
+                cell: {
+                  userEnteredFormat: {
+                    backgroundColor: { red: 1, green: 1, blue: 1 },
+                    textFormat: { bold: false },
+                  },
+                },
+                fields: "userEnteredFormat(backgroundColor,textFormat)",
+              },
+            },
+          ],
+        },
+      })
+    }
+
     return NextResponse.json({
       success: true,
-      startRow: lastRow,
+      startRow,
     })
   } catch (error) {
     console.error("Error adding session:", error)
     return NextResponse.json(
-      { error: "Failed to add session" },
+      { error: "Failed to add workout" },
       { status: 500 }
     )
   }

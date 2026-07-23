@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { google } from "googleapis"
 import { NextResponse } from "next/server"
+import { HEADERS, buildRow, COLUMN_COUNT, formatDateForSheet } from "@/app/lib/columns"
 
 export const runtime = "nodejs"
 
@@ -20,17 +21,6 @@ interface Session {
 interface CreateProgramRequest {
   programName: string
   sessions: Session[]
-}
-
-// Convert yyyy-mm-dd to dd.mm.yyyy
-function formatDateForSheet(dateStr: string): string {
-  if (!dateStr) return ""
-  const parts = dateStr.split("-")
-  if (parts.length === 3) {
-    const [year, month, day] = parts
-    return `${day}.${month}.${year}`
-  }
-  return dateStr
 }
 
 export async function POST(request: Request) {
@@ -79,34 +69,22 @@ export async function POST(request: Request) {
       },
     })
 
-    // Build the data rows (Date is first column)
-    const headers = [
-      "Date",
-      "Session",
-      "Exercise",
-      "Target Reps",
-      "Target RIR",
-      "Weight (kg)",
-      "Reps Achieved",
-      "Notes",
-    ]
-
-    const rows: string[][] = [headers]
+    // Build the data rows using canonical column mapping
+    const rows: string[][] = [HEADERS]
 
     for (const sessionData of sessions) {
       for (const exercise of sessionData.exercises) {
         // Create multiple rows based on number of sets
         for (let setNum = 1; setNum <= exercise.sets; setNum++) {
-          rows.push([
-            setNum === 1 ? formatDateForSheet(sessionData.date) : "", // Date only on first set
-            sessionData.name,
-            exercise.name,
-            exercise.targetReps,
-            exercise.targetRir,
-            "", // Weight - to be filled
-            "", // Reps Achieved - to be filled
-            "", // Notes
-          ])
+          rows.push(
+            buildRow({
+              date: setNum === 1 ? formatDateForSheet(sessionData.date) : "",
+              session: sessionData.name,
+              exercise: exercise.name,
+              targetReps: exercise.targetReps,
+              targetRir: exercise.targetRir,
+            })
+          )
         }
       }
     }
@@ -148,7 +126,7 @@ export async function POST(request: Request) {
                 sheetId,
                 dimension: "COLUMNS",
                 startIndex: 0,
-                endIndex: 8,
+                endIndex: COLUMN_COUNT,
               },
             },
           },

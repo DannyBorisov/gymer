@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { ExerciseCombobox } from "@/app/components/ExerciseCombobox"
+import { FloatingInput } from "@/app/components/FloatingInput"
 
 interface SetData {
   rowIndex: number
@@ -50,21 +51,27 @@ function isExerciseComplete(exerciseName: string, sets: SetData[]): boolean {
   return exerciseSets.every((s) => s.weight && s.repsAchieved)
 }
 
-// Parse date string to Date object (handles dd.mm.yyyy and other formats)
+// Parse date string to Date object (handles dd.mm.yyyy and yyyy-mm-dd formats)
 function parseDate(dateStr: string | null): Date | null {
   if (!dateStr) return null
 
-  // Try DD.MM.YYYY or DD/MM/YYYY or DD-MM-YYYY format first
   const parts = dateStr.split(/[\/\-\.]/)
   if (parts.length === 3) {
-    const [day, month, year] = parts.map(Number)
-    if (day && month && year) {
-      const date = new Date(year, month - 1, day)
+    const [first, second, third] = parts.map(Number)
+
+    // Detect format by checking if first part is a year (4 digits) or day (1-2 digits)
+    if (first > 1000) {
+      // yyyy-mm-dd format
+      const date = new Date(first, second - 1, third)
+      if (!isNaN(date.getTime())) return date
+    } else {
+      // dd.mm.yyyy format
+      const date = new Date(third, second - 1, first)
       if (!isNaN(date.getTime())) return date
     }
   }
 
-  // Try parsing as ISO format (yyyy-mm-dd)
+  // Fallback: try native Date parsing
   const parsed = new Date(dateStr)
   if (!isNaN(parsed.getTime())) return parsed
 
@@ -160,6 +167,7 @@ function sortWorkoutsByDate(workouts: Workout[]): Workout[] {
 
 interface NewSessionExercise {
   exercise: string
+  sets: string
   targetReps: string
   targetRir: string
 }
@@ -174,7 +182,7 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
   const [newSession, setNewSession] = useState(() => ({
     name: "",
     date: new Date().toISOString().split("T")[0],
-    exercises: [{ exercise: "", targetReps: "", targetRir: "" }] as NewSessionExercise[],
+    exercises: [{ exercise: "", sets: "3", targetReps: "", targetRir: "" }] as NewSessionExercise[],
   }))
 
   useEffect(() => {
@@ -212,11 +220,11 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
     )
   }
 
-  if (!data || data.workouts.length === 0) {
+  if (!data) {
     return (
       <div className="text-center py-16 px-4">
         <p className="text-zinc-600 dark:text-zinc-400 text-lg">
-          No workouts found in this spreadsheet.
+          No data found.
         </p>
       </div>
     )
@@ -253,7 +261,7 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
     )
   }
 
-  // Add new session
+  // Add new workout
   const handleAddSession = async () => {
     const validExercises = newSession.exercises.filter((e) => e.exercise.trim())
     if (!newSession.name.trim() || validExercises.length === 0) return
@@ -270,7 +278,7 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
         }),
       })
 
-      if (!res.ok) throw new Error("Failed to add session")
+      if (!res.ok) throw new Error("Failed to add workout")
 
       // Refresh data
       const refreshRes = await fetch(`/api/sheets/${spreadsheetId}`)
@@ -283,12 +291,12 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
       setNewSession({
         name: "",
         date: new Date().toISOString().split("T")[0],
-        exercises: [{ exercise: "", targetReps: "", targetRir: "" }],
+        exercises: [{ exercise: "", sets: "3", targetReps: "", targetRir: "" }],
       })
       setShowAddSession(false)
     } catch (err) {
-      console.error("Add session error:", err)
-      alert("Failed to add session")
+      console.error("Add workout error:", err)
+      alert("Failed to add workout")
     } finally {
       setAddingSession(false)
     }
@@ -297,7 +305,7 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
   const addExerciseToNewSession = () => {
     setNewSession((prev) => ({
       ...prev,
-      exercises: [...prev.exercises, { exercise: "", targetReps: "", targetRir: "" }],
+      exercises: [...prev.exercises, { exercise: "", sets: "3", targetReps: "", targetRir: "" }],
     }))
   }
 
@@ -346,6 +354,87 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
     }
   }
 
+  // Move a workout up or down in the program
+  const handleMoveWorkout = async (workout: Workout, direction: "up" | "down", e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent row click
+
+    const workoutIndex = sortedWorkouts.findIndex((w) => w.id === workout.id)
+    if (workoutIndex === -1) return
+
+    // Can't move first workout up or last workout down
+    if (direction === "up" && workoutIndex === 0) return
+    if (direction === "down" && workoutIndex === sortedWorkouts.length - 1) return
+
+    const targetIndex = direction === "up" ? workoutIndex - 1 : workoutIndex + 1
+    const targetWorkout = sortedWorkouts[targetIndex]
+
+    // Get row range for current workout (1-based)
+    const sourceStartRow = workout.startRow
+    const sourceEndRow = workout.endRow
+
+    // Calculate destination row
+    let destinationRow: number
+    if (direction === "up") {
+      // Move to before the target workout
+      destinationRow = targetWorkout.startRow
+    } else {
+      // Move to after the target workout
+      destinationRow = targetWorkout.endRow + 1
+    }
+
+    try {
+      const res = await fetch(`/api/sheets/${spreadsheetId}/move-rows`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceStartRow,
+          sourceEndRow,
+          destinationRow,
+        }),
+      })
+
+      if (!res.ok) throw new Error("Failed to move workout")
+
+      // Refresh data from server
+      const refreshRes = await fetch(`/api/sheets/${spreadsheetId}`)
+      if (refreshRes.ok) {
+        const sheetData = await refreshRes.json()
+        setData(sheetData)
+      }
+    } catch (err) {
+      console.error("Move workout error:", err)
+      alert("Failed to move workout")
+    }
+  }
+
+  // Duplicate a workout
+  const handleDuplicateWorkout = async (workout: Workout, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent row click
+
+    try {
+      const res = await fetch(`/api/sheets/${spreadsheetId}/duplicate-workout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startRow: workout.startRow,
+          endRow: workout.endRow,
+        }),
+      })
+
+      if (!res.ok) throw new Error("Failed to duplicate workout")
+
+      // Refresh data from server
+      const refreshRes = await fetch(`/api/sheets/${spreadsheetId}`)
+      if (refreshRes.ok) {
+        const sheetData = await refreshRes.json()
+        setData(sheetData)
+      }
+    } catch (err) {
+      console.error("Duplicate workout error:", err)
+      alert("Failed to duplicate workout")
+    }
+  }
+
   // If a workout is selected, show the detail view
   if (selectedWorkout) {
     return (
@@ -378,11 +467,36 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Add Session
+          Add workout
         </button>
       </div>
 
-      {/* Compact table view */}
+      {/* Empty state */}
+      {sortedWorkouts.length === 0 ? (
+        <div className="text-center py-16 px-4 border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+            <svg className="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+          </div>
+          <p className="text-zinc-600 dark:text-zinc-400 text-lg mb-2">
+            No workouts yet
+          </p>
+          <p className="text-zinc-500 dark:text-zinc-500 text-sm mb-6">
+            Add your first workout session to get started
+          </p>
+          <button
+            onClick={() => setShowAddSession(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Add First Workout
+          </button>
+        </div>
+      ) : (
+      /* Compact table view */
       <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-sm">
           <thead>
@@ -392,7 +506,9 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
               <th className="px-3 py-2.5 text-left font-semibold text-zinc-600 dark:text-zinc-400">Date</th>
               <th className="px-3 py-2.5 text-left font-semibold text-zinc-600 dark:text-zinc-400">Progress</th>
               <th className="px-3 py-2.5 text-center font-semibold text-zinc-600 dark:text-zinc-400 w-10"></th>
-              <th className="px-3 py-2.5 text-center font-semibold text-zinc-600 dark:text-zinc-400 w-10"></th>
+              <th className="px-1 py-2.5 text-center font-semibold text-zinc-600 dark:text-zinc-400 w-16">Order</th>
+              <th className="px-1 py-2.5 text-center font-semibold text-zinc-600 dark:text-zinc-400 w-10"></th>
+              <th className="px-1 py-2.5 text-center font-semibold text-zinc-600 dark:text-zinc-400 w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -467,7 +583,42 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
                       </svg>
                     )}
                   </td>
-                  <td className="px-2 py-2.5 text-center">
+                  <td className="px-1 py-2.5 text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <button
+                        onClick={(e) => handleMoveWorkout(workout, "up", e)}
+                        disabled={sortedWorkouts.findIndex((w) => w.id === workout.id) === 0}
+                        className="p-1 text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move up"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => handleMoveWorkout(workout, "down", e)}
+                        disabled={sortedWorkouts.findIndex((w) => w.id === workout.id) === sortedWorkouts.length - 1}
+                        className="p-1 text-zinc-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Move down"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                  <td className="px-1 py-2.5 text-center">
+                    <button
+                      onClick={(e) => handleDuplicateWorkout(workout, e)}
+                      className="p-1.5 text-zinc-400 hover:text-green-500 dark:hover:text-green-400 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      title="Duplicate workout"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </td>
+                  <td className="px-1 py-2.5 text-center">
                     <button
                       onClick={(e) => handleDeleteSession(workout, e)}
                       className="p-1.5 text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -484,30 +635,31 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
           </tbody>
         </table>
       </div>
+      )}
 
-      {/* Add Session Modal */}
+      {/* Add workout Modal */}
       {showAddSession && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-zinc-200 dark:border-zinc-700">
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                Add New Session
-              </h3>
-              <button
-                onClick={() => setShowAddSession(false)}
-                className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {/* Sticky header with title, workout name and date */}
+            <div className="flex-shrink-0 p-6 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                  Add New Workout
+                </h3>
+                <button
+                  onClick={() => setShowAddSession(false)}
+                  className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Session Name
+                    Workout Name
                   </label>
                   <input
                     type="text"
@@ -529,49 +681,66 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
                   />
                 </div>
               </div>
+            </div>
 
+            {/* Scrollable exercises list */}
+            <div className="flex-1 overflow-y-auto p-6">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                   Exercises
                 </label>
-                <div className="space-y-3">
+                <div className="divide-y divide-zinc-200 dark:divide-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
                   {newSession.exercises.map((ex, idx) => (
-                    <div key={idx} className="flex gap-2 items-start">
-                      <div className="flex-1 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-2">
-                        <div className="sm:col-span-1">
-                          <ExerciseCombobox
-                            value={ex.exercise}
-                            onChange={(value) => updateNewSessionExercise(idx, "exercise", value)}
-                            exercises={allExerciseNames}
-                            placeholder="Exercise"
-                            className="!px-3 !py-2.5 !rounded-lg text-sm"
+                    <div key={idx} className="p-3 bg-white dark:bg-zinc-800/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                          Exercise {idx + 1}
+                        </span>
+                        {newSession.exercises.length > 1 && (
+                          <button
+                            onClick={() => removeExerciseFromNewSession(idx)}
+                            className="p-1 text-zinc-400 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <ExerciseCombobox
+                          value={ex.exercise}
+                          onChange={(value) => updateNewSessionExercise(idx, "exercise", value)}
+                          exercises={allExerciseNames}
+                          placeholder="Exercise name"
+                          className="!px-3 !py-2.5 !rounded-lg text-sm"
+                        />
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            value={ex.sets}
+                            onChange={(e) => updateNewSessionExercise(idx, "sets", e.target.value)}
+                            className="w-full px-3 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none text-sm text-center"
+                            placeholder="Sets"
+                            min="1"
+                          />
+                          <input
+                            type="text"
+                            value={ex.targetReps}
+                            onChange={(e) => updateNewSessionExercise(idx, "targetReps", e.target.value)}
+                            className="w-full px-3 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none text-sm text-center"
+                            placeholder="Reps"
+                          />
+                          <input
+                            type="text"
+                            value={ex.targetRir}
+                            onChange={(e) => updateNewSessionExercise(idx, "targetRir", e.target.value)}
+                            className="w-full px-3 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none text-sm text-center"
+                            placeholder="RIR"
                           />
                         </div>
-                        <input
-                          type="text"
-                          value={ex.targetReps}
-                          onChange={(e) => updateNewSessionExercise(idx, "targetReps", e.target.value)}
-                          className="w-full px-3 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none text-sm"
-                          placeholder="Reps"
-                        />
-                        <input
-                          type="text"
-                          value={ex.targetRir}
-                          onChange={(e) => updateNewSessionExercise(idx, "targetRir", e.target.value)}
-                          className="w-full px-3 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none text-sm"
-                          placeholder="RIR"
-                        />
                       </div>
-                      {newSession.exercises.length > 1 && (
-                        <button
-                          onClick={() => removeExerciseFromNewSession(idx)}
-                          className="p-2.5 text-zinc-400 hover:text-red-500 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -599,7 +768,7 @@ export function WorkoutGrid({ spreadsheetId }: { spreadsheetId: string }) {
                 disabled={addingSession || !newSession.name.trim() || !newSession.exercises.some((e) => e.exercise.trim())}
                 className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {addingSession ? "Adding..." : "Add Session"}
+                {addingSession ? "Adding..." : "Add workout"}
               </button>
             </div>
           </div>
@@ -860,42 +1029,58 @@ function WorkoutDetail({
   const dateDisplay = formatDate(workout.date)
 
   return (
-    <div className="pb-24">
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 mb-4 py-2 -ml-1"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span className="text-base">Back</span>
-        </button>
-        <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-          Workout #{workout.id}
-        </h2>
-        <div className="flex flex-wrap items-center gap-2 mt-1">
-          <span className="text-base text-zinc-700 dark:text-zinc-300">
-            Session {workout.session}
-          </span>
-          {dateDisplay && (
-            <span className={`text-base ${
-              dateDisplay === "Today"
-                ? "text-blue-600 dark:text-blue-400 font-semibold"
-                : "text-zinc-500 dark:text-zinc-400"
-            }`}>
-              • {dateDisplay}
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
-          {completedExercises}/{uniqueExercises.length} exercises complete • {sets.length} sets
-        </p>
-      </div>
+    <div className="fixed inset-0 z-50 flex flex-col">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={onBack}
+      />
 
-      {/* Exercise cards */}
-      <div className="space-y-4">
+      {/* Drawer */}
+      <div className="absolute bottom-0 left-0 right-0 h-full bg-zinc-50 dark:bg-zinc-950 rounded-t-2xl flex flex-col overflow-hidden">
+        {/* Sticky Header */}
+        <div className="flex-shrink-0 bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 px-4 pt-4 pb-3">
+          {/* Drag handle */}
+          <div className="w-10 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-4" />
+
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+                Workout #{workout.id}
+              </h2>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className="text-base text-zinc-700 dark:text-zinc-300">
+                  Session {workout.session}
+                </span>
+                {dateDisplay && (
+                  <span className={`text-base ${
+                    dateDisplay === "Today"
+                      ? "text-blue-600 dark:text-blue-400 font-semibold"
+                      : "text-zinc-500 dark:text-zinc-400"
+                  }`}>
+                    • {dateDisplay}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                {completedExercises}/{uniqueExercises.length} exercises complete • {sets.length} sets
+              </p>
+            </div>
+            <button
+              onClick={onBack}
+              className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
+          {/* Exercise cards */}
+          <div className="space-y-4">
         {exerciseGroups.map((group) => {
           const isComplete = group.sets.every((s) => s.weight && s.repsAchieved)
           const previous = findExercisePreviousPerformance(
@@ -998,36 +1183,24 @@ function WorkoutDetail({
 
                       {/* Input row */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Weight (kg)
-                          </label>
-                          <input
-                            type="number"
-                            inputMode="decimal"
-                            value={set.weight}
-                            onChange={(e) =>
-                              handleUpdate(set.rowIndex, "weight", e.target.value)
-                            }
-                            className="w-full px-4 py-4 text-lg font-semibold text-center border-2 border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
-                            placeholder="0"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                            Reps
-                          </label>
-                          <input
-                            type="number"
-                            inputMode="numeric"
-                            value={set.repsAchieved}
-                            onChange={(e) =>
-                              handleUpdate(set.rowIndex, "repsAchieved", e.target.value)
-                            }
-                            className="w-full px-4 py-4 text-lg font-semibold text-center border-2 border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none"
-                            placeholder="0"
-                          />
-                        </div>
+                        <FloatingInput
+                          type="number"
+                          inputMode="decimal"
+                          label="Weight (kg)"
+                          value={set.weight}
+                          onChange={(e) =>
+                            handleUpdate(set.rowIndex, "weight", e.target.value)
+                          }
+                        />
+                        <FloatingInput
+                          type="number"
+                          inputMode="numeric"
+                          label="Reps"
+                          value={set.repsAchieved}
+                          onChange={(e) =>
+                            handleUpdate(set.rowIndex, "repsAchieved", e.target.value)
+                          }
+                        />
                       </div>
 
                       {/* Notes */}
@@ -1076,6 +1249,25 @@ function WorkoutDetail({
           </svg>
           Add Exercise
         </button>
+          </div>
+        </div>
+
+        {/* Save button - inside drawer */}
+        <div className="flex-shrink-0 p-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800">
+          <button
+            onClick={handleSaveAll}
+            disabled={saving || !hasChanges}
+            className={`w-full py-4 rounded-xl font-semibold text-base transition-colors ${
+              saved
+                ? "bg-green-600 text-white"
+                : hasChanges
+                ? "bg-blue-600 text-white active:bg-blue-700"
+                : "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500"
+            } disabled:opacity-50`}
+          >
+            {saving ? "Saving..." : saved ? "Saved ✓" : hasChanges ? "Save Changes" : "No Changes"}
+          </button>
+        </div>
       </div>
 
       {/* Add Set Modal */}
@@ -1155,22 +1347,6 @@ function WorkoutDetail({
         </div>
       )}
 
-      {/* Sticky save button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800">
-        <button
-          onClick={handleSaveAll}
-          disabled={saving || !hasChanges}
-          className={`w-full py-4 rounded-xl font-semibold text-base transition-colors ${
-            saved
-              ? "bg-green-600 text-white"
-              : hasChanges
-              ? "bg-blue-600 text-white active:bg-blue-700"
-              : "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500"
-          } disabled:opacity-50`}
-        >
-          {saving ? "Saving..." : saved ? "Saved ✓" : hasChanges ? "Save Changes" : "No Changes"}
-        </button>
-      </div>
     </div>
   )
 }

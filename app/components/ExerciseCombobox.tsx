@@ -1,6 +1,9 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import Autocomplete from "@mui/material/Autocomplete"
+import TextField from "@mui/material/TextField"
+import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { useMemo, useState, useEffect } from "react"
 
 interface ExerciseComboboxProps {
   value: string
@@ -17,61 +20,101 @@ export function ExerciseCombobox({
   exercises,
   placeholder = "Exercise name",
   autoFocus = false,
-  className = "",
 }: ExerciseComboboxProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [filteredExercises, setFilteredExercises] = useState<string[]>([])
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   useEffect(() => {
-    if (value) {
-      const filtered = exercises.filter(
-        (ex) => ex.toLowerCase().includes(value.toLowerCase()) && ex.toLowerCase() !== value.toLowerCase()
-      )
-      setFilteredExercises(filtered)
-    } else {
-      setFilteredExercises(exercises)
-    }
-  }, [value, exercises])
+    // Check initial dark mode preference
+    const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    setIsDarkMode(darkModeQuery.matches)
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    // Listen for changes
+    const handler = (e: MediaQueryListEvent) => setIsDarkMode(e.matches)
+    darkModeQuery.addEventListener("change", handler)
+    return () => darkModeQuery.removeEventListener("change", handler)
   }, [])
 
+  // Create a theme that respects system dark mode
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: isDarkMode ? "dark" : "light",
+        },
+        components: {
+          MuiAutocomplete: {
+            styleOverrides: {
+              paper: {
+                borderRadius: "12px",
+                marginTop: "4px",
+              },
+              listbox: {
+                padding: "4px",
+              },
+              option: {
+                borderRadius: "8px",
+                margin: "2px 4px",
+              },
+            },
+          },
+          MuiTextField: {
+            styleOverrides: {
+              root: {
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "12px",
+                },
+              },
+            },
+          },
+        },
+      }),
+    [isDarkMode]
+  )
+
+  // Remove duplicates and sort alphabetically
+  const uniqueExercises = useMemo(() => {
+    const unique = [...new Set(exercises.filter(Boolean))]
+    return unique.sort((a, b) => a.localeCompare(b))
+  }, [exercises])
+
   return (
-    <div ref={containerRef} className="relative">
-      <input
-        type="text"
+    <ThemeProvider theme={theme}>
+      <Autocomplete
+        freeSolo
         value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setIsOpen(true)}
-        className={`w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:outline-none ${className}`}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
+        onChange={(_, newValue) => {
+          onChange(newValue || "")
+        }}
+        onInputChange={(_, newInputValue) => {
+          onChange(newInputValue)
+        }}
+        options={uniqueExercises}
+        filterOptions={(options, { inputValue }) => {
+          const filtered = options.filter((option) =>
+            option.toLowerCase().includes(inputValue.toLowerCase())
+          )
+          return filtered
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            size="small"
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                padding: "4px 8px",
+              },
+            }}
+          />
+        )}
+        size="small"
+        fullWidth
+        autoHighlight
+        selectOnFocus
+        clearOnBlur={false}
+        handleHomeEndKeys
       />
-      {isOpen && filteredExercises.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-          {filteredExercises.map((ex) => (
-            <button
-              key={ex}
-              type="button"
-              onClick={() => {
-                onChange(ex)
-                setIsOpen(false)
-              }}
-              className="w-full px-4 py-2.5 text-left text-sm text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-700 first:rounded-t-xl last:rounded-b-xl"
-            >
-              {ex}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    </ThemeProvider>
   )
 }

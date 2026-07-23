@@ -18,7 +18,7 @@ export async function GET() {
     const drive = google.drive({ version: "v3", auth: oauth2Client })
 
     const response = await drive.files.list({
-      q: "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='createdBy' and value='gymer' }",
+      q: "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='createdBy' and value='gymer' } and trashed = false",
       fields: "files(id, name, modifiedTime, webViewLink)",
       orderBy: "modifiedTime desc",
       pageSize: 50,

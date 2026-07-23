@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { google } from "googleapis"
 import { NextResponse } from "next/server"
+import { buildRow, COLUMN_COUNT } from "@/app/lib/columns"
 
 export const runtime = "nodejs"
 
@@ -53,15 +54,21 @@ export async function POST(
       },
     })
 
-    // Write the new row data
-    // Columns: A=Session, B=Exercise, C=Target Reps, D=Target RIR, E=Date, F=Weight, G=Reps, H=Notes
+    // Write the new row data using canonical column mapping
     const newRowIndex = afterRowIndex + 1 // 1-based for A1 notation
+    const newRow = buildRow({
+      session: sessionName,
+      exercise,
+      targetReps,
+      targetRir,
+    })
+
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${sheetName}!A${newRowIndex}:H${newRowIndex}`,
+      range: `${sheetName}!A${newRowIndex}:${String.fromCharCode(64 + COLUMN_COUNT)}${newRowIndex}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[sessionName, exercise, targetReps, targetRir, "", "", "", ""]],
+        values: [newRow],
       },
     })
 

@@ -296,7 +296,7 @@ export function ProgramBuilder() {
           onClick={addSession}
           className="px-4 py-2 text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg active:bg-zinc-200 dark:active:bg-zinc-700"
         >
-          + Add Session
+          + Add workout
         </button>
       </div>
 
