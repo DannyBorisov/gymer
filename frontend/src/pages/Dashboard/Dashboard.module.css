@@ -1,0 +1,43 @@
+.container {
+  max-width: 1200px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0f0f0f;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.025em;
+}
+
+.subtitle {
+  color: #737373;
+  margin: 0 0 2rem 0;
+  font-size: 0.875rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.statCard {
+  background: #fff;
+  padding: 1.25rem;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #0f0f0f;
+  letter-spacing: -0.025em;
+}
+
+.statLabel {
+  color: #737373;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
