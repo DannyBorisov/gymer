@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Program, Workout, Exercise } from "../types/program";
+import type { Program, Workout, Exercise, Frequency } from "../types/program";
 
 const createEmptyExercise = (): Exercise => ({
   name: "",
@@ -15,6 +15,10 @@ const createEmptyWorkout = (): Workout => ({
 
 const initialProgram: Program = {
   name: "",
+  durationWeeks: 4,
+  frequency: 4,
+  dynamicRir: true,
+  startingRir: 3,
   workouts: [createEmptyWorkout()],
 };
 
@@ -23,6 +27,22 @@ export const useCreateProgram = () => {
 
   const updateProgramName = (name: string) => {
     setProgram((prev) => ({ ...prev, name }));
+  };
+
+  const updateDuration = (durationWeeks: number) => {
+    setProgram((prev) => ({ ...prev, durationWeeks }));
+  };
+
+  const updateFrequency = (frequency: Frequency) => {
+    setProgram((prev) => ({ ...prev, frequency }));
+  };
+
+  const updateDynamicRir = (dynamicRir: boolean) => {
+    setProgram((prev) => ({ ...prev, dynamicRir }));
+  };
+
+  const updateStartingRir = (startingRir: number) => {
+    setProgram((prev) => ({ ...prev, startingRir }));
   };
 
   const addWorkout = () => {
@@ -95,9 +115,17 @@ export const useCreateProgram = () => {
     setProgram(initialProgram);
   };
 
+  const loadProgram = (preset: Program) => {
+    setProgram(preset);
+  };
+
   return {
     program,
     updateProgramName,
+    updateDuration,
+    updateFrequency,
+    updateDynamicRir,
+    updateStartingRir,
     addWorkout,
     removeWorkout,
     updateWorkoutName,
@@ -105,5 +133,6 @@ export const useCreateProgram = () => {
     removeExercise,
     updateExercise,
     resetProgram,
+    loadProgram,
   };
 };

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Trash2, ChevronRight } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Zap } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
-import type { Workout, Exercise } from "../../types/program";
+import { presets } from "../../data/presets";
+import type { Workout, Exercise, Frequency } from "../../types/program";
 import styles from "./CreateProgram.module.css";
 
 interface ExerciseRowProps {
@@ -155,16 +156,31 @@ const WorkoutSection = ({
   );
 };
 
+const frequencyOptions: { value: Frequency; label: string }[] = [
+  { value: 1, label: "1x" },
+  { value: 2, label: "2x" },
+  { value: 3, label: "3x" },
+  { value: 4, label: "4x" },
+  { value: 5, label: "5x" },
+  { value: 6, label: "6x" },
+  { value: "every-other-day", label: "EOD" },
+];
+
 const CreateProgram = () => {
   const {
     program,
     updateProgramName,
+    updateDuration,
+    updateFrequency,
+    updateDynamicRir,
+    updateStartingRir,
     addWorkout,
     removeWorkout,
     updateWorkoutName,
     addExercise,
     removeExercise,
     updateExercise,
+    loadProgram,
   } = useCreateProgram();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -182,6 +198,24 @@ const CreateProgram = () => {
         <h1 className={styles.title}>Create Program</h1>
       </div>
 
+      <div className={styles.presetsSection}>
+        <span className={styles.presetsLabel}>Start from a preset:</span>
+        <div className={styles.presetsList}>
+          {presets.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => loadProgram(preset.program)}
+              className={styles.presetButton}
+            >
+              <Zap size={14} />
+              <span>{preset.name}</span>
+              <span className={styles.presetDescription}>{preset.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <form onSubmit={handleSubmit} className={styles.form}>
         <input
           type="text"
@@ -190,6 +224,77 @@ const CreateProgram = () => {
           className={styles.programNameInput}
           placeholder="Program name"
         />
+
+        <div className={styles.programSettings}>
+          <div className={styles.settingGroup}>
+            <span className={styles.settingLabel}>Duration</span>
+            <div className={styles.durationInput}>
+              <input
+                type="number"
+                value={program.durationWeeks}
+                onChange={(e) => updateDuration(Number(e.target.value))}
+                className={styles.durationNumber}
+                min={1}
+                max={52}
+              />
+              <span className={styles.durationUnit}>weeks</span>
+            </div>
+          </div>
+
+          <div className={styles.settingDivider} />
+
+          <div className={styles.settingGroup}>
+            <span className={styles.settingLabel}>Frequency</span>
+            <div className={styles.frequencyOptions}>
+              {frequencyOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => updateFrequency(option.value)}
+                  className={`${styles.frequencyOption} ${
+                    program.frequency === option.value ? styles.frequencyActive : ""
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.settingDivider} />
+
+          <div className={styles.settingGroup}>
+            <span className={styles.settingLabel}>RIR Progression</span>
+            <div className={styles.rirControl}>
+              <button
+                type="button"
+                onClick={() => updateDynamicRir(!program.dynamicRir)}
+                className={`${styles.rirToggle} ${program.dynamicRir ? styles.rirToggleActive : ""}`}
+              >
+                <span className={styles.rirToggleTrack}>
+                  <span className={styles.rirToggleThumb} />
+                </span>
+                <span>{program.dynamicRir ? "Dynamic" : "Static"}</span>
+              </button>
+              {program.dynamicRir && (
+                <div className={styles.rirStart}>
+                  <span className={styles.rirStartLabel}>Start:</span>
+                  <select
+                    value={program.startingRir}
+                    onChange={(e) => updateStartingRir(Number(e.target.value))}
+                    className={styles.rirSelect}
+                  >
+                    {[4, 3, 2].map((rir) => (
+                      <option key={rir} value={rir}>RIR {rir}</option>
+                    ))}
+                  </select>
+                  <span className={styles.rirArrow}>→</span>
+                  <span className={styles.rirEnd}>RIR 0</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
         <div className={styles.workoutsContainer}>
           <div className={styles.workoutsHeader}>
@@ -204,23 +309,25 @@ const CreateProgram = () => {
             </button>
           </div>
 
-          {program.workouts.map((workout, workoutIndex) => (
-            <WorkoutSection
-              key={workoutIndex}
-              workout={workout}
-              workoutIndex={workoutIndex}
-              onUpdateName={(name) => updateWorkoutName(workoutIndex, name)}
-              onRemove={() => removeWorkout(workoutIndex)}
-              onAddExercise={() => addExercise(workoutIndex)}
-              onRemoveExercise={(exerciseIndex) =>
-                removeExercise(workoutIndex, exerciseIndex)
-              }
-              onUpdateExercise={(exerciseIndex, field, value) =>
-                updateExercise(workoutIndex, exerciseIndex, field, value)
-              }
-              canRemove={program.workouts.length > 1}
-            />
-          ))}
+          <div className={styles.workoutsGrid}>
+            {program.workouts.map((workout, workoutIndex) => (
+              <WorkoutSection
+                key={workoutIndex}
+                workout={workout}
+                workoutIndex={workoutIndex}
+                onUpdateName={(name) => updateWorkoutName(workoutIndex, name)}
+                onRemove={() => removeWorkout(workoutIndex)}
+                onAddExercise={() => addExercise(workoutIndex)}
+                onRemoveExercise={(exerciseIndex) =>
+                  removeExercise(workoutIndex, exerciseIndex)
+                }
+                onUpdateExercise={(exerciseIndex, field, value) =>
+                  updateExercise(workoutIndex, exerciseIndex, field, value)
+                }
+                canRemove={program.workouts.length > 1}
+              />
+            ))}
+          </div>
         </div>
 
         <div className={styles.formActions}>
