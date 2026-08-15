@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { google, sheets_v4 } from "googleapis";
+import { google, sheets_v4, drive_v3 } from "googleapis";
 import config from "../config.js";
 
 interface Tokens {
@@ -49,13 +49,18 @@ export class GoogleSheets {
     return { tokens: tokens as Tokens, user };
   }
 
-  private getClient(tokens: Tokens): sheets_v4.Sheets {
+  private getSheetsClient(tokens: Tokens): sheets_v4.Sheets {
     this.oauth2Client.setCredentials(tokens);
     return google.sheets({ version: "v4", auth: this.oauth2Client });
   }
 
-  async create(tokens: Tokens, title: string): Promise<string> {
-    const sheets = this.getClient(tokens);
+  private getDriveClient(tokens: Tokens): drive_v3.Drive {
+    this.oauth2Client.setCredentials(tokens);
+    return google.drive({ version: "v3", auth: this.oauth2Client });
+  }
+
+  async createSpreadsheet(tokens: Tokens, title: string): Promise<string> {
+    const sheets = this.getSheetsClient(tokens);
     const response = await sheets.spreadsheets.create({
       requestBody: {
         properties: { title },
@@ -64,8 +69,38 @@ export class GoogleSheets {
     return response.data.spreadsheetId!;
   }
 
+  async setFileProperties(
+    tokens: Tokens,
+    fileId: string,
+    appProperties: Record<string, string>,
+  ): Promise<void> {
+    const drive = this.getDriveClient(tokens);
+    await drive.files.update({
+      fileId,
+      requestBody: { appProperties },
+    });
+  }
+
+  async listFiles(
+    tokens: Tokens,
+    query: string,
+  ): Promise<{ id: string; name: string; createdTime: string }[]> {
+    const drive = this.getDriveClient(tokens);
+    const response = await drive.files.list({
+      q: query,
+      fields: "files(id, name, createdTime)",
+      orderBy: "createdTime desc",
+    });
+
+    return (response.data.files || []).map((file) => ({
+      id: file.id!,
+      name: file.name!,
+      createdTime: file.createdTime!,
+    }));
+  }
+
   async addSheet(tokens: Tokens, spreadsheetId: string, sheetTitle: string): Promise<number> {
-    const sheets = this.getClient(tokens);
+    const sheets = this.getSheetsClient(tokens);
     const response = await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
@@ -87,7 +122,7 @@ export class GoogleSheets {
     range: string,
     values: (string | number)[][],
   ): Promise<void> {
-    const sheets = this.getClient(tokens);
+    const sheets = this.getSheetsClient(tokens);
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range,
@@ -101,7 +136,7 @@ export class GoogleSheets {
     spreadsheetId: string,
     data: { range: string; values: (string | number)[][] }[],
   ): Promise<void> {
-    const sheets = this.getClient(tokens);
+    const sheets = this.getSheetsClient(tokens);
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId,
       requestBody: {
@@ -116,7 +151,7 @@ export class GoogleSheets {
     spreadsheetId: string,
     range: string,
   ): Promise<(string | number)[][] | null> {
-    const sheets = this.getClient(tokens);
+    const sheets = this.getSheetsClient(tokens);
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range,

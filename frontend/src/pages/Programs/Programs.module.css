@@ -7,6 +7,13 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+@media (max-width: 767px) {
+  .header {
+    flex-direction: column;
+  }
 }
 
 .title {
@@ -15,6 +22,12 @@
   color: #0f0f0f;
   margin: 0 0 0.25rem 0;
   letter-spacing: -0.025em;
+}
+
+@media (max-width: 767px) {
+  .title {
+    font-size: 1.25rem;
+  }
 }
 
 .subtitle {
@@ -26,6 +39,7 @@
 .createButton {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: 0.5rem 1rem;
   background-color: #0f0f0f;
   color: #fafafa;
@@ -36,10 +50,66 @@
   cursor: pointer;
   text-decoration: none;
   transition: all 0.15s ease;
+  min-height: var(--touch-target);
+}
+
+@media (max-width: 767px) {
+  .createButton {
+    width: 100%;
+  }
 }
 
 .createButton:hover {
   background-color: #262626;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem;
+  color: #737373;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 767px) {
+  .loadingState {
+    padding: 2rem;
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorState {
+  background: #fef2f2;
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 767px) {
+  .errorState {
+    padding: 1.5rem;
+  }
+}
+
+.errorState p {
+  margin: 0;
 }
 
 .emptyState {
@@ -52,6 +122,73 @@
   font-size: 0.875rem;
 }
 
+@media (max-width: 767px) {
+  .emptyState {
+    padding: 2rem 1.5rem;
+  }
+}
+
 .emptyState p {
   margin: 0.25rem 0;
+}
+
+.programsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.programCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  min-height: var(--touch-target);
+}
+
+@media (max-width: 767px) {
+  .programCard {
+    padding: 1rem;
+  }
+}
+
+.programCard:hover {
+  border-color: #0f0f0f;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.programInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.programName {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #0f0f0f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.programDate {
+  font-size: 0.8125rem;
+  color: #737373;
+}
+
+.chevronIcon {
+  color: #a1a1a1;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.programCard:hover .chevronIcon {
+  color: #0f0f0f;
 }

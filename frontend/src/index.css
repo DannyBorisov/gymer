@@ -15,6 +15,19 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
+  /* Mobile breakpoints */
+  --bp-sm: 480px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1200px;
+
+  /* Touch targets */
+  --touch-target: 44px;
+
+  /* Mobile layout */
+  --mobile-header-height: 56px;
+  --mobile-nav-height: 64px;
+
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
@@ -58,6 +71,12 @@
 
 body {
   margin: 0;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 h1,

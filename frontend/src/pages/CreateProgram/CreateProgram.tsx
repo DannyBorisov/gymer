@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Trash2, ChevronRight, Zap } from "lucide-react";
+import { Plus, Trash2, ChevronRight, Zap, ExternalLink, Loader2 } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { presets } from "../../data/presets";
 import type { Workout, Exercise, Frequency } from "../../types/program";
@@ -183,9 +183,33 @@ const CreateProgram = () => {
     loadProgram,
   } = useCreateProgram();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState<{ success: boolean; url?: string; error?: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Program:", program);
+    setIsSubmitting(true);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/program/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(program),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setResult({ success: true, url: data.url });
+      } else {
+        setResult({ success: false, error: data.error || "Failed to create program" });
+      }
+    } catch {
+      setResult({ success: false, error: "Network error" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -331,9 +355,40 @@ const CreateProgram = () => {
         </div>
 
         <div className={styles.formActions}>
-          <button type="submit" className={styles.submitButton}>
-            Create Program
-          </button>
+          {result?.success ? (
+            <div className={styles.successMessage}>
+              <span>Program created!</span>
+              <a
+                href={result.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.sheetLink}
+              >
+                Open in Google Sheets
+                <ExternalLink size={14} />
+              </a>
+            </div>
+          ) : (
+            <>
+              {result?.error && (
+                <span className={styles.errorMessage}>{result.error}</span>
+              )}
+              <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={16} className={styles.spinner} />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Program"
+                )}
+              </button>
+            </>
+          )}
         </div>
       </form>
     </div>

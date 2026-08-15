@@ -6,6 +6,7 @@ import Login from "./pages/Login/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
 import Programs from "./pages/Programs/Programs";
+import ProgramDetail from "./pages/ProgramDetail/ProgramDetail";
 import CreateProgram from "./pages/CreateProgram/CreateProgram";
 
 const App = () => {
@@ -24,6 +25,7 @@ const App = () => {
                     <Route path="/history" element={<WorkoutHistory />} />
                     <Route path="/programs" element={<Programs />} />
                     <Route path="/programs/create" element={<CreateProgram />} />
+                    <Route path="/programs/:id" element={<ProgramDetail />} />
                   </Routes>
                 </Layout>
               </ProtectedRoute>
