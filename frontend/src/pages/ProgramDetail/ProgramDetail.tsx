@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Loader2,
   ChevronLeft,
@@ -17,6 +17,7 @@ import {
   History,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
+import { useWorkout } from "../../contexts/WorkoutContext";
 import styles from "./ProgramDetail.module.css";
 
 interface ExerciseRow {
@@ -37,6 +38,7 @@ interface Workout {
   name: string;
   exercises: ExerciseRow[];
   isComplete: boolean;
+  completedDate: string;
 }
 
 interface Week {
@@ -58,75 +60,33 @@ const formatTime = (seconds: number) => {
 
 const ProgramDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { weightUnit } = useSettings();
+  const {
+    activeWorkout,
+    workoutData,
+    timer,
+    isTimerRunning,
+    currentExerciseIndex,
+    currentSetIndex,
+    completedSets,
+    startWorkout,
+    stopWorkout,
+    setIsTimerRunning,
+    updateExercise,
+    adjustValue,
+    completeSet,
+    setCurrentExerciseIndex,
+    setCurrentSetIndex,
+  } = useWorkout();
+
   const [program, setProgram] = useState<Week[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Active workout state
-  const [activeWorkout, setActiveWorkout] = useState<{
-    week: number;
-    workout: Workout;
-  } | null>(null);
-  const [workoutData, setWorkoutData] = useState<Map<number, ExerciseRow>>(
-    new Map()
-  );
-  const [timer, setTimer] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Focus mode state
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [currentSetIndex, setCurrentSetIndex] = useState(0);
-  const [completedSets, setCompletedSets] = useState<Set<number>>(new Set());
   const [showNotes, setShowNotes] = useState(false);
-  const [previousStats, setPreviousStats] = useState<Map<string, PreviousStats>>(new Map());
-
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const timerStartRef = useRef<number>(0);
-
-  // Wake Lock - keep screen on during workout
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      if (activeWorkout && 'wakeLock' in navigator) {
-        try {
-          wakeLockRef.current = await navigator.wakeLock.request('screen');
-        } catch (err) {
-          console.log('Wake Lock error:', err);
-        }
-      }
-    };
-
-    const releaseWakeLock = () => {
-      if (wakeLockRef.current) {
-        wakeLockRef.current.release();
-        wakeLockRef.current = null;
-      }
-    };
-
-    if (activeWorkout) {
-      requestWakeLock();
-    } else {
-      releaseWakeLock();
-    }
-
-    // Re-request wake lock when page becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && activeWorkout) {
-        requestWakeLock();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      releaseWakeLock();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [activeWorkout]);
+  const [previousStats, setPreviousStats] = useState<
+    Map<string, PreviousStats>
+  >(new Map());
 
   const fetchProgram = useCallback(async () => {
     try {
@@ -149,193 +109,77 @@ const ProgramDetail = () => {
     fetchProgram();
   }, [fetchProgram]);
 
-  // Timer effect - uses elapsed time for accuracy when backgrounded
-  useEffect(() => {
-    if (isTimerRunning) {
-      // Store when we started (accounting for any existing time)
-      if (timerStartRef.current === 0) {
-        timerStartRef.current = Date.now() - timer * 1000;
-      }
-
-      timerRef.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - timerStartRef.current) / 1000);
-        setTimer(elapsed);
-      }, 1000);
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isTimerRunning]);
-
-  // Auto-save effect
-  const saveWorkout = useCallback(async () => {
-    if (!id || workoutData.size === 0) return;
-
-    setIsSaving(true);
-    try {
-      const updates = Array.from(workoutData.values()).map((row) => ({
-        rowIndex: row.rowIndex,
-        weight: row.weight,
-        repsAchieved: row.repsAchieved,
-        rirAchieved: row.rirAchieved,
-        notes: row.notes,
-      }));
-
-      await fetch(`/api/programs/${id}/rows`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates }),
-      });
-
-      setHasUnsavedChanges(false);
-    } catch (error) {
-      console.error("Failed to save:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [id, workoutData]);
-
-  useEffect(() => {
-    if (hasUnsavedChanges) {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(saveWorkout, 3000);
-    }
-
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
-  }, [hasUnsavedChanges, saveWorkout]);
-
-  const startWorkout = (week: number, workout: Workout) => {
-    const data = new Map<number, ExerciseRow>();
-    workout.exercises.forEach((ex) => {
-      data.set(ex.rowIndex, { ...ex });
-    });
-    setWorkoutData(data);
-    setActiveWorkout({ week, workout });
-    setTimer(0);
-    timerStartRef.current = Date.now(); // Reset timer start
-    setIsTimerRunning(true);
-    setCurrentExerciseIndex(0);
-    setCurrentSetIndex(0);
-    setCompletedSets(new Set());
-    setShowNotes(false);
+  const handleStartWorkout = (week: number, workout: Workout) => {
+    if (!id) return;
+    startWorkout(id, week, workout);
 
     // Find previous stats for each exercise from earlier weeks
     const stats = new Map<string, PreviousStats>();
-    const exerciseNames = [...new Set(workout.exercises.map(e => e.exercise))];
+    const exerciseNames = [
+      ...new Set(workout.exercises.map((e) => e.exercise)),
+    ];
 
     for (const exerciseName of exerciseNames) {
-      // Look through previous weeks for the same exercise (with completed data)
       for (let w = week - 1; w >= 1; w--) {
-        const prevWeek = program.find(p => p.week === w);
+        const prevWeek = program.find((p) => p.week === w);
         if (!prevWeek) continue;
 
         for (const prevWorkout of prevWeek.workouts) {
           const prevExercises = prevWorkout.exercises.filter(
-            e => e.exercise === exerciseName && e.weight && e.repsAchieved
+            (e) => e.exercise === exerciseName && e.weight && e.repsAchieved,
           );
 
           if (prevExercises.length > 0) {
             stats.set(exerciseName, {
               week: w,
               workout: prevWorkout.name,
-              sets: prevExercises.map(e => ({
+              sets: prevExercises.map((e) => ({
                 weight: e.weight,
                 reps: e.repsAchieved,
                 rir: e.rirAchieved,
               })),
             });
-            break; // Found most recent, stop looking
+            break;
           }
         }
-        if (stats.has(exerciseName)) break; // Found it, move to next exercise
+        if (stats.has(exerciseName)) break;
       }
     }
     setPreviousStats(stats);
   };
 
-  const stopWorkout = async () => {
-    setIsTimerRunning(false);
-    timerStartRef.current = 0; // Reset timer start
-    if (hasUnsavedChanges) {
-      await saveWorkout();
-    }
+  const handleStopWorkout = async () => {
+    await stopWorkout();
     await fetchProgram();
-    setActiveWorkout(null);
-    setWorkoutData(new Map());
-    setTimer(0);
-    setCompletedSets(new Set());
   };
 
-  const updateExercise = (
-    rowIndex: number,
-    field: "weight" | "repsAchieved" | "rirAchieved" | "notes",
-    value: string
+  const copyFromPreviousSet = (
+    currentSet: ExerciseRow,
+    previousSet: ExerciseRow,
   ) => {
-    setWorkoutData((prev) => {
-      const newData = new Map(prev);
-      const row = newData.get(rowIndex);
-      if (row) {
-        newData.set(rowIndex, { ...row, [field]: value });
-      }
-      return newData;
-    });
-    setHasUnsavedChanges(true);
-  };
-
-  const adjustValue = (
-    rowIndex: number,
-    field: "weight" | "repsAchieved" | "rirAchieved",
-    delta: number
-  ) => {
-    const row = workoutData.get(rowIndex);
-    if (!row) return;
-
-    const currentValue = parseFloat(row[field]) || 0;
-    const newValue = Math.max(0, currentValue + delta);
-    updateExercise(rowIndex, field, newValue.toString());
-  };
-
-  const completeSet = (rowIndex: number) => {
-    setCompletedSets((prev) => new Set([...prev, rowIndex]));
-
-    // Auto-advance to next set
-    const exercises = Array.from(workoutData.values());
-    const groupedByExercise = Object.values(
-      exercises.reduce((acc, ex) => {
-        if (!acc[ex.exercise]) acc[ex.exercise] = [];
-        acc[ex.exercise].push(ex);
-        return acc;
-      }, {} as Record<string, ExerciseRow[]>)
-    );
-
-    const currentExerciseSets = groupedByExercise[currentExerciseIndex];
-    if (currentSetIndex < currentExerciseSets.length - 1) {
-      setCurrentSetIndex(currentSetIndex + 1);
-    } else if (currentExerciseIndex < groupedByExercise.length - 1) {
-      setCurrentExerciseIndex(currentExerciseIndex + 1);
-      setCurrentSetIndex(0);
-    }
-    setShowNotes(false);
-  };
-
-  const copyFromPreviousSet = (currentSet: ExerciseRow, previousSet: ExerciseRow) => {
     if (previousSet.weight) {
       updateExercise(currentSet.rowIndex, "weight", previousSet.weight);
     }
     if (previousSet.repsAchieved) {
-      updateExercise(currentSet.rowIndex, "repsAchieved", previousSet.repsAchieved);
+      updateExercise(
+        currentSet.rowIndex,
+        "repsAchieved",
+        previousSet.repsAchieved,
+      );
     }
     if (previousSet.rirAchieved) {
-      updateExercise(currentSet.rowIndex, "rirAchieved", previousSet.rirAchieved);
+      updateExercise(
+        currentSet.rowIndex,
+        "rirAchieved",
+        previousSet.rirAchieved,
+      );
     }
   };
+
+  // Check if there's an active workout for a different program
+  const isWorkoutActiveForDifferentProgram = !!(
+    activeWorkout && activeWorkout.programId !== id
+  );
 
   if (isLoading) {
     return (
@@ -361,32 +205,37 @@ const ProgramDetail = () => {
     );
   }
 
-  // Active workout view - Focus Mode
-  if (activeWorkout) {
+  // Active workout view - Focus Mode (only show if workout is for this program)
+  if (activeWorkout && activeWorkout.programId === id) {
     const exercises = Array.from(workoutData.values());
     const groupedByExercise = Object.entries(
-      exercises.reduce((acc, ex) => {
-        if (!acc[ex.exercise]) acc[ex.exercise] = [];
-        acc[ex.exercise].push(ex);
-        return acc;
-      }, {} as Record<string, ExerciseRow[]>)
+      exercises.reduce(
+        (acc, ex) => {
+          if (!acc[ex.exercise]) acc[ex.exercise] = [];
+          acc[ex.exercise].push(ex);
+          return acc;
+        },
+        {} as Record<string, ExerciseRow[]>,
+      ),
     );
 
     const totalSets = exercises.length;
     const completedCount = completedSets.size;
+    const isWorkoutComplete = completedCount === totalSets && totalSets > 0;
 
     const currentExercise = groupedByExercise[currentExerciseIndex];
     const currentExerciseName = currentExercise?.[0] || "";
     const currentExerciseSets = currentExercise?.[1] || [];
     const currentSet = currentExerciseSets[currentSetIndex];
-    const previousSet = currentSetIndex > 0 ? currentExerciseSets[currentSetIndex - 1] : null;
+    const previousSet =
+      currentSetIndex > 0 ? currentExerciseSets[currentSetIndex - 1] : null;
 
     const isSetCompleted = currentSet && completedSets.has(currentSet.rowIndex);
     const prevStats = previousStats.get(currentExerciseName);
 
     return (
-      <div className={styles.container}>
-        {/* Sticky header with timer and exercise info */}
+      <div className={styles.workoutContainer}>
+        {/* Sticky header with timer */}
         <div className={styles.stickyHeader}>
           <div className={styles.workoutHeader}>
             <div className={styles.timerSection}>
@@ -409,10 +258,6 @@ const ProgramDetail = () => {
                     <Play size={18} />
                   </button>
                 )}
-                <button onClick={stopWorkout} className={styles.stopBtn}>
-                  <Square size={16} />
-                  <span>End</span>
-                </button>
               </div>
             </div>
             <div className={styles.progressSection}>
@@ -425,59 +270,56 @@ const ProgramDetail = () => {
               <span className={styles.progressText}>
                 {completedCount}/{totalSets}
               </span>
-              {isSaving && (
-                <span className={styles.savingBadge}>Saving...</span>
-              )}
             </div>
           </div>
+        </div>
 
-          {/* Exercise navigation */}
-          <div className={styles.exerciseNav}>
-            <button
-              onClick={() => {
-                if (currentSetIndex > 0) {
-                  setCurrentSetIndex(currentSetIndex - 1);
-                } else if (currentExerciseIndex > 0) {
-                  setCurrentExerciseIndex(currentExerciseIndex - 1);
-                  const prevExerciseSets = groupedByExercise[currentExerciseIndex - 1][1];
-                  setCurrentSetIndex(prevExerciseSets.length - 1);
-                }
-                setShowNotes(false);
-              }}
-              disabled={currentExerciseIndex === 0 && currentSetIndex === 0}
-              className={styles.navBtn}
-              aria-label="Previous set"
-            >
-              <ChevronLeft size={24} />
-            </button>
-
-            <div className={styles.exerciseNavInfo}>
-              <span className={styles.exerciseNavName}>{currentExerciseName}</span>
-              <span className={styles.exerciseNavMeta}>
-                Set {currentSetIndex + 1}/{currentExerciseSets.length} · {currentSet?.targetReps} reps @ {currentSet?.rir}
-              </span>
+        {/* Workout complete banner */}
+        {isWorkoutComplete && (
+          <div className={styles.workoutCompleteBanner}>
+            <Check size={24} />
+            <div>
+              <span className={styles.completeTitle}>Workout Complete!</span>
+              <span className={styles.completeSubtitle}>All {totalSets} sets finished</span>
             </div>
+          </div>
+        )}
 
-            <button
-              onClick={() => {
-                if (currentSetIndex < currentExerciseSets.length - 1) {
-                  setCurrentSetIndex(currentSetIndex + 1);
-                } else if (currentExerciseIndex < groupedByExercise.length - 1) {
-                  setCurrentExerciseIndex(currentExerciseIndex + 1);
+        {/* Exercise tabs */}
+        <div className={styles.exerciseTabs}>
+          {groupedByExercise.map(([name, sets], idx) => {
+            const completedInExercise = sets.filter((s) =>
+              completedSets.has(s.rowIndex),
+            ).length;
+            const isComplete = completedInExercise === sets.length;
+            const isCurrent = idx === currentExerciseIndex;
+            return (
+              <button
+                key={name}
+                onClick={() => {
+                  setCurrentExerciseIndex(idx);
                   setCurrentSetIndex(0);
-                }
-                setShowNotes(false);
-              }}
-              disabled={
-                currentExerciseIndex === groupedByExercise.length - 1 &&
-                currentSetIndex === currentExerciseSets.length - 1
-              }
-              className={styles.navBtn}
-              aria-label="Next set"
-            >
-              <ChevronRight size={24} />
-            </button>
-          </div>
+                  setShowNotes(false);
+                }}
+                className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
+              >
+                <span className={styles.exerciseTabName}>{name}</span>
+                <span className={styles.exerciseTabCount}>
+                  {completedInExercise}/{sets.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Current exercise info */}
+        <div className={styles.currentExerciseInfo}>
+          <span className={styles.currentExerciseName}>
+            {currentExerciseName}
+          </span>
+          <span className={styles.currentExerciseMeta}>
+            {currentSet?.targetReps} reps @ {currentSet?.rir}
+          </span>
         </div>
 
         {/* Set indicators */}
@@ -493,47 +335,83 @@ const ProgramDetail = () => {
                 idx === currentSetIndex ? styles.setIndicatorActive : ""
               } ${completedSets.has(set.rowIndex) ? styles.setIndicatorDone : ""}`}
             >
-              {completedSets.has(set.rowIndex) ? (
-                <Check size={14} />
-              ) : (
-                set.set
-              )}
+              {completedSets.has(set.rowIndex) ? <Check size={14} /> : set.set}
             </button>
           ))}
         </div>
 
         {/* Current set input */}
         {currentSet && (
-          <div className={styles.focusCard}>
-            <div className={styles.focusSetLabel}>
-              Set {currentSet.set} of {currentExerciseSets.length}
-              {isSetCompleted && (
-                <span className={styles.completedBadge}>
-                  <Check size={14} /> Done
-                </span>
-              )}
+          <div className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ''}`}>
+            <div className={styles.setHeader}>
+              <button
+                className={styles.setNavBtn}
+                onClick={() => setCurrentSetIndex(Math.max(0, currentSetIndex - 1))}
+                disabled={currentSetIndex === 0}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className={styles.setLabel}>
+                Set {currentSet.set}/{currentExerciseSets.length}
+                {isSetCompleted && <Check size={14} className={styles.setDoneIcon} />}
+              </span>
+              <button
+                className={styles.setNavBtn}
+                onClick={() => setCurrentSetIndex(Math.min(currentExerciseSets.length - 1, currentSetIndex + 1))}
+                disabled={currentSetIndex === currentExerciseSets.length - 1}
+              >
+                <ChevronRight size={20} />
+              </button>
             </div>
 
-            {/* Previous session stats for this set */}
-            {prevStats && prevStats.sets[currentSetIndex] && (
-              <div className={styles.prevStats}>
-                <div className={styles.prevStatsHeader}>
-                  <History size={14} />
-                  <span>Last time (Week {prevStats.week}): {prevStats.sets[currentSetIndex].weight}{weightUnit} × {prevStats.sets[currentSetIndex].reps}{prevStats.sets[currentSetIndex].rir && ` @ ${prevStats.sets[currentSetIndex].rir} RIR`}</span>
-                </div>
-              </div>
-            )}
+            {/* Quick fill options - fixed height container to prevent layout shift */}
+            <div className={styles.quickFillContainer}>
+              {/* Previous session stats for this set - clickable to fill */}
+              {prevStats && prevStats.sets[currentSetIndex] && (
+                <button
+                  className={styles.prevStats}
+                  onClick={() => {
+                    const stats = prevStats.sets[currentSetIndex];
+                    if (stats.weight) {
+                      updateExercise(currentSet.rowIndex, "weight", stats.weight);
+                    }
+                    if (stats.reps) {
+                      updateExercise(currentSet.rowIndex, "repsAchieved", stats.reps);
+                    }
+                    if (stats.rir) {
+                      updateExercise(currentSet.rowIndex, "rirAchieved", stats.rir);
+                    }
+                  }}
+                >
+                  <div className={styles.prevStatsHeader}>
+                    <History size={14} />
+                    <span>
+                      Week {prevStats.week}: {prevStats.sets[currentSetIndex].weight}
+                      {weightUnit} × {prevStats.sets[currentSetIndex].reps}
+                      {prevStats.sets[currentSetIndex].rir &&
+                        ` @ ${prevStats.sets[currentSetIndex].rir}`}
+                    </span>
+                  </div>
+                </button>
+              )}
 
-            {/* Copy from previous */}
-            {previousSet && workoutData.get(previousSet.rowIndex)?.weight && (
-              <button
-                onClick={() => copyFromPreviousSet(currentSet, workoutData.get(previousSet.rowIndex)!)}
-                className={styles.copyBtn}
-              >
-                <Copy size={14} />
-                Copy from Set {previousSet.set}: {workoutData.get(previousSet.rowIndex)?.weight}{weightUnit} × {workoutData.get(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
-              </button>
-            )}
+              {/* Copy from previous set in current workout */}
+              {previousSet && workoutData.get(previousSet.rowIndex)?.weight && (
+                <button
+                  onClick={() =>
+                    copyFromPreviousSet(
+                      currentSet,
+                      workoutData.get(previousSet.rowIndex)!,
+                    )
+                  }
+                  className={styles.copyBtn}
+                >
+                  <Copy size={14} />
+                  Set {previousSet.set}: {workoutData.get(previousSet.rowIndex)?.weight}
+                  {weightUnit} × {workoutData.get(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
+                </button>
+              )}
+            </div>
 
             <div className={styles.inputSection}>
               {/* Weight */}
@@ -541,7 +419,9 @@ const ProgramDetail = () => {
                 <span className={styles.inputLabel}>Weight ({weightUnit})</span>
                 <div className={styles.stepperRow}>
                   <button
-                    onClick={() => adjustValue(currentSet.rowIndex, "weight", -2.5)}
+                    onClick={() =>
+                      adjustValue(currentSet.rowIndex, "weight", -2.5)
+                    }
                     className={styles.stepperBtn}
                     aria-label="Decrease weight"
                   >
@@ -551,12 +431,20 @@ const ProgramDetail = () => {
                     type="text"
                     inputMode="decimal"
                     value={workoutData.get(currentSet.rowIndex)?.weight || ""}
-                    onChange={(e) => updateExercise(currentSet.rowIndex, "weight", e.target.value)}
+                    onChange={(e) =>
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "weight",
+                        e.target.value,
+                      )
+                    }
                     placeholder="0"
                     className={styles.focusInput}
                   />
                   <button
-                    onClick={() => adjustValue(currentSet.rowIndex, "weight", 2.5)}
+                    onClick={() =>
+                      adjustValue(currentSet.rowIndex, "weight", 2.5)
+                    }
                     className={styles.stepperBtn}
                     aria-label="Increase weight"
                   >
@@ -570,7 +458,9 @@ const ProgramDetail = () => {
                 <span className={styles.inputLabel}>Reps</span>
                 <div className={styles.stepperRow}>
                   <button
-                    onClick={() => adjustValue(currentSet.rowIndex, "repsAchieved", -1)}
+                    onClick={() =>
+                      adjustValue(currentSet.rowIndex, "repsAchieved", -1)
+                    }
                     className={styles.stepperBtn}
                     aria-label="Decrease reps"
                   >
@@ -579,13 +469,23 @@ const ProgramDetail = () => {
                   <input
                     type="text"
                     inputMode="numeric"
-                    value={workoutData.get(currentSet.rowIndex)?.repsAchieved || ""}
-                    onChange={(e) => updateExercise(currentSet.rowIndex, "repsAchieved", e.target.value)}
+                    value={
+                      workoutData.get(currentSet.rowIndex)?.repsAchieved || ""
+                    }
+                    onChange={(e) =>
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "repsAchieved",
+                        e.target.value,
+                      )
+                    }
                     placeholder={currentSet.targetReps.toString()}
                     className={styles.focusInput}
                   />
                   <button
-                    onClick={() => adjustValue(currentSet.rowIndex, "repsAchieved", 1)}
+                    onClick={() =>
+                      adjustValue(currentSet.rowIndex, "repsAchieved", 1)
+                    }
                     className={styles.stepperBtn}
                     aria-label="Increase reps"
                   >
@@ -599,7 +499,9 @@ const ProgramDetail = () => {
                 <span className={styles.inputLabel}>RIR</span>
                 <div className={styles.stepperRow}>
                   <button
-                    onClick={() => adjustValue(currentSet.rowIndex, "rirAchieved", -1)}
+                    onClick={() =>
+                      adjustValue(currentSet.rowIndex, "rirAchieved", -1)
+                    }
                     className={styles.stepperBtn}
                     aria-label="Decrease RIR"
                   >
@@ -608,13 +510,23 @@ const ProgramDetail = () => {
                   <input
                     type="text"
                     inputMode="numeric"
-                    value={workoutData.get(currentSet.rowIndex)?.rirAchieved || ""}
-                    onChange={(e) => updateExercise(currentSet.rowIndex, "rirAchieved", e.target.value)}
+                    value={
+                      workoutData.get(currentSet.rowIndex)?.rirAchieved || ""
+                    }
+                    onChange={(e) =>
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "rirAchieved",
+                        e.target.value,
+                      )
+                    }
                     placeholder={currentSet.rir}
                     className={styles.focusInput}
                   />
                   <button
-                    onClick={() => adjustValue(currentSet.rowIndex, "rirAchieved", 1)}
+                    onClick={() =>
+                      adjustValue(currentSet.rowIndex, "rirAchieved", 1)
+                    }
                     className={styles.stepperBtn}
                     aria-label="Increase RIR"
                   >
@@ -636,7 +548,9 @@ const ProgramDetail = () => {
             {showNotes && (
               <textarea
                 value={workoutData.get(currentSet.rowIndex)?.notes || ""}
-                onChange={(e) => updateExercise(currentSet.rowIndex, "notes", e.target.value)}
+                onChange={(e) =>
+                  updateExercise(currentSet.rowIndex, "notes", e.target.value)
+                }
                 placeholder="How did it feel? Any adjustments needed?"
                 className={styles.notesTextarea}
                 rows={2}
@@ -651,35 +565,14 @@ const ProgramDetail = () => {
               <Check size={24} />
               {isSetCompleted ? "Set Completed" : "Complete Set"}
             </button>
+
+            {/* End workout button */}
+            <button onClick={handleStopWorkout} className={styles.endWorkoutBtn}>
+              <Square size={16} />
+              <span>End Workout</span>
+            </button>
           </div>
         )}
-
-        {/* Quick overview of all exercises */}
-        <div className={styles.exerciseOverview}>
-          <span className={styles.overviewTitle}>All Exercises</span>
-          <div className={styles.overviewList}>
-            {groupedByExercise.map(([name, sets], idx) => {
-              const completedInExercise = sets.filter(s => completedSets.has(s.rowIndex)).length;
-              const isCurrentExercise = idx === currentExerciseIndex;
-              return (
-                <button
-                  key={name}
-                  onClick={() => {
-                    setCurrentExerciseIndex(idx);
-                    setCurrentSetIndex(0);
-                    setShowNotes(false);
-                  }}
-                  className={`${styles.overviewItem} ${isCurrentExercise ? styles.overviewItemActive : ""}`}
-                >
-                  <span className={styles.overviewName}>{name}</span>
-                  <span className={styles.overviewSets}>
-                    {completedInExercise}/{sets.length}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
     );
   }
@@ -696,6 +589,18 @@ const ProgramDetail = () => {
         <h1 className={styles.title}>Program</h1>
       </div>
 
+      {/* Show banner if workout is active for different program */}
+      {isWorkoutActiveForDifferentProgram && (
+        <div className={styles.activeWorkoutBanner}>
+          <span>Workout in progress</span>
+          <button
+            onClick={() => navigate(`/programs/${activeWorkout.programId}`)}
+          >
+            Return to workout
+          </button>
+        </div>
+      )}
+
       <div className={styles.weeksList}>
         {program.map((week) => (
           <div key={week.week} className={styles.weekCard}>
@@ -706,8 +611,9 @@ const ProgramDetail = () => {
               {week.workouts.map((workout) => (
                 <button
                   key={workout.name}
-                  onClick={() => startWorkout(week.week, workout)}
+                  onClick={() => handleStartWorkout(week.week, workout)}
                   className={styles.workoutCard}
+                  disabled={isWorkoutActiveForDifferentProgram}
                 >
                   <div className={styles.workoutCardInfo}>
                     {workout.isComplete ? (
@@ -715,7 +621,12 @@ const ProgramDetail = () => {
                     ) : (
                       <Circle size={18} className={styles.incompleteIcon} />
                     )}
-                    <span className={styles.workoutName}>{workout.name}</span>
+                    <div className={styles.workoutCardText}>
+                      <span className={styles.workoutName}>{workout.name}</span>
+                      {workout.completedDate && (
+                        <span className={styles.workoutDate}>{workout.completedDate}</span>
+                      )}
+                    </div>
                   </div>
                   <Play size={16} className={styles.playIcon} />
                 </button>

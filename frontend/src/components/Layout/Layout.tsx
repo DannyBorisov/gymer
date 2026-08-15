@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, History, Dumbbell, LogOut, Scale } from 'lucide-react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, History, Dumbbell, LogOut, Scale, Play } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useWorkout } from '../../contexts/WorkoutContext'
 import styles from './Layout.module.css'
 
 const getInitials = (name: string) => {
@@ -24,10 +25,18 @@ interface LayoutProps {
   children: React.ReactNode
 }
 
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
 const Layout = ({ children }: LayoutProps) => {
   const { user, logout } = useAuth()
   const { weightUnit, setWeightUnit } = useSettings()
+  const { activeWorkout, timer, isTimerRunning } = useWorkout()
   const location = useLocation()
+  const navigate = useNavigate()
   const [showPopover, setShowPopover] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -61,10 +70,20 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Mobile Header */}
       {isMobile && (
         <header className={styles.mobileHeader}>
-          <div className={styles.mobileHeaderLogo}>
-            <Dumbbell size={20} />
-            <span>Gymerr</span>
-          </div>
+          {activeWorkout ? (
+            <button
+              className={styles.workoutIndicator}
+              onClick={() => navigate(`/programs/${activeWorkout.programId}`)}
+            >
+              <Play size={14} className={isTimerRunning ? styles.pulseIcon : ''} />
+              <span>{formatTime(timer)}</span>
+            </button>
+          ) : (
+            <div className={styles.mobileHeaderLogo}>
+              <Dumbbell size={20} />
+              <span>Gymerr</span>
+            </div>
+          )}
           {user && (
             <div className={styles.mobileUserSection} ref={popoverRef}>
               <button
@@ -193,8 +212,8 @@ const Layout = ({ children }: LayoutProps) => {
 
       <main className={styles.main}>{children}</main>
 
-      {/* Mobile Bottom Navigation */}
-      {isMobile && (
+      {/* Mobile Bottom Navigation - hide during active workout */}
+      {isMobile && !activeWorkout && (
         <nav className={styles.bottomNav}>
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink

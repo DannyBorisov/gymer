@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SettingsProvider } from "./contexts/SettingsContext";
+import { WorkoutProvider } from "./contexts/WorkoutContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
 import Login from "./pages/Login/Login";
@@ -15,25 +16,33 @@ const App = () => {
     <BrowserRouter>
       <AuthProvider>
         <SettingsProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/history" element={<WorkoutHistory />} />
-                    <Route path="/programs" element={<Programs />} />
-                    <Route path="/programs/create" element={<CreateProgram />} />
-                    <Route path="/programs/:id" element={<ProgramDetail />} />
-                  </Routes>
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+          <WorkoutProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/history" element={<WorkoutHistory />} />
+                        <Route path="/programs" element={<Programs />} />
+                        <Route
+                          path="/programs/create"
+                          element={<CreateProgram />}
+                        />
+                        <Route
+                          path="/programs/:id"
+                          element={<ProgramDetail />}
+                        />
+                      </Routes>
+                    </Layout>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </WorkoutProvider>
         </SettingsProvider>
       </AuthProvider>
     </BrowserRouter>
