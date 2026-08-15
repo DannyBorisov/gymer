@@ -10,6 +10,7 @@ import {
 
 interface ExerciseRow {
   rowIndex: number;
+  date: string;
   week: number;
   workout: string;
   exercise: string;

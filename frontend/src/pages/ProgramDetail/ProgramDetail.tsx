@@ -22,6 +22,7 @@ import styles from "./ProgramDetail.module.css";
 
 interface ExerciseRow {
   rowIndex: number;
+  date: string;
   week: number;
   workout: string;
   exercise: string;
