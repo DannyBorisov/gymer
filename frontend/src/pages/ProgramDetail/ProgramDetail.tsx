@@ -29,6 +29,7 @@ interface ExerciseRow {
   rir: string;
   weight: string;
   repsAchieved: string;
+  rirAchieved: string;
   notes: string;
 }
 
@@ -46,7 +47,7 @@ interface Week {
 interface PreviousStats {
   week: number;
   workout: string;
-  sets: { weight: string; reps: string }[];
+  sets: { weight: string; reps: string; rir: string }[];
 }
 
 const formatTime = (seconds: number) => {
@@ -181,6 +182,7 @@ const ProgramDetail = () => {
         rowIndex: row.rowIndex,
         weight: row.weight,
         repsAchieved: row.repsAchieved,
+        rirAchieved: row.rirAchieved,
         notes: row.notes,
       }));
 
@@ -246,6 +248,7 @@ const ProgramDetail = () => {
               sets: prevExercises.map(e => ({
                 weight: e.weight,
                 reps: e.repsAchieved,
+                rir: e.rirAchieved,
               })),
             });
             break; // Found most recent, stop looking
@@ -272,7 +275,7 @@ const ProgramDetail = () => {
 
   const updateExercise = (
     rowIndex: number,
-    field: "weight" | "repsAchieved" | "notes",
+    field: "weight" | "repsAchieved" | "rirAchieved" | "notes",
     value: string
   ) => {
     setWorkoutData((prev) => {
@@ -288,7 +291,7 @@ const ProgramDetail = () => {
 
   const adjustValue = (
     rowIndex: number,
-    field: "weight" | "repsAchieved",
+    field: "weight" | "repsAchieved" | "rirAchieved",
     delta: number
   ) => {
     const row = workoutData.get(rowIndex);
@@ -328,6 +331,9 @@ const ProgramDetail = () => {
     }
     if (previousSet.repsAchieved) {
       updateExercise(currentSet.rowIndex, "repsAchieved", previousSet.repsAchieved);
+    }
+    if (previousSet.rirAchieved) {
+      updateExercise(currentSet.rowIndex, "rirAchieved", previousSet.rirAchieved);
     }
   };
 
@@ -513,7 +519,7 @@ const ProgramDetail = () => {
               <div className={styles.prevStats}>
                 <div className={styles.prevStatsHeader}>
                   <History size={14} />
-                  <span>Last time (Week {prevStats.week}): {prevStats.sets[currentSetIndex].weight}{weightUnit} × {prevStats.sets[currentSetIndex].reps}</span>
+                  <span>Last time (Week {prevStats.week}): {prevStats.sets[currentSetIndex].weight}{weightUnit} × {prevStats.sets[currentSetIndex].reps}{prevStats.sets[currentSetIndex].rir && ` @ ${prevStats.sets[currentSetIndex].rir} RIR`}</span>
                 </div>
               </div>
             )}
@@ -582,6 +588,35 @@ const ProgramDetail = () => {
                     onClick={() => adjustValue(currentSet.rowIndex, "repsAchieved", 1)}
                     className={styles.stepperBtn}
                     aria-label="Increase reps"
+                  >
+                    <Plus size={24} />
+                  </button>
+                </div>
+              </div>
+
+              {/* RIR */}
+              <div className={styles.inputGroup}>
+                <span className={styles.inputLabel}>RIR</span>
+                <div className={styles.stepperRow}>
+                  <button
+                    onClick={() => adjustValue(currentSet.rowIndex, "rirAchieved", -1)}
+                    className={styles.stepperBtn}
+                    aria-label="Decrease RIR"
+                  >
+                    <Minus size={24} />
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={workoutData.get(currentSet.rowIndex)?.rirAchieved || ""}
+                    onChange={(e) => updateExercise(currentSet.rowIndex, "rirAchieved", e.target.value)}
+                    placeholder={currentSet.rir}
+                    className={styles.focusInput}
+                  />
+                  <button
+                    onClick={() => adjustValue(currentSet.rowIndex, "rirAchieved", 1)}
+                    className={styles.stepperBtn}
+                    aria-label="Increase RIR"
                   >
                     <Plus size={24} />
                   </button>

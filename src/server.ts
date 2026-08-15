@@ -154,7 +154,7 @@ fastify.post<{ Body: CreateProgramBody }>("/api/program/create", async (request,
   const { name, durationWeeks, dynamicRir, startingRir, workouts } = request.body;
 
   // Build spreadsheet rows
-  const headers = ["Week", "Workout", "Exercise", "Set", "Target Reps", "RIR", "Weight", "Reps Achieved", "Notes"];
+  const headers = ["Week", "Workout", "Exercise", "Set", "Target Reps", "RIR", "Weight", "Reps Achieved", "RIR Achieved", "Notes"];
   const rows: (string | number)[][] = [headers];
 
   for (let week = 1; week <= durationWeeks; week++) {
@@ -182,6 +182,7 @@ fastify.post<{ Body: CreateProgramBody }>("/api/program/create", async (request,
             rirDisplay,
             "", // Weight - user fills in
             "", // Reps Achieved - user fills in
+            "", // RIR Achieved - user fills in
             "", // Notes - user fills in
           ]);
         }
@@ -234,13 +235,13 @@ fastify.get<{ Params: { id: string } }>("/api/programs/:id", async (request, rep
   const { id } = request.params;
 
   try {
-    const data = await fastify.sheets.get(session.tokens, id, "Sheet1!A:I");
+    const data = await fastify.sheets.get(session.tokens, id, "Sheet1!A:J");
     if (!data || data.length < 2) {
       return reply.status(404).send({ error: "Program not found or empty" });
     }
 
     // Parse spreadsheet data into structured format
-    // Headers: Week, Workout, Exercise, Set, Target Reps, RIR, Weight, Reps Achieved, Notes
+    // Headers: Week, Workout, Exercise, Set, Target Reps, RIR, Weight, Reps Achieved, RIR Achieved, Notes
     const rows = data.slice(1).map((row, index) => ({
       rowIndex: index + 2, // 1-indexed, skip header
       week: Number(row[0]) || 0,
@@ -251,7 +252,8 @@ fastify.get<{ Params: { id: string } }>("/api/programs/:id", async (request, rep
       rir: String(row[5] || ""),
       weight: String(row[6] || ""),
       repsAchieved: String(row[7] || ""),
-      notes: String(row[8] || ""),
+      rirAchieved: String(row[8] || ""),
+      notes: String(row[9] || ""),
     }));
 
     // Group by week and workout
@@ -285,7 +287,7 @@ fastify.get<{ Params: { id: string } }>("/api/programs/:id", async (request, rep
 });
 
 interface UpdateRowsBody {
-  updates: { rowIndex: number; weight: string; repsAchieved: string; notes: string }[];
+  updates: { rowIndex: number; weight: string; repsAchieved: string; rirAchieved: string; notes: string }[];
 }
 
 fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>("/api/programs/:id/rows", async (request, reply) => {
@@ -298,10 +300,10 @@ fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>("/api/programs/:
   const { updates } = request.body;
 
   try {
-    // Batch update the cells - columns G (Weight), H (Reps Achieved), I (Notes)
+    // Batch update the cells - columns G (Weight), H (Reps Achieved), I (RIR Achieved), J (Notes)
     const data = updates.map((update) => ({
-      range: `Sheet1!G${update.rowIndex}:I${update.rowIndex}`,
-      values: [[update.weight, update.repsAchieved, update.notes]],
+      range: `Sheet1!G${update.rowIndex}:J${update.rowIndex}`,
+      values: [[update.weight, update.repsAchieved, update.rirAchieved, update.notes]],
     }));
 
     await fastify.sheets.batchUpdate(session.tokens, id, data);
