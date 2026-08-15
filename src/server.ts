@@ -1,8 +1,9 @@
 import Fastify from "fastify";
-import fastifySecureSession from "@fastify/secure-session";
+import fastifyCookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import path from "path";
 import { fileURLToPath } from "url";
+import crypto from "crypto";
 import config from "./config.js";
 import googleSheetsPlugin, { type UserInfo } from "./plugins/googleSheets.js";
 
@@ -15,34 +16,63 @@ interface SessionData {
   user?: UserInfo;
 }
 
-declare module "@fastify/secure-session" {
-  interface SessionData {
-    tokens?: {
-      access_token: string;
-      refresh_token?: string;
-      expiry_date?: number;
-    };
-    user?: UserInfo;
-  }
-}
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Encryption helpers using Node.js built-in crypto
+const ENCRYPTION_KEY = crypto.scryptSync(config.env.SESSION_SECRET, "salt", 32);
+const IV_LENGTH = 16;
+
+function encrypt(data: SessionData): string {
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(data)), cipher.final()]);
+  return iv.toString("hex") + ":" + encrypted.toString("hex");
+}
+
+function decrypt(text: string): SessionData | null {
+  try {
+    const [ivHex, encryptedHex] = text.split(":");
+    if (!ivHex || !encryptedHex) return null;
+    const iv = Buffer.from(ivHex, "hex");
+    const encrypted = Buffer.from(encryptedHex, "hex");
+    const decipher = crypto.createDecipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return JSON.parse(decrypted.toString());
+  } catch {
+    return null;
+  }
+}
 
 const fastify = Fastify({
   logger: true,
 });
 
-// Register secure session (cookie-based, persists across server restarts)
-fastify.register(fastifySecureSession, {
-  key: Buffer.from(config.env.SESSION_SECRET.padEnd(32, "0").slice(0, 32)),
-  cookie: {
+// Register cookie plugin
+fastify.register(fastifyCookie, {
+  secret: config.env.SESSION_SECRET,
+});
+
+// Session helpers
+function getSession(request: { cookies: Record<string, string | undefined> }): SessionData {
+  const sessionCookie = request.cookies.session;
+  if (!sessionCookie) return {};
+  return decrypt(sessionCookie) || {};
+}
+
+function setSession(reply: { setCookie: (name: string, value: string, options: object) => void }, data: SessionData) {
+  reply.setCookie("session", encrypt(data), {
     path: "/",
     httpOnly: true,
-    secure: false,
-    maxAge: 60 * 60 * 24 * 7, // 7 days in seconds
-  },
-});
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  });
+}
+
+function clearSession(reply: { clearCookie: (name: string, options: object) => void }) {
+  reply.clearCookie("session", { path: "/" });
+}
 
 // Register plugins
 fastify.register(googleSheetsPlugin);
@@ -72,8 +102,7 @@ fastify.get("/auth/google/callback", async (request, reply) => {
 
   try {
     const { tokens, user } = await fastify.sheets.handleCallback(code);
-    request.session.set("tokens", tokens);
-    request.session.set("user", user);
+    setSession(reply, { tokens, user });
     return reply.redirect("/");
   } catch (error) {
     fastify.log.error(error);
@@ -82,14 +111,15 @@ fastify.get("/auth/google/callback", async (request, reply) => {
 });
 
 fastify.get("/api/auth/google/status", async (request) => {
+  const session = getSession(request);
   return {
-    authenticated: !!request.session.get("tokens"),
-    user: request.session.get("user") || null,
+    authenticated: !!session.tokens,
+    user: session.user || null,
   };
 });
 
-fastify.post("/api/auth/logout", async (request) => {
-  request.session.delete();
+fastify.post("/api/auth/logout", async (_request, reply) => {
+  clearSession(reply);
   return { success: true };
 });
 
@@ -116,8 +146,8 @@ interface CreateProgramBody {
 }
 
 fastify.post<{ Body: CreateProgramBody }>("/api/program/create", async (request, reply) => {
-  const tokens = request.session.get("tokens");
-  if (!tokens) {
+  const session = getSession(request);
+  if (!session.tokens) {
     return reply.status(401).send({ error: "Not authenticated" });
   }
 
@@ -160,9 +190,9 @@ fastify.post<{ Body: CreateProgramBody }>("/api/program/create", async (request,
   }
 
   try {
-    const spreadsheetId = await fastify.sheets.createSpreadsheet(tokens, name);
-    await fastify.sheets.setFileProperties(tokens, spreadsheetId, { createdBy: "gymerr" });
-    await fastify.sheets.update(tokens, spreadsheetId, "Sheet1!A1", rows);
+    const spreadsheetId = await fastify.sheets.createSpreadsheet(session.tokens, name);
+    await fastify.sheets.setFileProperties(session.tokens, spreadsheetId, { createdBy: "gymerr" });
+    await fastify.sheets.update(session.tokens, spreadsheetId, "Sheet1!A1", rows);
 
     return {
       success: true,
@@ -176,14 +206,14 @@ fastify.post<{ Body: CreateProgramBody }>("/api/program/create", async (request,
 });
 
 fastify.get("/api/programs", async (request, reply) => {
-  const tokens = request.session.get("tokens");
-  if (!tokens) {
+  const session = getSession(request);
+  if (!session.tokens) {
     return reply.status(401).send({ error: "Not authenticated" });
   }
 
   try {
     const query = "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='createdBy' and value='gymerr' } and trashed=false";
-    const files = await fastify.sheets.listFiles(tokens, query);
+    const files = await fastify.sheets.listFiles(session.tokens, query);
     const programs = files.map((file) => ({
       ...file,
       url: `https://docs.google.com/spreadsheets/d/${file.id}`,
@@ -196,15 +226,15 @@ fastify.get("/api/programs", async (request, reply) => {
 });
 
 fastify.get<{ Params: { id: string } }>("/api/programs/:id", async (request, reply) => {
-  const tokens = request.session.get("tokens");
-  if (!tokens) {
+  const session = getSession(request);
+  if (!session.tokens) {
     return reply.status(401).send({ error: "Not authenticated" });
   }
 
   const { id } = request.params;
 
   try {
-    const data = await fastify.sheets.get(tokens, id, "Sheet1!A:I");
+    const data = await fastify.sheets.get(session.tokens, id, "Sheet1!A:I");
     if (!data || data.length < 2) {
       return reply.status(404).send({ error: "Program not found or empty" });
     }
@@ -259,8 +289,8 @@ interface UpdateRowsBody {
 }
 
 fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>("/api/programs/:id/rows", async (request, reply) => {
-  const tokens = request.session.get("tokens");
-  if (!tokens) {
+  const session = getSession(request);
+  if (!session.tokens) {
     return reply.status(401).send({ error: "Not authenticated" });
   }
 
@@ -274,7 +304,7 @@ fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>("/api/programs/:
       values: [[update.weight, update.repsAchieved, update.notes]],
     }));
 
-    await fastify.sheets.batchUpdate(tokens, id, data);
+    await fastify.sheets.batchUpdate(session.tokens, id, data);
     return { success: true };
   } catch (error) {
     fastify.log.error(error);
