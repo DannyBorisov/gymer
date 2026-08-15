@@ -191,6 +191,51 @@
   white-space: nowrap;
 }
 
+.settingsSection {
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.settingsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.settingsLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #a1a1a1;
+  font-size: 0.875rem;
+}
+
+.unitToggle {
+  display: flex;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.unitBtn {
+  padding: 0.375rem 0.75rem;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: #a1a1a1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.unitBtnActive {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
 .signOutButton {
   display: flex;
   align-items: center;

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, History, Dumbbell, LogOut } from 'lucide-react'
+import { LayoutDashboard, History, Dumbbell, LogOut, Scale } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSettings } from '../../contexts/SettingsContext'
 import styles from './Layout.module.css'
 
 const getInitials = (name: string) => {
@@ -25,6 +26,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const { user, logout } = useAuth()
+  const { weightUnit, setWeightUnit } = useSettings()
   const location = useLocation()
   const [showPopover, setShowPopover] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -82,6 +84,28 @@ const Layout = ({ children }: LayoutProps) => {
                       <span className={styles.popoverEmail}>{user.email}</span>
                     </div>
                   </div>
+                  <div className={styles.settingsSection}>
+                    <div className={styles.settingsRow}>
+                      <div className={styles.settingsLabel}>
+                        <Scale size={16} />
+                        <span>Weight unit</span>
+                      </div>
+                      <div className={styles.unitToggle}>
+                        <button
+                          className={`${styles.unitBtn} ${weightUnit === 'kg' ? styles.unitBtnActive : ''}`}
+                          onClick={() => setWeightUnit('kg')}
+                        >
+                          kg
+                        </button>
+                        <button
+                          className={`${styles.unitBtn} ${weightUnit === 'lbs' ? styles.unitBtnActive : ''}`}
+                          onClick={() => setWeightUnit('lbs')}
+                        >
+                          lbs
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                   <button className={styles.signOutButton} onClick={logout}>
                     <LogOut size={16} />
                     <span>Sign out</span>
@@ -133,6 +157,28 @@ const Layout = ({ children }: LayoutProps) => {
                   <div className={styles.popoverInfo}>
                     <span className={styles.popoverName}>{user.name}</span>
                     <span className={styles.popoverEmail}>{user.email}</span>
+                  </div>
+                </div>
+                <div className={styles.settingsSection}>
+                  <div className={styles.settingsRow}>
+                    <div className={styles.settingsLabel}>
+                      <Scale size={16} />
+                      <span>Weight unit</span>
+                    </div>
+                    <div className={styles.unitToggle}>
+                      <button
+                        className={`${styles.unitBtn} ${weightUnit === 'kg' ? styles.unitBtnActive : ''}`}
+                        onClick={() => setWeightUnit('kg')}
+                      >
+                        kg
+                      </button>
+                      <button
+                        className={`${styles.unitBtn} ${weightUnit === 'lbs' ? styles.unitBtnActive : ''}`}
+                        onClick={() => setWeightUnit('lbs')}
+                      >
+                        lbs
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <button className={styles.signOutButton} onClick={logout}>

@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Copy,
 } from "lucide-react";
+import { useSettings } from "../../contexts/SettingsContext";
 import styles from "./ProgramDetail.module.css";
 
 interface ExerciseRow {
@@ -49,6 +50,7 @@ const formatTime = (seconds: number) => {
 
 const ProgramDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const { weightUnit } = useSettings();
   const [program, setProgram] = useState<Week[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -472,14 +474,14 @@ const ProgramDetail = () => {
                 className={styles.copyBtn}
               >
                 <Copy size={14} />
-                Copy from Set {previousSet.set}: {workoutData.get(previousSet.rowIndex)?.weight} × {workoutData.get(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
+                Copy from Set {previousSet.set}: {workoutData.get(previousSet.rowIndex)?.weight}{weightUnit} × {workoutData.get(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
               </button>
             )}
 
             <div className={styles.inputSection}>
               {/* Weight */}
               <div className={styles.inputGroup}>
-                <span className={styles.inputLabel}>Weight</span>
+                <span className={styles.inputLabel}>Weight ({weightUnit})</span>
                 <div className={styles.stepperRow}>
                   <button
                     onClick={() => adjustValue(currentSet.rowIndex, "weight", -2.5)}
