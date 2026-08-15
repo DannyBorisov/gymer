@@ -508,19 +508,12 @@ const ProgramDetail = () => {
               )}
             </div>
 
-            {/* Previous session stats */}
-            {prevStats && (
+            {/* Previous session stats for this set */}
+            {prevStats && prevStats.sets[currentSetIndex] && (
               <div className={styles.prevStats}>
                 <div className={styles.prevStatsHeader}>
                   <History size={14} />
-                  <span>Last session (Week {prevStats.week})</span>
-                </div>
-                <div className={styles.prevStatsSets}>
-                  {prevStats.sets.map((set, idx) => (
-                    <span key={idx} className={styles.prevStatsSet}>
-                      {set.weight}{weightUnit} × {set.reps}
-                    </span>
-                  ))}
+                  <span>Last time (Week {prevStats.week}): {prevStats.sets[currentSetIndex].weight}{weightUnit} × {prevStats.sets[currentSetIndex].reps}</span>
                 </div>
               </div>
             )}
