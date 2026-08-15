@@ -89,6 +89,7 @@ fastify.get("/api/health", async () => {
 });
 
 // Google OAuth routes
+
 fastify.get("/auth/google", async (_request, reply) => {
   const authUrl = fastify.sheets.getAuthUrl();
   return reply.redirect(authUrl);
