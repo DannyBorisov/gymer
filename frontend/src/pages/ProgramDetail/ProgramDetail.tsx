@@ -14,6 +14,7 @@ import {
   Check,
   MessageSquare,
   Copy,
+  History,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import styles from "./ProgramDetail.module.css";
@@ -40,6 +41,12 @@ interface Workout {
 interface Week {
   week: number;
   workouts: Workout[];
+}
+
+interface PreviousStats {
+  week: number;
+  workout: string;
+  sets: { weight: string; reps: string }[];
 }
 
 const formatTime = (seconds: number) => {
@@ -73,6 +80,7 @@ const ProgramDetail = () => {
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [completedSets, setCompletedSets] = useState<Set<number>>(new Set());
   const [showNotes, setShowNotes] = useState(false);
+  const [previousStats, setPreviousStats] = useState<Map<string, PreviousStats>>(new Map());
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -215,6 +223,38 @@ const ProgramDetail = () => {
     setCurrentSetIndex(0);
     setCompletedSets(new Set());
     setShowNotes(false);
+
+    // Find previous stats for each exercise from earlier weeks
+    const stats = new Map<string, PreviousStats>();
+    const exerciseNames = [...new Set(workout.exercises.map(e => e.exercise))];
+
+    for (const exerciseName of exerciseNames) {
+      // Look through previous weeks for the same exercise (with completed data)
+      for (let w = week - 1; w >= 1; w--) {
+        const prevWeek = program.find(p => p.week === w);
+        if (!prevWeek) continue;
+
+        for (const prevWorkout of prevWeek.workouts) {
+          const prevExercises = prevWorkout.exercises.filter(
+            e => e.exercise === exerciseName && e.weight && e.repsAchieved
+          );
+
+          if (prevExercises.length > 0) {
+            stats.set(exerciseName, {
+              week: w,
+              workout: prevWorkout.name,
+              sets: prevExercises.map(e => ({
+                weight: e.weight,
+                reps: e.repsAchieved,
+              })),
+            });
+            break; // Found most recent, stop looking
+          }
+        }
+        if (stats.has(exerciseName)) break; // Found it, move to next exercise
+      }
+    }
+    setPreviousStats(stats);
   };
 
   const stopWorkout = async () => {
@@ -336,6 +376,7 @@ const ProgramDetail = () => {
     const previousSet = currentSetIndex > 0 ? currentExerciseSets[currentSetIndex - 1] : null;
 
     const isSetCompleted = currentSet && completedSets.has(currentSet.rowIndex);
+    const prevStats = previousStats.get(currentExerciseName);
 
     return (
       <div className={styles.container}>
@@ -466,6 +507,23 @@ const ProgramDetail = () => {
                 </span>
               )}
             </div>
+
+            {/* Previous session stats */}
+            {prevStats && (
+              <div className={styles.prevStats}>
+                <div className={styles.prevStatsHeader}>
+                  <History size={14} />
+                  <span>Last session (Week {prevStats.week})</span>
+                </div>
+                <div className={styles.prevStatsSets}>
+                  {prevStats.sets.map((set, idx) => (
+                    <span key={idx} className={styles.prevStatsSet}>
+                      {set.weight}{weightUnit} × {set.reps}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Copy from previous */}
             {previousSet && workoutData.get(previousSet.rowIndex)?.weight && (

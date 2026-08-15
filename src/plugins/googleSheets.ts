@@ -34,7 +34,9 @@ export class GoogleSheets {
     });
   }
 
-  async handleCallback(code: string): Promise<{ tokens: Tokens; user: UserInfo }> {
+  async handleCallback(
+    code: string,
+  ): Promise<{ tokens: Tokens; user: UserInfo }> {
     const { tokens } = await this.oauth2Client.getToken(code);
     this.oauth2Client.setCredentials(tokens);
 
@@ -92,14 +94,22 @@ export class GoogleSheets {
       orderBy: "createdTime desc",
     });
 
-    return (response.data.files || []).map((file) => ({
+    if (!response.data.files) {
+      return [];
+    }
+
+    return response.data.files.map((file) => ({
       id: file.id!,
       name: file.name!,
       createdTime: file.createdTime!,
     }));
   }
 
-  async addSheet(tokens: Tokens, spreadsheetId: string, sheetTitle: string): Promise<number> {
+  async addSheet(
+    tokens: Tokens,
+    spreadsheetId: string,
+    sheetTitle: string,
+  ): Promise<number> {
     const sheets = this.getSheetsClient(tokens);
     const response = await sheets.spreadsheets.batchUpdate({
       spreadsheetId,

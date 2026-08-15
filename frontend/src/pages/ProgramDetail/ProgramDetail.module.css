@@ -435,6 +435,44 @@
 }
 
 /* ==================== */
+/* Previous Stats */
+/* ==================== */
+.prevStats {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.prevStatsHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #0369a1;
+  margin-bottom: 0.5rem;
+}
+
+.prevStatsSets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.prevStatsSet {
+  display: inline-flex;
+  padding: 0.25rem 0.625rem;
+  background: #fff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #0c4a6e;
+}
+
+/* ==================== */
 /* Copy Button */
 /* ==================== */
 .copyBtn {
