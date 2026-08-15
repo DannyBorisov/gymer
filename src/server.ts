@@ -155,7 +155,7 @@ fastify.post<{ Body: CreateProgramBody }>("/api/program/create", async (request,
   const { name, durationWeeks, dynamicRir, startingRir, workouts } = request.body;
 
   // Build spreadsheet rows
-  const headers = ["Week", "Workout", "Exercise", "Set", "Target Reps", "RIR", "Weight", "Reps Achieved", "RIR Achieved", "Notes"];
+  const headers = ["Date", "Week", "Workout", "Exercise", "Set", "Target Reps", "RIR", "Weight", "Reps Achieved", "RIR Achieved", "Notes"];
   const rows: (string | number)[][] = [headers];
 
   for (let week = 1; week <= durationWeeks; week++) {
@@ -175,6 +175,7 @@ fastify.post<{ Body: CreateProgramBody }>("/api/program/create", async (request,
 
         for (let set = 1; set <= exercise.sets; set++) {
           rows.push([
+            "", // Date - filled when workout completed
             week,
             workout.name,
             exercise.name,
@@ -236,25 +237,26 @@ fastify.get<{ Params: { id: string } }>("/api/programs/:id", async (request, rep
   const { id } = request.params;
 
   try {
-    const data = await fastify.sheets.get(session.tokens, id, "Sheet1!A:J");
+    const data = await fastify.sheets.get(session.tokens, id, "Sheet1!A:K");
     if (!data || data.length < 2) {
       return reply.status(404).send({ error: "Program not found or empty" });
     }
 
     // Parse spreadsheet data into structured format
-    // Headers: Week, Workout, Exercise, Set, Target Reps, RIR, Weight, Reps Achieved, RIR Achieved, Notes
+    // Headers: Date, Week, Workout, Exercise, Set, Target Reps, RIR, Weight, Reps Achieved, RIR Achieved, Notes
     const rows = data.slice(1).map((row, index) => ({
       rowIndex: index + 2, // 1-indexed, skip header
-      week: Number(row[0]) || 0,
-      workout: String(row[1] || ""),
-      exercise: String(row[2] || ""),
-      set: Number(row[3]) || 0,
-      targetReps: Number(row[4]) || 0,
-      rir: String(row[5] || ""),
-      weight: String(row[6] || ""),
-      repsAchieved: String(row[7] || ""),
-      rirAchieved: String(row[8] || ""),
-      notes: String(row[9] || ""),
+      date: String(row[0] || ""),
+      week: Number(row[1]) || 0,
+      workout: String(row[2] || ""),
+      exercise: String(row[3] || ""),
+      set: Number(row[4]) || 0,
+      targetReps: Number(row[5]) || 0,
+      rir: String(row[6] || ""),
+      weight: String(row[7] || ""),
+      repsAchieved: String(row[8] || ""),
+      rirAchieved: String(row[9] || ""),
+      notes: String(row[10] || ""),
     }));
 
     // Group by week and workout
@@ -277,6 +279,7 @@ fastify.get<{ Params: { id: string } }>("/api/programs/:id", async (request, rep
         name,
         exercises,
         isComplete: exercises.every((e) => e.repsAchieved !== ""),
+        completedDate: exercises[0]?.date || "",
       })),
     }));
 
@@ -289,6 +292,8 @@ fastify.get<{ Params: { id: string } }>("/api/programs/:id", async (request, rep
 
 interface UpdateRowsBody {
   updates: { rowIndex: number; weight: string; repsAchieved: string; rirAchieved: string; notes: string }[];
+  completedDate?: string;
+  firstRowIndex?: number;
 }
 
 fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>("/api/programs/:id/rows", async (request, reply) => {
@@ -298,14 +303,22 @@ fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>("/api/programs/:
   }
 
   const { id } = request.params;
-  const { updates } = request.body;
+  const { updates, completedDate, firstRowIndex } = request.body;
 
   try {
-    // Batch update the cells - columns G (Weight), H (Reps Achieved), I (RIR Achieved), J (Notes)
+    // Batch update the cells - columns H (Weight), I (Reps Achieved), J (RIR Achieved), K (Notes)
     const data = updates.map((update) => ({
-      range: `Sheet1!G${update.rowIndex}:J${update.rowIndex}`,
+      range: `Sheet1!H${update.rowIndex}:K${update.rowIndex}`,
       values: [[update.weight, update.repsAchieved, update.rirAchieved, update.notes]],
     }));
+
+    // Add date to first row if provided
+    if (completedDate && firstRowIndex) {
+      data.push({
+        range: `Sheet1!A${firstRowIndex}`,
+        values: [[completedDate]],
+      });
+    }
 
     await fastify.sheets.batchUpdate(session.tokens, id, data);
     return { success: true };
