@@ -106,6 +106,15 @@ export class GoogleSheets {
     }));
   }
 
+  async getFileName(tokens: Tokens, fileId: string): Promise<string> {
+    const drive = this.getDriveClient(tokens);
+    const response = await drive.files.get({
+      fileId,
+      fields: "name",
+    });
+    return response.data.name || "";
+  }
+
   async addSheet(
     tokens: Tokens,
     spreadsheetId: string,

@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Loader2,
   ChevronLeft,
   ChevronRight,
   Play,
-  Pause,
   Square,
   CheckCircle2,
   Circle,
@@ -13,6 +12,8 @@ import {
   MessageSquare,
   Copy,
   History,
+  Timer,
+  X,
 } from "lucide-react";
 // Note: Plus/Minus icons moved to ScrollableInput component
 import { useSettings } from "../../contexts/SettingsContext";
@@ -75,17 +76,15 @@ const formatDateWithDay = (dateStr: string) => {
 const ProgramDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { weightUnit } = useSettings();
+  const { weightUnit, showRestSuggestion: restSuggestionEnabled, restTimerDuration } = useSettings();
   const {
     activeWorkout,
     workoutData,
     timer,
-    isTimerRunning,
     currentExerciseIndex,
     currentSetIndex,
     startWorkout,
     stopWorkout,
-    setIsTimerRunning,
     updateExercise,
     adjustValue,
     completeSet,
@@ -94,6 +93,7 @@ const ProgramDetail = () => {
   } = useWorkout();
 
   const [program, setProgram] = useState<Week[]>([]);
+  const [programName, setProgramName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(false);
@@ -102,13 +102,23 @@ const ProgramDetail = () => {
   >(new Map());
   const [showSetComplete, setShowSetComplete] = useState(false);
 
+  // Rest timer state
+  const [restTimer, setRestTimer] = useState(0);
+  const [isRestTimerActive, setIsRestTimerActive] = useState(false);
+  const [showRestSuggestion, setShowRestSuggestion] = useState(false);
+  const [triggeredForSet, setTriggeredForSet] = useState<number | null>(null);
+  const [hasVibrated, setHasVibrated] = useState(false);
+  const restTimerIntervalRef = useRef<ReturnType<typeof setInterval>>();
+  const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
   const fetchProgram = useCallback(async () => {
     try {
       const response = await apiFetch(`/api/programs/${id}`);
       const data = await response.json();
-
       if (response.ok) {
+        console.log(data)
         setProgram(data.program);
+        setProgramName(data.name || "Program");
       } else {
         setError(data.error || "Failed to fetch program");
       }
@@ -123,6 +133,96 @@ const ProgramDetail = () => {
     fetchProgram();
   }, [fetchProgram]);
 
+  // Handle input focus - show rest timer suggestion after delay (only once per set)
+  const handleInputActivity = useCallback((currentRowIndex: number) => {
+    // Don't show if disabled, already active, already showing, or already triggered for this set
+    if (!restSuggestionEnabled || isRestTimerActive || showRestSuggestion || triggeredForSet === currentRowIndex) return;
+
+    // Clear any existing timeout
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+
+    // Show suggestion after 3 seconds
+    suggestionTimeoutRef.current = setTimeout(() => {
+      setShowRestSuggestion(true);
+      setTriggeredForSet(currentRowIndex);
+    }, 3000);
+  }, [restSuggestionEnabled, isRestTimerActive, showRestSuggestion, triggeredForSet]);
+
+  // Start rest timer (counts up)
+  const startRestTimer = useCallback(() => {
+    setRestTimer(0);
+    setIsRestTimerActive(true);
+    setShowRestSuggestion(false);
+    setHasVibrated(false);
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+  }, []);
+
+  // Stop/dismiss rest timer
+  const stopRestTimer = useCallback(() => {
+    setIsRestTimerActive(false);
+    setRestTimer(0);
+    if (restTimerIntervalRef.current) {
+      clearInterval(restTimerIntervalRef.current);
+    }
+  }, []);
+
+  // Rest timer count up effect
+  useEffect(() => {
+    if (isRestTimerActive) {
+      restTimerIntervalRef.current = setInterval(() => {
+        setRestTimer((prev) => prev + 1);
+      }, 1000);
+
+      return () => {
+        if (restTimerIntervalRef.current) {
+          clearInterval(restTimerIntervalRef.current);
+        }
+      };
+    }
+  }, [isRestTimerActive]);
+
+  // Vibrate when rest timer reaches duration
+  useEffect(() => {
+    if (isRestTimerActive && restTimer === restTimerDuration && !hasVibrated) {
+      setHasVibrated(true);
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+    }
+  }, [restTimer, restTimerDuration, isRestTimerActive, hasVibrated]);
+
+  // Reset suggestion state when set changes
+  useEffect(() => {
+    setShowRestSuggestion(false);
+    setTriggeredForSet(null);
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+  }, [currentSetIndex, currentExerciseIndex]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (restTimerIntervalRef.current) {
+        clearInterval(restTimerIntervalRef.current);
+      }
+      if (suggestionTimeoutRef.current) {
+        clearTimeout(suggestionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Format rest timer display
+  const formatRestTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
   // Handle complete set with animation
   const handleCompleteSet = useCallback(
     (rowIndex: number) => {
@@ -133,8 +233,11 @@ const ProgramDetail = () => {
       setTimeout(() => {
         setShowSetComplete(false);
       }, 400);
+
+      // Stop rest timer - user is done resting, moving to next set
+      stopRestTimer();
     },
-    [completeSet]
+    [completeSet, stopRestTimer]
   );
 
   const handleStartWorkout = (week: number, workout: Workout) => {
@@ -225,7 +328,7 @@ const ProgramDetail = () => {
       <div className={styles.container}>
         <div className={styles.errorState}>
           <p>{error}</p>
-          <Link to="/programs" className={styles.backLink}>
+          <Link to="/" className={styles.backLink}>
             Back to Programs
           </Link>
         </div>
@@ -277,6 +380,31 @@ const ProgramDetail = () => {
             <div className={styles.workoutHeader}>
               <div className={styles.timerSection}>
                 <span className={styles.timer}>{formatTime(timer)}</span>
+                {showRestSuggestion && currentSet ? (
+                  <div className={styles.restTimerSuggestion}>
+                    <button
+                      onClick={startRestTimer}
+                      className={styles.restTimerSuggestionBtn}
+                    >
+                      <Timer size={16} />
+                      <span>Start rest timer</span>
+                    </button>
+                    <button
+                      onClick={() => setShowRestSuggestion(false)}
+                      className={styles.restTimerDismiss}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={isRestTimerActive ? stopRestTimer : startRestTimer}
+                    className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ''}`}
+                  >
+                    <Timer size={16} />
+                    <span>{isRestTimerActive ? formatRestTimer(restTimer) : 'Rest'}</span>
+                  </button>
+                )}
               </div>
               <div className={styles.progressSection}>
                 <div className={styles.progressBar}>
@@ -492,6 +620,7 @@ const ProgramDetail = () => {
                 step={1.25}
                 inputMode="decimal"
                 placeholder="0"
+                onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
               />
               <ScrollableInput
                 label="Reps"
@@ -504,6 +633,7 @@ const ProgramDetail = () => {
                 }
                 step={1}
                 placeholder={currentSet.targetReps.toString()}
+                onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
               />
               <ScrollableInput
                 label="RIR"
@@ -563,41 +693,33 @@ const ProgramDetail = () => {
                     Complete set
                   </button>
 
-                  <div className={styles.secondaryBtnsRow}>
-                    <button
-                      onClick={handleStopWorkout}
-                      className={styles.secondaryBtn}
-                    >
-                      <Square size={16} />
-                      <span>End</span>
-                    </button>
-                    <button
-                      onClick={() => setIsTimerRunning(!isTimerRunning)}
-                      className={styles.secondaryBtn}
-                    >
-                      {isTimerRunning ? <Pause size={16} /> : <Play size={16} />}
-                      <span>{isTimerRunning ? "Pause" : "Resume"}</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleStopWorkout}
+                    className={styles.endWorkoutBtn}
+                  >
+                    <Square size={16} />
+                    <span>End workout</span>
+                  </button>
                 </>
               )}
             </div>
           </div>
         )}
-      </div>
+
+        </div>
     );
   }
 
   // Program overview
   return (
     <div className={styles.container}>
-      <Link to="/programs" className={styles.backLink}>
+      <Link to="/" className={styles.backLink}>
         <ChevronLeft size={16} />
         Back to Programs
       </Link>
 
       <div className={styles.programHeader}>
-        <h1 className={styles.title}>Program</h1>
+        <h1 className={styles.title}>{programName}</h1>
       </div>
 
       {/* Show banner if workout is active for different program */}

@@ -18,7 +18,10 @@ interface SessionData {
 }
 
 // Temporary token store for native app auth (tokens expire after 60 seconds)
-const pendingAuthTokens = new Map<string, { session: SessionData; expires: number }>();
+const pendingAuthTokens = new Map<
+  string,
+  { session: SessionData; expires: number }
+>();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,7 +33,10 @@ const IV_LENGTH = 16;
 function encrypt(data: SessionData): string {
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
-  const encrypted = Buffer.concat([cipher.update(JSON.stringify(data)), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify(data)),
+    cipher.final(),
+  ]);
   return iv.toString("hex") + ":" + encrypted.toString("hex");
 }
 
@@ -41,7 +47,10 @@ function decrypt(text: string): SessionData | null {
     const iv = Buffer.from(ivHex, "hex");
     const encrypted = Buffer.from(encryptedHex, "hex");
     const decipher = crypto.createDecipheriv("aes-256-cbc", ENCRYPTION_KEY, iv);
-    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    const decrypted = Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]);
     return JSON.parse(decrypted.toString());
   } catch {
     return null;
@@ -64,7 +73,10 @@ fastify.register(fastifyCors, {
 });
 
 // Session helpers
-function getSession(request: { cookies: Record<string, string | undefined>; headers: { authorization?: string | string[] } }): SessionData {
+function getSession(request: {
+  cookies: Record<string, string | undefined>;
+  headers: { authorization?: string | string[] };
+}): SessionData {
   // Check for Authorization header first (native app)
   const authHeader = request.headers.authorization;
   const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
@@ -79,7 +91,10 @@ function getSession(request: { cookies: Record<string, string | undefined>; head
   return decrypt(sessionCookie) || {};
 }
 
-function setSession(reply: { setCookie: (name: string, value: string, options: object) => void }, data: SessionData) {
+function setSession(
+  reply: { setCookie: (name: string, value: string, options: object) => void },
+  data: SessionData,
+) {
   reply.setCookie("session", encrypt(data), {
     path: "/",
     httpOnly: true,
@@ -89,7 +104,9 @@ function setSession(reply: { setCookie: (name: string, value: string, options: o
   });
 }
 
-function clearSession(reply: { clearCookie: (name: string, options: object) => void }) {
+function clearSession(reply: {
+  clearCookie: (name: string, options: object) => void;
+}) {
   reply.clearCookie("session", { path: "/" });
 }
 
@@ -185,22 +202,25 @@ fastify.post("/api/auth/logout", async (_request, reply) => {
 });
 
 // Exchange one-time token for session (native app auth)
-fastify.post<{ Body: { token: string } }>("/api/auth/exchange", async (request, reply) => {
-  const { token } = request.body;
+fastify.post<{ Body: { token: string } }>(
+  "/api/auth/exchange",
+  async (request, reply) => {
+    const { token } = request.body;
 
-  const pending = pendingAuthTokens.get(token);
-  if (!pending || pending.expires < Date.now()) {
+    const pending = pendingAuthTokens.get(token);
+    if (!pending || pending.expires < Date.now()) {
+      pendingAuthTokens.delete(token);
+      return reply.status(401).send({ error: "Invalid or expired token" });
+    }
+
     pendingAuthTokens.delete(token);
-    return reply.status(401).send({ error: "Invalid or expired token" });
-  }
 
-  pendingAuthTokens.delete(token);
+    // For native apps, return an encrypted session token they can store
+    const sessionToken = encrypt(pending.session);
 
-  // For native apps, return an encrypted session token they can store
-  const sessionToken = encrypt(pending.session);
-
-  return { success: true, user: pending.session.user, sessionToken };
-});
+    return { success: true, user: pending.session.user, sessionToken };
+  },
+);
 
 // Program routes
 interface Exercise {
@@ -224,67 +244,97 @@ interface CreateProgramBody {
   workouts: Workout[];
 }
 
-fastify.post<{ Body: CreateProgramBody }>("/api/program/create", async (request, reply) => {
-  const session = getSession(request);
-  if (!session.tokens) {
-    return reply.status(401).send({ error: "Not authenticated" });
-  }
-
-  const { name, durationWeeks, dynamicRir, startingRir, workouts } = request.body;
-
-  // Build spreadsheet rows
-  const headers = ["Date", "Week", "Workout", "Exercise", "Set", "Target Reps", "RIR", "Weight", "Reps Achieved", "RIR Achieved", "Notes"];
-  const rows: (string | number)[][] = [headers];
-
-  for (let week = 1; week <= durationWeeks; week++) {
-    // Calculate RIR for this week if dynamic
-    let weekRir = startingRir;
-    if (dynamicRir && durationWeeks > 1) {
-      // Linearly decrease RIR from startingRir to 0 over the program duration
-      const rirDecrement = startingRir / (durationWeeks - 1);
-      weekRir = Math.max(0, Math.round(startingRir - rirDecrement * (week - 1)));
+fastify.post<{ Body: CreateProgramBody }>(
+  "/api/program/create",
+  async (request, reply) => {
+    const session = getSession(request);
+    if (!session.tokens) {
+      return reply.status(401).send({ error: "Not authenticated" });
     }
 
-    for (const workout of workouts) {
-      for (const exercise of workout.exercises) {
-        // Use exercise-specific RIR or calculated week RIR
-        const targetRir = dynamicRir ? weekRir : exercise.rir;
-        const rirDisplay = targetRir === 0 ? "To Failure" : targetRir.toString();
+    const { name, durationWeeks, dynamicRir, startingRir, workouts } =
+      request.body;
 
-        for (let set = 1; set <= exercise.sets; set++) {
-          rows.push([
-            "", // Date - filled when workout completed
-            week,
-            workout.name,
-            exercise.name,
-            set,
-            exercise.reps,
-            rirDisplay,
-            "", // Weight - user fills in
-            "", // Reps Achieved - user fills in
-            "", // RIR Achieved - user fills in
-            "", // Notes - user fills in
-          ]);
+    // Build spreadsheet rows
+    const headers = [
+      "Date",
+      "Week",
+      "Workout",
+      "Exercise",
+      "Set",
+      "Target Reps",
+      "RIR",
+      "Weight",
+      "Reps Achieved",
+      "RIR Achieved",
+      "Notes",
+    ];
+    const rows: (string | number)[][] = [headers];
+
+    for (let week = 1; week <= durationWeeks; week++) {
+      // Calculate RIR for this week if dynamic
+      let weekRir = startingRir;
+      if (dynamicRir && durationWeeks > 1) {
+        // Linearly decrease RIR from startingRir to 0 over the program duration
+        const rirDecrement = startingRir / (durationWeeks - 1);
+        weekRir = Math.max(
+          0,
+          Math.round(startingRir - rirDecrement * (week - 1)),
+        );
+      }
+
+      for (const workout of workouts) {
+        for (const exercise of workout.exercises) {
+          // Use exercise-specific RIR or calculated week RIR
+          const targetRir = dynamicRir ? weekRir : exercise.rir;
+          const rirDisplay =
+            targetRir === 0 ? "To Failure" : targetRir.toString();
+
+          for (let set = 1; set <= exercise.sets; set++) {
+            rows.push([
+              "", // Date - filled when workout completed
+              week,
+              workout.name,
+              exercise.name,
+              set,
+              exercise.reps,
+              rirDisplay,
+              "", // Weight - user fills in
+              "", // Reps Achieved - user fills in
+              "", // RIR Achieved - user fills in
+              "", // Notes - user fills in
+            ]);
+          }
         }
       }
     }
-  }
 
-  try {
-    const spreadsheetId = await fastify.sheets.createSpreadsheet(session.tokens, name);
-    await fastify.sheets.setFileProperties(session.tokens, spreadsheetId, { createdBy: "gymerr" });
-    await fastify.sheets.update(session.tokens, spreadsheetId, "Sheet1!A1", rows);
+    try {
+      const spreadsheetId = await fastify.sheets.createSpreadsheet(
+        session.tokens,
+        name,
+      );
+      await fastify.sheets.setFileProperties(session.tokens, spreadsheetId, {
+        createdBy: "gymerr",
+      });
+      await fastify.sheets.update(
+        session.tokens,
+        spreadsheetId,
+        "Sheet1!A1",
+        rows,
+      );
 
-    return {
-      success: true,
-      spreadsheetId,
-      url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
-    };
-  } catch (error) {
-    fastify.log.error(error);
-    return reply.status(500).send({ error: "Failed to create spreadsheet" });
-  }
-});
+      return {
+        success: true,
+        spreadsheetId,
+        url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+      };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({ error: "Failed to create spreadsheet" });
+    }
+  },
+);
 
 fastify.get("/api/programs", async (request, reply) => {
   const session = getSession(request);
@@ -293,7 +343,8 @@ fastify.get("/api/programs", async (request, reply) => {
   }
 
   try {
-    const query = "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='createdBy' and value='gymerr' } and trashed=false";
+    const query =
+      "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='createdBy' and value='gymerr' } and trashed=false";
     const files = await fastify.sheets.listFiles(session.tokens, query);
     const programs = files.map((file) => ({
       ...file,
@@ -306,105 +357,132 @@ fastify.get("/api/programs", async (request, reply) => {
   }
 });
 
-fastify.get<{ Params: { id: string } }>("/api/programs/:id", async (request, reply) => {
-  const session = getSession(request);
-  if (!session.tokens) {
-    return reply.status(401).send({ error: "Not authenticated" });
-  }
-
-  const { id } = request.params;
-
-  try {
-    const data = await fastify.sheets.get(session.tokens, id, "Sheet1!A:K");
-    if (!data || data.length < 2) {
-      return reply.status(404).send({ error: "Program not found or empty" });
+fastify.get<{ Params: { id: string } }>(
+  "/api/programs/:id",
+  async (request, reply) => {
+    const session = getSession(request);
+    if (!session.tokens) {
+      return reply.status(401).send({ error: "Not authenticated" });
     }
 
-    // Parse spreadsheet data into structured format
-    // Headers: Date, Week, Workout, Exercise, Set, Target Reps, RIR, Weight, Reps Achieved, RIR Achieved, Notes
-    const rows = data.slice(1).map((row, index) => ({
-      rowIndex: index + 2, // 1-indexed, skip header
-      date: String(row[0] || ""),
-      week: Number(row[1]) || 0,
-      workout: String(row[2] || ""),
-      exercise: String(row[3] || ""),
-      set: Number(row[4]) || 0,
-      targetReps: Number(row[5]) || 0,
-      rir: String(row[6] || ""),
-      weight: String(row[7] || ""),
-      repsAchieved: String(row[8] || ""),
-      rirAchieved: String(row[9] || ""),
-      notes: String(row[10] || ""),
-    }));
+    const { id } = request.params;
 
-    // Group by week and workout
-    const weeks = new Map<number, Map<string, typeof rows>>();
-    for (const row of rows) {
-      if (!weeks.has(row.week)) {
-        weeks.set(row.week, new Map());
+    try {
+      const [data, programName] = await Promise.all([
+        fastify.sheets.get(session.tokens, id, "Sheet1!A:K"),
+        fastify.sheets.getFileName(session.tokens, id),
+      ]);
+
+      if (!data || data.length < 2) {
+        return reply.status(404).send({ error: "Program not found or empty" });
       }
-      const workouts = weeks.get(row.week)!;
-      if (!workouts.has(row.workout)) {
-        workouts.set(row.workout, []);
+
+      // Parse spreadsheet data into structured format
+      // Headers: Date, Week, Workout, Exercise, Set, Target Reps, RIR, Weight, Reps Achieved, RIR Achieved, Notes
+      const rows = data.slice(1).map((row, index) => ({
+        rowIndex: index + 2, // 1-indexed, skip header
+        date: String(row[0] || ""),
+        week: Number(row[1]) || 0,
+        workout: String(row[2] || ""),
+        exercise: String(row[3] || ""),
+        set: Number(row[4]) || 0,
+        targetReps: Number(row[5]) || 0,
+        rir: String(row[6] || ""),
+        weight: String(row[7] || ""),
+        repsAchieved: String(row[8] || ""),
+        rirAchieved: String(row[9] || ""),
+        notes: String(row[10] || ""),
+      }));
+
+      // Group by week and workout
+      const weeks = new Map<number, Map<string, typeof rows>>();
+      for (const row of rows) {
+        if (!weeks.has(row.week)) {
+          weeks.set(row.week, new Map());
+        }
+        const workouts = weeks.get(row.week)!;
+        if (!workouts.has(row.workout)) {
+          workouts.set(row.workout, []);
+        }
+        workouts.get(row.workout)!.push(row);
       }
-      workouts.get(row.workout)!.push(row);
+
+      // Convert to array structure
+      const program = Array.from(weeks.entries()).map(
+        ([weekNum, workouts]) => ({
+          week: weekNum,
+          workouts: Array.from(workouts.entries()).map(([name, exercises]) => ({
+            name,
+            exercises,
+            isComplete: exercises.every((e) => e.repsAchieved !== ""),
+            completedDate: exercises[0]?.date || "",
+          })),
+        }),
+      );
+
+      console.log({ programName });
+
+      return { program, name: programName };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({ error: "Failed to fetch program" });
     }
-
-    // Convert to array structure
-    const program = Array.from(weeks.entries()).map(([weekNum, workouts]) => ({
-      week: weekNum,
-      workouts: Array.from(workouts.entries()).map(([name, exercises]) => ({
-        name,
-        exercises,
-        isComplete: exercises.every((e) => e.repsAchieved !== ""),
-        completedDate: exercises[0]?.date || "",
-      })),
-    }));
-
-    return { program };
-  } catch (error) {
-    fastify.log.error(error);
-    return reply.status(500).send({ error: "Failed to fetch program" });
-  }
-});
+  },
+);
 
 interface UpdateRowsBody {
-  updates: { rowIndex: number; weight: string; repsAchieved: string; rirAchieved: string; notes: string }[];
+  updates: {
+    rowIndex: number;
+    weight: string;
+    repsAchieved: string;
+    rirAchieved: string;
+    notes: string;
+  }[];
   completedDate?: string;
   firstRowIndex?: number;
 }
 
-fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>("/api/programs/:id/rows", async (request, reply) => {
-  const session = getSession(request);
-  if (!session.tokens) {
-    return reply.status(401).send({ error: "Not authenticated" });
-  }
-
-  const { id } = request.params;
-  const { updates, completedDate, firstRowIndex } = request.body;
-
-  try {
-    // Batch update the cells - columns H (Weight), I (Reps Achieved), J (RIR Achieved), K (Notes)
-    const data = updates.map((update) => ({
-      range: `Sheet1!H${update.rowIndex}:K${update.rowIndex}`,
-      values: [[update.weight, update.repsAchieved, update.rirAchieved, update.notes]],
-    }));
-
-    // Add date to first row if provided
-    if (completedDate && firstRowIndex) {
-      data.push({
-        range: `Sheet1!A${firstRowIndex}`,
-        values: [[completedDate]],
-      });
+fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>(
+  "/api/programs/:id/rows",
+  async (request, reply) => {
+    const session = getSession(request);
+    if (!session.tokens) {
+      return reply.status(401).send({ error: "Not authenticated" });
     }
 
-    await fastify.sheets.batchUpdate(session.tokens, id, data);
-    return { success: true };
-  } catch (error) {
-    fastify.log.error(error);
-    return reply.status(500).send({ error: "Failed to update program" });
-  }
-});
+    const { id } = request.params;
+    const { updates, completedDate, firstRowIndex } = request.body;
+
+    try {
+      // Batch update the cells - columns H (Weight), I (Reps Achieved), J (RIR Achieved), K (Notes)
+      const data = updates.map((update) => ({
+        range: `Sheet1!H${update.rowIndex}:K${update.rowIndex}`,
+        values: [
+          [
+            update.weight,
+            update.repsAchieved,
+            update.rirAchieved,
+            update.notes,
+          ],
+        ],
+      }));
+
+      // Add date to first row if provided
+      if (completedDate && firstRowIndex) {
+        data.push({
+          range: `Sheet1!A${firstRowIndex}`,
+          values: [[completedDate]],
+        });
+      }
+
+      await fastify.sheets.batchUpdate(session.tokens, id, data);
+      return { success: true };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({ error: "Failed to update program" });
+    }
+  },
+);
 
 // Fallback to index.html for client-side routing
 fastify.setNotFoundHandler(async (_request, reply) => {

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, History, Dumbbell, LogOut, Scale, User } from 'lucide-react'
+import { Dumbbell, LogOut, Scale, User, Timer } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useWorkout } from '../../contexts/WorkoutContext'
@@ -16,9 +16,7 @@ const getInitials = (name: string) => {
 }
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/history', label: 'History', icon: History },
-  { to: '/programs', label: 'Programs', icon: Dumbbell },
+  { to: '/', label: 'Programs', icon: Dumbbell },
 ]
 
 interface LayoutProps {
@@ -27,7 +25,7 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const { user, logout } = useAuth()
-  const { weightUnit, setWeightUnit } = useSettings()
+  const { weightUnit, setWeightUnit, showRestSuggestion, setShowRestSuggestion, restTimerDuration, setRestTimerDuration } = useSettings()
   const { activeWorkout } = useWorkout()
   const location = useLocation()
   const [showPopover, setShowPopover] = useState(false)
@@ -123,6 +121,35 @@ const Layout = ({ children }: LayoutProps) => {
                       </button>
                     </div>
                   </div>
+                  <div className={styles.settingsRow}>
+                    <div className={styles.settingsLabel}>
+                      <Timer size={16} />
+                      <span>Rest timer prompts</span>
+                    </div>
+                    <button
+                      className={`${styles.toggleBtn} ${showRestSuggestion ? styles.toggleBtnActive : ''}`}
+                      onClick={() => setShowRestSuggestion(!showRestSuggestion)}
+                    >
+                      <span className={styles.toggleKnob} />
+                    </button>
+                  </div>
+                  <div className={styles.settingsRow}>
+                    <div className={styles.settingsLabel}>
+                      <Timer size={16} />
+                      <span>Vibrate after</span>
+                    </div>
+                    <div className={styles.durationToggle}>
+                      {[60, 90, 120].map((sec) => (
+                        <button
+                          key={sec}
+                          className={`${styles.durationBtn} ${restTimerDuration === sec ? styles.durationBtnActive : ''}`}
+                          onClick={() => setRestTimerDuration(sec)}
+                        >
+                          {sec < 60 ? `${sec}s` : `${sec / 60}m`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <button className={styles.signOutButton} onClick={logout}>
                   <LogOut size={16} />
@@ -186,6 +213,35 @@ const Layout = ({ children }: LayoutProps) => {
                     >
                       lbs
                     </button>
+                  </div>
+                </div>
+                <div className={styles.settingsRow}>
+                  <div className={styles.settingsLabel}>
+                    <Timer size={16} />
+                    <span>Rest timer prompts</span>
+                  </div>
+                  <button
+                    className={`${styles.toggleBtn} ${showRestSuggestion ? styles.toggleBtnActive : ''}`}
+                    onClick={() => setShowRestSuggestion(!showRestSuggestion)}
+                  >
+                    <span className={styles.toggleKnob} />
+                  </button>
+                </div>
+                <div className={styles.settingsRow}>
+                  <div className={styles.settingsLabel}>
+                    <Timer size={16} />
+                    <span>Vibrate after</span>
+                  </div>
+                  <div className={styles.durationToggle}>
+                    {[60, 90, 120].map((sec) => (
+                      <button
+                        key={sec}
+                        className={`${styles.durationBtn} ${restTimerDuration === sec ? styles.durationBtnActive : ''}`}
+                        onClick={() => setRestTimerDuration(sec)}
+                      >
+                        {sec < 60 ? `${sec}s` : `${sec / 60}m`}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

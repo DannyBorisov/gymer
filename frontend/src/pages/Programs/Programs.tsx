@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Loader2 } from 'lucide-react'
+import { ChevronRight, Loader2, Plus } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
 import styles from './Programs.module.css'
 
@@ -48,13 +48,7 @@ const Programs = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Programs</h1>
-          <p className={styles.subtitle}>Manage your workout programs</p>
-        </div>
-        <Link to="/programs/create" className={styles.createButton}>
-          Create Program
-        </Link>
+        <h1 className={styles.title}>Programs</h1>
       </div>
 
       {isLoading ? (
@@ -65,11 +59,6 @@ const Programs = () => {
       ) : error ? (
         <div className={styles.errorState}>
           <p>{error}</p>
-        </div>
-      ) : programs.length === 0 ? (
-        <div className={styles.emptyState}>
-          <p>No programs created yet.</p>
-          <p>Create your first program to get started.</p>
         </div>
       ) : (
         <div className={styles.programsList}>
@@ -88,6 +77,10 @@ const Programs = () => {
               <ChevronRight size={16} className={styles.chevronIcon} />
             </Link>
           ))}
+          <Link to="/programs/create" className={styles.createCard}>
+            <Plus size={20} />
+            <span>Create Program</span>
+          </Link>
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ interface ScrollableInputProps {
   inputMode?: "decimal" | "numeric";
   min?: number;
   max?: number;
+  onInputActivity?: () => void;
 }
 
 export function ScrollableInput({
@@ -25,6 +26,7 @@ export function ScrollableInput({
   inputMode = "numeric",
   min = 0,
   max = 9999,
+  onInputActivity,
 }: ScrollableInputProps) {
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -38,6 +40,7 @@ export function ScrollableInput({
         ? newValue.toString()
         : newValue.toFixed(2).replace(/\.?0+$/, "");
       onChange(formatted);
+      onInputActivity?.();
 
       // Show scrolling state
       setIsScrolling(true);
@@ -48,7 +51,7 @@ export function ScrollableInput({
         setIsScrolling(false);
       }, 150);
     },
-    [onChange, step]
+    [onChange, step, onInputActivity]
   );
 
   const scrollHandlers = useScrollableInput({
@@ -65,7 +68,10 @@ export function ScrollableInput({
       <div className={styles.stepperRow}>
         <button
           type="button"
-          onClick={() => onAdjust(step)}
+          onClick={() => {
+            onAdjust(step);
+            onInputActivity?.();
+          }}
           className={styles.stepperBtn}
           aria-label={`Increase ${label}`}
         >
@@ -79,17 +85,24 @@ export function ScrollableInput({
             type="text"
             inputMode={inputMode}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              onChange(e.target.value);
+              onInputActivity?.();
+            }}
+            onFocus={() => onInputActivity?.()}
             placeholder={placeholder}
             className={styles.input}
           />
-          <div className={styles.scrollHint}>
+          {/* <div className={styles.scrollHint}>
             <span className={styles.scrollArrow}>↕</span>
-          </div>
+          </div> */}
         </div>
         <button
           type="button"
-          onClick={() => onAdjust(-step)}
+          onClick={() => {
+            onAdjust(-step);
+            onInputActivity?.();
+          }}
           className={styles.stepperBtn}
           aria-label={`Decrease ${label}`}
         >

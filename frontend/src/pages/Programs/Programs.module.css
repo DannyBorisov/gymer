@@ -3,24 +3,14 @@
 }
 
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-}
-
-@media (max-width: 767px) {
-  .header {
-    flex-direction: column;
-  }
+  margin-bottom: 1rem;
 }
 
 .title {
   font-size: 1.5rem;
   font-weight: 600;
   color: #0f0f0f;
-  margin: 0 0 0.25rem 0;
+  margin: 0;
   letter-spacing: -0.025em;
 }
 
@@ -28,39 +18,6 @@
   .title {
     font-size: 1.25rem;
   }
-}
-
-.subtitle {
-  color: #737373;
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-.createButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  background-color: #0f0f0f;
-  color: #fafafa;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.15s ease;
-  min-height: var(--touch-target);
-}
-
-@media (max-width: 767px) {
-  .createButton {
-    width: 100%;
-  }
-}
-
-.createButton:hover {
-  background-color: #262626;
 }
 
 .loadingState {
@@ -190,5 +147,28 @@
 }
 
 .programCard:hover .chevronIcon {
+  color: #0f0f0f;
+}
+
+.createCard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  background: #f5f5f5;
+  border: 1px dashed #d4d4d4;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #525252;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  min-height: var(--touch-target);
+}
+
+.createCard:active {
+  background: #e5e5e5;
+  border-color: #a1a1a1;
   color: #0f0f0f;
 }

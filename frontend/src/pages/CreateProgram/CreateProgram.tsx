@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Plus, Trash2, ChevronRight, Zap, ExternalLink, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Plus, Trash2, ChevronRight, ChevronLeft, ExternalLink, Loader2, Dumbbell, Calendar, Clock } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { presets } from "../../data/presets";
 import { apiFetch } from "../../utils/api";
-import type { Workout, Exercise, Frequency } from "../../types/program";
+import type { Workout, Exercise, Program } from "../../types/program";
 import styles from "./CreateProgram.module.css";
 
 interface ExerciseRowProps {
@@ -24,47 +24,63 @@ const ExerciseRow = ({
 }: ExerciseRowProps) => {
   return (
     <div className={styles.exerciseRow}>
-      <span className={styles.exerciseIndex}>{index + 1}</span>
-      <input
-        type="text"
-        value={exercise.name}
-        onChange={(e) => onUpdate("name", e.target.value)}
-        className={styles.exerciseNameInput}
-        placeholder="Exercise name"
-      />
-      <input
-        type="number"
-        value={exercise.sets || ""}
-        onChange={(e) => onUpdate("sets", Number(e.target.value))}
-        className={styles.numberInput}
-        placeholder="0"
-        min={0}
-      />
-      <input
-        type="number"
-        value={exercise.reps || ""}
-        onChange={(e) => onUpdate("reps", Number(e.target.value))}
-        className={styles.numberInput}
-        placeholder="0"
-        min={0}
-      />
-      <input
-        type="number"
-        value={exercise.rir || ""}
-        onChange={(e) => onUpdate("rir", Number(e.target.value))}
-        className={styles.numberInput}
-        placeholder="0"
-        min={0}
-        max={10}
-      />
-      <button
-        type="button"
-        onClick={onRemove}
-        className={styles.removeBtn}
-        disabled={!canRemove}
-      >
-        <Trash2 size={14} />
-      </button>
+      <div className={styles.exerciseHeader}>
+        <span className={styles.exerciseIndex}>{index + 1}</span>
+        <input
+          type="text"
+          value={exercise.name}
+          onChange={(e) => onUpdate("name", e.target.value)}
+          className={styles.exerciseNameInput}
+          placeholder="Exercise name"
+        />
+        <button
+          type="button"
+          onClick={onRemove}
+          className={styles.removeBtn}
+          disabled={!canRemove}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div className={styles.exerciseInputs}>
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Sets</label>
+          <input
+            type="number"
+            value={exercise.sets || ""}
+            onChange={(e) => onUpdate("sets", Number(e.target.value))}
+            className={styles.numberInput}
+            placeholder="0"
+            min={0}
+            inputMode="numeric"
+          />
+        </div>
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>Reps</label>
+          <input
+            type="number"
+            value={exercise.reps || ""}
+            onChange={(e) => onUpdate("reps", Number(e.target.value))}
+            className={styles.numberInput}
+            placeholder="0"
+            min={0}
+            inputMode="numeric"
+          />
+        </div>
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel}>RIR</label>
+          <input
+            type="number"
+            value={exercise.rir || ""}
+            onChange={(e) => onUpdate("rir", Number(e.target.value))}
+            className={styles.numberInput}
+            placeholder="0"
+            min={0}
+            max={10}
+            inputMode="numeric"
+          />
+        </div>
+      </div>
     </div>
   );
 };
@@ -157,24 +173,16 @@ const WorkoutSection = ({
   );
 };
 
-const frequencyOptions: { value: Frequency; label: string }[] = [
-  { value: 1, label: "1x" },
-  { value: 2, label: "2x" },
-  { value: 3, label: "3x" },
-  { value: 4, label: "4x" },
-  { value: 5, label: "5x" },
-  { value: 6, label: "6x" },
-  { value: "every-other-day", label: "EOD" },
-];
+const getFrequencyLabel = (frequency: Program['frequency']) => {
+  if (frequency === 'every-other-day') return 'Every other day';
+  return `${frequency}x per week`;
+};
 
 const CreateProgram = () => {
+  const navigate = useNavigate();
   const {
     program,
     updateProgramName,
-    updateDuration,
-    updateFrequency,
-    updateDynamicRir,
-    updateStartingRir,
     addWorkout,
     removeWorkout,
     updateWorkoutName,
@@ -182,10 +190,27 @@ const CreateProgram = () => {
     removeExercise,
     updateExercise,
     loadProgram,
+    resetProgram,
   } = useCreateProgram();
 
+  const [mode, setMode] = useState<'templates' | 'edit'>('templates');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; url?: string; error?: string } | null>(null);
+
+  const handleSelectTemplate = (templateProgram: Program) => {
+    loadProgram(templateProgram);
+    setMode('edit');
+  };
+
+  const handleCreateFromScratch = () => {
+    resetProgram();
+    setMode('edit');
+  };
+
+  const handleBack = () => {
+    setMode('templates');
+    setResult(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,32 +238,75 @@ const CreateProgram = () => {
     }
   };
 
-  return (
-    <div className={styles.container}>
-      <Link to="/programs" className={styles.backLink}>
-        &larr; Back to Programs
-      </Link>
+  // Template Selection Screen
+  if (mode === 'templates') {
+    return (
+      <div className={styles.container}>
+        <Link to="/" className={styles.backLink}>
+          <ChevronLeft size={16} />
+          Back to Programs
+        </Link>
 
-      <div className={styles.pageHeader}>
-        <h1 className={styles.title}>Create Program</h1>
-      </div>
+        <div className={styles.pageHeader}>
+          <h1 className={styles.title}>Choose a Template</h1>
+          <p className={styles.subtitle}>Start with a proven program and customize it to your needs</p>
+        </div>
 
-      <div className={styles.presetsSection}>
-        <span className={styles.presetsLabel}>Start from a preset:</span>
-        <div className={styles.presetsList}>
+        <div className={styles.templateGrid}>
           {presets.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => loadProgram(preset.program)}
-              className={styles.presetButton}
-            >
-              <Zap size={14} />
-              <span>{preset.name}</span>
-              <span className={styles.presetDescription}>{preset.description}</span>
-            </button>
+            <div key={preset.id} className={styles.templateCard}>
+              <div className={styles.templateInfo}>
+                <h2 className={styles.templateName}>{preset.program.name}</h2>
+                <p className={styles.templateDescription}>{preset.description}</p>
+                <div className={styles.templateMeta}>
+                  <span className={styles.metaItem}>
+                    <Dumbbell size={14} />
+                    {preset.program.workouts.length} workouts
+                  </span>
+                  <span className={styles.metaItem}>
+                    <Clock size={14} />
+                    {getFrequencyLabel(preset.program.frequency)}
+                  </span>
+                  <span className={styles.metaItem}>
+                    <Calendar size={14} />
+                    {preset.program.durationWeeks} weeks
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSelectTemplate(preset.program)}
+                className={styles.useTemplateBtn}
+              >
+                Use Template
+                <ChevronRight size={16} />
+              </button>
+            </div>
           ))}
         </div>
+
+        <button
+          type="button"
+          onClick={handleCreateFromScratch}
+          className={styles.createFromScratchBtn}
+        >
+          <Plus size={18} />
+          Create from scratch
+        </button>
+      </div>
+    );
+  }
+
+  // Edit Program Screen
+  return (
+    <div className={styles.container}>
+      <button type="button" onClick={handleBack} className={styles.backLink}>
+        <ChevronLeft size={16} />
+        Back to Templates
+      </button>
+
+      <div className={styles.pageHeader}>
+        <h1 className={styles.title}>Customize Program</h1>
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form}>
@@ -249,77 +317,6 @@ const CreateProgram = () => {
           className={styles.programNameInput}
           placeholder="Program name"
         />
-
-        <div className={styles.programSettings}>
-          <div className={styles.settingGroup}>
-            <span className={styles.settingLabel}>Duration</span>
-            <div className={styles.durationInput}>
-              <input
-                type="number"
-                value={program.durationWeeks}
-                onChange={(e) => updateDuration(Number(e.target.value))}
-                className={styles.durationNumber}
-                min={1}
-                max={52}
-              />
-              <span className={styles.durationUnit}>weeks</span>
-            </div>
-          </div>
-
-          <div className={styles.settingDivider} />
-
-          <div className={styles.settingGroup}>
-            <span className={styles.settingLabel}>Frequency</span>
-            <div className={styles.frequencyOptions}>
-              {frequencyOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => updateFrequency(option.value)}
-                  className={`${styles.frequencyOption} ${
-                    program.frequency === option.value ? styles.frequencyActive : ""
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.settingDivider} />
-
-          <div className={styles.settingGroup}>
-            <span className={styles.settingLabel}>RIR Progression</span>
-            <div className={styles.rirControl}>
-              <button
-                type="button"
-                onClick={() => updateDynamicRir(!program.dynamicRir)}
-                className={`${styles.rirToggle} ${program.dynamicRir ? styles.rirToggleActive : ""}`}
-              >
-                <span className={styles.rirToggleTrack}>
-                  <span className={styles.rirToggleThumb} />
-                </span>
-                <span>{program.dynamicRir ? "Dynamic" : "Static"}</span>
-              </button>
-              {program.dynamicRir && (
-                <div className={styles.rirStart}>
-                  <span className={styles.rirStartLabel}>Start:</span>
-                  <select
-                    value={program.startingRir}
-                    onChange={(e) => updateStartingRir(Number(e.target.value))}
-                    className={styles.rirSelect}
-                  >
-                    {[4, 3, 2].map((rir) => (
-                      <option key={rir} value={rir}>RIR {rir}</option>
-                    ))}
-                  </select>
-                  <span className={styles.rirArrow}>→</span>
-                  <span className={styles.rirEnd}>RIR 0</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
 
         <div className={styles.workoutsContainer}>
           <div className={styles.workoutsHeader}>
@@ -368,6 +365,13 @@ const CreateProgram = () => {
                 Open in Google Sheets
                 <ExternalLink size={14} />
               </a>
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className={styles.goBackBtn}
+              >
+                Go to Programs
+              </button>
             </div>
           ) : (
             <>
