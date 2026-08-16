@@ -9,15 +9,15 @@ import {
   Square,
   CheckCircle2,
   Circle,
-  Minus,
-  Plus,
   Check,
   MessageSquare,
   Copy,
   History,
 } from "lucide-react";
+// Note: Plus/Minus icons moved to ScrollableInput component
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
+import { ScrollableInput } from "../../components/ScrollableInput";
 import styles from "./ProgramDetail.module.css";
 
 interface ExerciseRow {
@@ -91,6 +91,7 @@ const ProgramDetail = () => {
   const [previousStats, setPreviousStats] = useState<
     Map<string, PreviousStats>
   >(new Map());
+  const [showSetComplete, setShowSetComplete] = useState(false);
 
   const fetchProgram = useCallback(async () => {
     try {
@@ -112,6 +113,20 @@ const ProgramDetail = () => {
   useEffect(() => {
     fetchProgram();
   }, [fetchProgram]);
+
+  // Handle complete set with animation
+  const handleCompleteSet = useCallback(
+    (rowIndex: number) => {
+      setShowSetComplete(true);
+      completeSet(rowIndex);
+
+      // Brief animation then advance
+      setTimeout(() => {
+        setShowSetComplete(false);
+      }, 400);
+    },
+    [completeSet]
+  );
 
   const handleStartWorkout = (week: number, workout: Workout) => {
     if (!id) return;
@@ -366,6 +381,14 @@ const ProgramDetail = () => {
           <div
             className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ""}`}
           >
+            {/* Set complete animation overlay */}
+            {showSetComplete && (
+              <div className={styles.setCompleteOverlay}>
+                <div className={styles.setCompleteIcon}>
+                  <Check size={48} strokeWidth={3} />
+                </div>
+              </div>
+            )}
             <div className={styles.setHeader}>
               <button
                 className={styles.setNavBtn}
@@ -464,126 +487,44 @@ const ProgramDetail = () => {
             </div>
 
             <div className={styles.inputSection}>
-              {/* Weight */}
-              <div className={styles.inputGroup}>
-                <span className={styles.inputLabel}>{weightUnit}</span>
-                <div className={styles.stepperRow}>
-                  <button
-                    onClick={() =>
-                      adjustValue(currentSet.rowIndex, "weight", 1.25)
-                    }
-                    className={styles.stepperBtn}
-                    aria-label="Increase weight"
-                  >
-                    <Plus size={18} />
-                  </button>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={workoutData.get(currentSet.rowIndex)?.weight || ""}
-                    onChange={(e) =>
-                      updateExercise(
-                        currentSet.rowIndex,
-                        "weight",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="0"
-                    className={styles.focusInput}
-                  />
-                  <button
-                    onClick={() =>
-                      adjustValue(currentSet.rowIndex, "weight", -1.25)
-                    }
-                    className={styles.stepperBtn}
-                    aria-label="Decrease weight"
-                  >
-                    <Minus size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Reps */}
-              <div className={styles.inputGroup}>
-                <span className={styles.inputLabel}>Reps</span>
-                <div className={styles.stepperRow}>
-                  <button
-                    onClick={() =>
-                      adjustValue(currentSet.rowIndex, "repsAchieved", 1)
-                    }
-                    className={styles.stepperBtn}
-                    aria-label="Increase reps"
-                  >
-                    <Plus size={18} />
-                  </button>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={
-                      workoutData.get(currentSet.rowIndex)?.repsAchieved || ""
-                    }
-                    onChange={(e) =>
-                      updateExercise(
-                        currentSet.rowIndex,
-                        "repsAchieved",
-                        e.target.value,
-                      )
-                    }
-                    placeholder={currentSet.targetReps.toString()}
-                    className={styles.focusInput}
-                  />
-                  <button
-                    onClick={() =>
-                      adjustValue(currentSet.rowIndex, "repsAchieved", -1)
-                    }
-                    className={styles.stepperBtn}
-                    aria-label="Decrease reps"
-                  >
-                    <Minus size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {/* RIR */}
-              <div className={styles.inputGroup}>
-                <span className={styles.inputLabel}>RIR</span>
-                <div className={styles.stepperRow}>
-                  <button
-                    onClick={() =>
-                      adjustValue(currentSet.rowIndex, "rirAchieved", 1)
-                    }
-                    className={styles.stepperBtn}
-                    aria-label="Increase RIR"
-                  >
-                    <Plus size={18} />
-                  </button>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={
-                      workoutData.get(currentSet.rowIndex)?.rirAchieved || ""
-                    }
-                    onChange={(e) =>
-                      updateExercise(
-                        currentSet.rowIndex,
-                        "rirAchieved",
-                        e.target.value,
-                      )
-                    }
-                    placeholder={currentSet.rir}
-                    className={styles.focusInput}
-                  />
-                  <button
-                    onClick={() =>
-                      adjustValue(currentSet.rowIndex, "rirAchieved", -1)
-                    }
-                    className={styles.stepperBtn}
-                    aria-label="Decrease RIR"
-                  >
-                    <Minus size={18} />
-                  </button>
-                </div>
-              </div>
+              <ScrollableInput
+                label={weightUnit}
+                value={workoutData.get(currentSet.rowIndex)?.weight || ""}
+                onChange={(val) =>
+                  updateExercise(currentSet.rowIndex, "weight", val)
+                }
+                onAdjust={(delta) =>
+                  adjustValue(currentSet.rowIndex, "weight", delta)
+                }
+                step={1.25}
+                inputMode="decimal"
+                placeholder="0"
+              />
+              <ScrollableInput
+                label="Reps"
+                value={workoutData.get(currentSet.rowIndex)?.repsAchieved || ""}
+                onChange={(val) =>
+                  updateExercise(currentSet.rowIndex, "repsAchieved", val)
+                }
+                onAdjust={(delta) =>
+                  adjustValue(currentSet.rowIndex, "repsAchieved", delta)
+                }
+                step={1}
+                placeholder={currentSet.targetReps.toString()}
+              />
+              <ScrollableInput
+                label="RIR"
+                value={workoutData.get(currentSet.rowIndex)?.rirAchieved || ""}
+                onChange={(val) =>
+                  updateExercise(currentSet.rowIndex, "rirAchieved", val)
+                }
+                onAdjust={(delta) =>
+                  adjustValue(currentSet.rowIndex, "rirAchieved", delta)
+                }
+                step={1}
+                placeholder={currentSet.rir}
+                max={10}
+              />
             </div>
 
             {/* Notes toggle */}
@@ -616,12 +557,15 @@ const ProgramDetail = () => {
             {!isWorkoutComplete && (
               <>
                 <button
-                  disabled={!isSetCompleted}
-                  onClick={() => completeSet(currentSet.rowIndex)}
+                  disabled={
+                    !workoutData.get(currentSet.rowIndex)?.weight ||
+                    !workoutData.get(currentSet.rowIndex)?.repsAchieved
+                  }
+                  onClick={() => handleCompleteSet(currentSet.rowIndex)}
                   className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
                 >
                   <Check size={24} />
-                  {"Complete set"}
+                  Complete set
                 </button>
 
                 <button
