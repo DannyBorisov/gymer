@@ -117,7 +117,31 @@ fastify.get("/auth/google/callback", async (request, reply) => {
         session: { tokens, user },
         expires: Date.now() + 60000, // 60 seconds
       });
-      return reply.redirect(`gymerr://auth/callback?token=${authToken}`);
+      // Return an HTML page that redirects - more reliable than direct redirect
+      reply.type("text/html");
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Redirecting...</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #1a1a2e; color: white; }
+            .container { text-align: center; }
+            a { color: #4a9eff; font-size: 18px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <p>Login successful!</p>
+            <p><a href="gymerr://auth/callback?token=${authToken}">Tap here to return to the app</a></p>
+          </div>
+          <script>
+            window.location.href = "gymerr://auth/callback?token=${authToken}";
+          </script>
+        </body>
+        </html>
+      `;
     }
 
     setSession(reply, { tokens, user });
