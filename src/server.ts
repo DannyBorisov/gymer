@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import fastifyCookie from "@fastify/cookie";
+import fastifyCors from "@fastify/cors";
 import fastifyStatic from "@fastify/static";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -54,6 +55,12 @@ const fastify = Fastify({
 // Register cookie plugin
 fastify.register(fastifyCookie, {
   secret: config.env.SESSION_SECRET,
+});
+
+// Register CORS for native app requests
+fastify.register(fastifyCors, {
+  origin: true, // Allow all origins for native app
+  credentials: true,
 });
 
 // Session helpers
