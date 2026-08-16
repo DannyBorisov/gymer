@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, History, Dumbbell, LogOut, Scale } from 'lucide-react'
+import { LayoutDashboard, History, Dumbbell, LogOut, Scale, User } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useWorkout } from '../../contexts/WorkoutContext'
@@ -60,65 +60,6 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className={styles.container}>
-      {/* Mobile Header - hide during active workout */}
-      {isMobile && !activeWorkout && (
-        <header className={styles.mobileHeader}>
-          <div className={styles.mobileHeaderLogo}>
-            <Dumbbell size={20} />
-            <span>Gymerr</span>
-          </div>
-          {user && (
-            <div className={styles.mobileUserSection} ref={popoverRef}>
-              <button
-                className={styles.mobileAvatarBtn}
-                onClick={() => setShowPopover(!showPopover)}
-              >
-                <div className={styles.mobileAvatar}>
-                  {getInitials(user.name)}
-                </div>
-              </button>
-              {showPopover && (
-                <div className={styles.mobilePopover}>
-                  <div className={styles.popoverHeader}>
-                    <div className={styles.popoverAvatar}>{getInitials(user.name)}</div>
-                    <div className={styles.popoverInfo}>
-                      <span className={styles.popoverName}>{user.name}</span>
-                      <span className={styles.popoverEmail}>{user.email}</span>
-                    </div>
-                  </div>
-                  <div className={styles.settingsSection}>
-                    <div className={styles.settingsRow}>
-                      <div className={styles.settingsLabel}>
-                        <Scale size={16} />
-                        <span>Weight unit</span>
-                      </div>
-                      <div className={styles.unitToggle}>
-                        <button
-                          className={`${styles.unitBtn} ${weightUnit === 'kg' ? styles.unitBtnActive : ''}`}
-                          onClick={() => setWeightUnit('kg')}
-                        >
-                          kg
-                        </button>
-                        <button
-                          className={`${styles.unitBtn} ${weightUnit === 'lbs' ? styles.unitBtnActive : ''}`}
-                          onClick={() => setWeightUnit('lbs')}
-                        >
-                          lbs
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <button className={styles.signOutButton} onClick={logout}>
-                    <LogOut size={16} />
-                    <span>Sign out</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </header>
-      )}
-
       {/* Desktop Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
@@ -197,7 +138,7 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Mobile Bottom Navigation - hide during active workout */}
       {isMobile && !activeWorkout && (
-        <nav className={styles.bottomNav}>
+        <nav className={styles.bottomNav} ref={popoverRef}>
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -208,6 +149,52 @@ const Layout = ({ children }: LayoutProps) => {
               <span>{label}</span>
             </NavLink>
           ))}
+          {user && (
+            <button
+              className={`${styles.bottomNavItem} ${showPopover ? styles.bottomNavActive : ''}`}
+              onClick={() => setShowPopover(!showPopover)}
+            >
+              <User size={20} />
+              <span>Profile</span>
+            </button>
+          )}
+          {showPopover && (
+            <div className={styles.bottomPopover}>
+              <div className={styles.popoverHeader}>
+                <div className={styles.popoverAvatar}>{user && getInitials(user.name)}</div>
+                <div className={styles.popoverInfo}>
+                  <span className={styles.popoverName}>{user?.name}</span>
+                  <span className={styles.popoverEmail}>{user?.email}</span>
+                </div>
+              </div>
+              <div className={styles.settingsSection}>
+                <div className={styles.settingsRow}>
+                  <div className={styles.settingsLabel}>
+                    <Scale size={16} />
+                    <span>Weight unit</span>
+                  </div>
+                  <div className={styles.unitToggle}>
+                    <button
+                      className={`${styles.unitBtn} ${weightUnit === 'kg' ? styles.unitBtnActive : ''}`}
+                      onClick={() => setWeightUnit('kg')}
+                    >
+                      kg
+                    </button>
+                    <button
+                      className={`${styles.unitBtn} ${weightUnit === 'lbs' ? styles.unitBtnActive : ''}`}
+                      onClick={() => setWeightUnit('lbs')}
+                    >
+                      lbs
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button className={styles.signOutButton} onClick={logout}>
+                <LogOut size={16} />
+                <span>Sign out</span>
+              </button>
+            </div>
+          )}
         </nav>
       )}
     </div>

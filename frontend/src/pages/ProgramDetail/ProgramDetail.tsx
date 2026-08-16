@@ -64,6 +64,14 @@ const formatTime = (seconds: number) => {
   return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
+const formatDateWithDay = (dateStr: string) => {
+  // Date is in DD/MM/YYYY format
+  const [day, month, year] = dateStr.split("/").map(Number);
+  const date = new Date(year, month - 1, day);
+  const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+  return `${dayName}, ${dateStr}`;
+};
+
 const ProgramDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -269,25 +277,6 @@ const ProgramDetail = () => {
             <div className={styles.workoutHeader}>
               <div className={styles.timerSection}>
                 <span className={styles.timer}>{formatTime(timer)}</span>
-                <div className={styles.timerControls}>
-                  {isTimerRunning ? (
-                    <button
-                      onClick={() => setIsTimerRunning(false)}
-                      className={styles.timerBtn}
-                      aria-label="Pause timer"
-                    >
-                      <Pause size={18} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setIsTimerRunning(true)}
-                      className={styles.timerBtn}
-                      aria-label="Resume timer"
-                    >
-                      <Play size={18} />
-                    </button>
-                  )}
-                </div>
               </div>
               <div className={styles.progressSection}>
                 <div className={styles.progressBar}>
@@ -318,31 +307,33 @@ const ProgramDetail = () => {
         )}
 
         {/* Exercise tabs */}
-        <div className={styles.exerciseTabs}>
-          {groupedByExercise.map(([name, sets], idx) => {
-            const completedInExercise = sets.filter((s) => {
-              const data = workoutData.get(s.rowIndex);
-              return data?.weight && data?.repsAchieved;
-            }).length;
-            const isComplete = completedInExercise === sets.length;
-            const isCurrent = idx === currentExerciseIndex;
-            return (
-              <button
-                key={name}
-                onClick={() => {
-                  setCurrentExerciseIndex(idx);
-                  setCurrentSetIndex(0);
-                  setShowNotes(false);
-                }}
-                className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
-              >
-                <span className={styles.exerciseTabName}>{name}</span>
-                <span className={styles.exerciseTabCount}>
-                  {completedInExercise}/{sets.length}
-                </span>
-              </button>
-            );
-          })}
+        <div className={styles.exerciseTabsWrapper}>
+          <div className={styles.exerciseTabs}>
+            {groupedByExercise.map(([name, sets], idx) => {
+              const completedInExercise = sets.filter((s) => {
+                const data = workoutData.get(s.rowIndex);
+                return data?.weight && data?.repsAchieved;
+              }).length;
+              const isComplete = completedInExercise === sets.length;
+              const isCurrent = idx === currentExerciseIndex;
+              return (
+                <button
+                  key={name}
+                  onClick={() => {
+                    setCurrentExerciseIndex(idx);
+                    setCurrentSetIndex(0);
+                    setShowNotes(false);
+                  }}
+                  className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
+                >
+                  <span className={styles.exerciseTabName}>{name}</span>
+                  <span className={styles.exerciseTabCount}>
+                    {completedInExercise}/{sets.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Current exercise info */}
@@ -390,6 +381,7 @@ const ProgramDetail = () => {
                 </div>
               </div>
             )}
+            <div className={styles.inputsCenter}>
             <div className={styles.setHeader}>
               <button
                 className={styles.setNavBtn}
@@ -548,36 +540,48 @@ const ProgramDetail = () => {
                 rows={2}
               />
             )}
+            </div>
 
-            {isWorkoutComplete && (
-              <button onClick={stopWorkout} className={styles.backToProgram}>
-                Back to Program
-              </button>
-            )}
-
-            {!isWorkoutComplete && (
-              <>
-                <button
-                  disabled={
-                    !workoutData.get(currentSet.rowIndex)?.weight ||
-                    !workoutData.get(currentSet.rowIndex)?.repsAchieved
-                  }
-                  onClick={() => handleCompleteSet(currentSet.rowIndex)}
-                  className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
-                >
-                  <Check size={24} />
-                  Complete set
+            <div className={styles.buttonsContainer}>
+              {isWorkoutComplete && (
+                <button onClick={stopWorkout} className={styles.backToProgram}>
+                  Back to Program
                 </button>
+              )}
 
-                <button
-                  onClick={handleStopWorkout}
-                  className={styles.endWorkoutBtn}
-                >
-                  <Square size={16} />
-                  <span>End Workout</span>
-                </button>
-              </>
-            )}
+              {!isWorkoutComplete && (
+                <>
+                  <button
+                    disabled={
+                      !workoutData.get(currentSet.rowIndex)?.weight ||
+                      !workoutData.get(currentSet.rowIndex)?.repsAchieved
+                    }
+                    onClick={() => handleCompleteSet(currentSet.rowIndex)}
+                    className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
+                  >
+                    <Check size={24} />
+                    Complete set
+                  </button>
+
+                  <div className={styles.secondaryBtnsRow}>
+                    <button
+                      onClick={handleStopWorkout}
+                      className={styles.secondaryBtn}
+                    >
+                      <Square size={16} />
+                      <span>End</span>
+                    </button>
+                    <button
+                      onClick={() => setIsTimerRunning(!isTimerRunning)}
+                      className={styles.secondaryBtn}
+                    >
+                      {isTimerRunning ? <Pause size={16} /> : <Play size={16} />}
+                      <span>{isTimerRunning ? "Pause" : "Resume"}</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -632,7 +636,7 @@ const ProgramDetail = () => {
                       <span className={styles.workoutName}>{workout.name}</span>
                       {workout.completedDate && (
                         <span className={styles.workoutDate}>
-                          {workout.completedDate}
+                          {formatDateWithDay(workout.completedDate)}
                         </span>
                       )}
                     </div>
