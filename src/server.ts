@@ -64,7 +64,16 @@ fastify.register(fastifyCors, {
 });
 
 // Session helpers
-function getSession(request: { cookies: Record<string, string | undefined> }): SessionData {
+function getSession(request: { cookies: Record<string, string | undefined>; headers: { authorization?: string | string[] } }): SessionData {
+  // Check for Authorization header first (native app)
+  const authHeader = request.headers.authorization;
+  const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  if (authValue?.startsWith("Bearer ")) {
+    const token = authValue.slice(7);
+    return decrypt(token) || {};
+  }
+
+  // Fall back to cookie (web)
   const sessionCookie = request.cookies.session;
   if (!sessionCookie) return {};
   return decrypt(sessionCookie) || {};
@@ -186,8 +195,11 @@ fastify.post<{ Body: { token: string } }>("/api/auth/exchange", async (request, 
   }
 
   pendingAuthTokens.delete(token);
-  setSession(reply, pending.session);
-  return { success: true, user: pending.session.user };
+
+  // For native apps, return an encrypted session token they can store
+  const sessionToken = encrypt(pending.session);
+
+  return { success: true, user: pending.session.user, sessionToken };
 });
 
 // Program routes

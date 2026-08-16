@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Plus, Trash2, ChevronRight, Zap, ExternalLink, Loader2 } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { presets } from "../../data/presets";
-import { apiUrl } from "../../utils/api";
+import { apiFetch } from "../../utils/api";
 import type { Workout, Exercise, Frequency } from "../../types/program";
 import styles from "./CreateProgram.module.css";
 
@@ -193,10 +193,9 @@ const CreateProgram = () => {
     setResult(null);
 
     try {
-      const response = await fetch(apiUrl("/api/program/create"), {
+      const response = await apiFetch("/api/program/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify(program),
       });
 

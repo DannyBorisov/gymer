@@ -15,6 +15,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: UserInfo | null;
+  sessionToken: string | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
@@ -26,11 +27,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(() => {
+    // Load token from localStorage on init
+    return localStorage.getItem("sessionToken");
+  });
 
   const checkAuth = async () => {
     try {
+      const headers: Record<string, string> = {};
+      const storedToken = localStorage.getItem("sessionToken");
+      if (storedToken) {
+        headers["Authorization"] = `Bearer ${storedToken}`;
+      }
+
       const response = await fetch(apiUrl("/api/auth/google/status"), {
         credentials: "include",
+        headers,
       });
       const data = await response.json();
       setIsAuthenticated(data.authenticated);
@@ -71,6 +83,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               });
               const data = await response.json();
               if (data.success) {
+                // Store session token for native app
+                if (data.sessionToken) {
+                  localStorage.setItem("sessionToken", data.sessionToken);
+                  setSessionToken(data.sessionToken);
+                }
                 setIsAuthenticated(true);
                 setUser(data.user);
                 alert("Login successful!");
@@ -102,16 +119,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    const headers: Record<string, string> = {};
+    if (sessionToken) {
+      headers["Authorization"] = `Bearer ${sessionToken}`;
+    }
     await fetch(apiUrl("/api/auth/logout"), {
       method: "POST",
       credentials: "include",
+      headers,
     });
+    localStorage.removeItem("sessionToken");
+    setSessionToken(null);
     setIsAuthenticated(false);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, sessionToken, login, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );
