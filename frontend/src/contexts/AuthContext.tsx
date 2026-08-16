@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
+import { Browser } from "@capacitor/browser";
 import { apiUrl } from "../utils/api";
 
 interface UserInfo {
@@ -14,7 +15,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: UserInfo | null;
-  login: () => void;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -47,22 +48,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Listen for deep link callbacks on native platforms
     if (Capacitor.isNativePlatform()) {
-      App.addListener("appUrlOpen", (event) => {
-        // Handle gymerr://auth/callback?success=true
+      App.addListener("appUrlOpen", async (event) => {
+        // Handle gymerr://auth/callback?token=xxx
         if (event.url.includes("auth/callback")) {
+          // Close the in-app browser
+          await Browser.close();
+
           const url = new URL(event.url);
-          if (url.searchParams.get("success") === "true") {
-            checkAuth();
+          const token = url.searchParams.get("token");
+
+          if (token) {
+            // Exchange token for session
+            try {
+              const response = await fetch(apiUrl("/api/auth/exchange"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ token }),
+              });
+              const data = await response.json();
+              if (data.success) {
+                setIsAuthenticated(true);
+                setUser(data.user);
+              }
+            } catch (err) {
+              console.error("Token exchange failed:", err);
+            }
           }
         }
       });
     }
   }, []);
 
-  const login = () => {
+  const login = async () => {
     const isNative = Capacitor.isNativePlatform();
     const authUrl = apiUrl(`/auth/google${isNative ? "?native=true" : ""}`);
-    window.location.href = authUrl;
+
+    if (isNative) {
+      // Use in-app browser for native - it handles redirects properly
+      await Browser.open({ url: authUrl });
+    } else {
+      window.location.href = authUrl;
+    }
   };
 
   const logout = async () => {

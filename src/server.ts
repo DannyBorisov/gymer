@@ -16,6 +16,9 @@ interface SessionData {
   user?: UserInfo;
 }
 
+// Temporary token store for native app auth (tokens expire after 60 seconds)
+const pendingAuthTokens = new Map<string, { session: SessionData; expires: number }>();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -106,12 +109,18 @@ fastify.get("/auth/google/callback", async (request, reply) => {
 
   try {
     const { tokens, user } = await fastify.sheets.handleCallback(code);
-    setSession(reply, { tokens, user });
 
-    // For native app, redirect to custom URL scheme
+    // For native app, create a one-time token to exchange for session
     if (state === "native") {
-      return reply.redirect("gymerr://auth/callback?success=true");
+      const authToken = crypto.randomBytes(32).toString("hex");
+      pendingAuthTokens.set(authToken, {
+        session: { tokens, user },
+        expires: Date.now() + 60000, // 60 seconds
+      });
+      return reply.redirect(`gymerr://auth/callback?token=${authToken}`);
     }
+
+    setSession(reply, { tokens, user });
     return reply.redirect("/");
   } catch (error) {
     fastify.log.error(error);
@@ -133,6 +142,21 @@ fastify.get("/api/auth/google/status", async (request) => {
 fastify.post("/api/auth/logout", async (_request, reply) => {
   clearSession(reply);
   return { success: true };
+});
+
+// Exchange one-time token for session (native app auth)
+fastify.post<{ Body: { token: string } }>("/api/auth/exchange", async (request, reply) => {
+  const { token } = request.body;
+
+  const pending = pendingAuthTokens.get(token);
+  if (!pending || pending.expires < Date.now()) {
+    pendingAuthTokens.delete(token);
+    return reply.status(401).send({ error: "Invalid or expired token" });
+  }
+
+  pendingAuthTokens.delete(token);
+  setSession(reply, pending.session);
+  return { success: true, user: pending.session.user };
 });
 
 // Program routes
