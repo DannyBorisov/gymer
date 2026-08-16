@@ -222,15 +222,18 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const stopWorkout = useCallback(async () => {
     setIsTimerRunning(false);
     timerStartRef.current = 0;
-    // Always save when stopping, and include the completion date
-    await saveWorkout(true);
+    // Only include date if all sets are complete (have weight + reps)
+    const allComplete = Array.from(workoutData.values()).every(
+      (row) => row.weight && row.repsAchieved
+    );
+    await saveWorkout(allComplete);
     setActiveWorkout(null);
     setWorkoutData(new Map());
     setTimer(0);
     setCompletedSets(new Set());
     setCurrentExerciseIndex(0);
     setCurrentSetIndex(0);
-  }, [saveWorkout]);
+  }, [saveWorkout, workoutData]);
 
   const updateExercise = useCallback(
     (
@@ -275,6 +278,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const completeSet = useCallback(
     (rowIndex: number) => {
       // Auto-fill repsAchieved with targetReps if empty
+      let updatedData: Map<number, ExerciseRow> = workoutData;
       setWorkoutData((prev) => {
         const newData = new Map(prev);
         const row = newData.get(rowIndex);
@@ -282,10 +286,22 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           newData.set(rowIndex, { ...row, repsAchieved: row.targetReps.toString() });
           setHasUnsavedChanges(true);
         }
+        updatedData = newData;
         return newData;
       });
 
       setCompletedSets((prev) => new Set([...prev, rowIndex]));
+
+      // Check if this completes all sets (all have weight + reps)
+      const allSetsComplete = Array.from(updatedData.values()).every(
+        (row) => row.weight && row.repsAchieved
+      );
+
+      // If all sets are now complete, save with date
+      if (allSetsComplete) {
+        // Use setTimeout to ensure state updates are processed
+        setTimeout(() => saveWorkout(true), 100);
+      }
 
       // Auto-advance to next set
       const exercises = Array.from(workoutData.values());
@@ -308,7 +324,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setCurrentSetIndex(0);
       }
     },
-    [workoutData, currentExerciseIndex, currentSetIndex],
+    [workoutData, currentExerciseIndex, currentSetIndex, saveWorkout],
   );
 
   return (

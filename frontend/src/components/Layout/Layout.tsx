@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, History, Dumbbell, LogOut, Scale, Play } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { LayoutDashboard, History, Dumbbell, LogOut, Scale } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useWorkout } from '../../contexts/WorkoutContext'
@@ -25,18 +25,11 @@ interface LayoutProps {
   children: React.ReactNode
 }
 
-const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
-
 const Layout = ({ children }: LayoutProps) => {
   const { user, logout } = useAuth()
   const { weightUnit, setWeightUnit } = useSettings()
-  const { activeWorkout, timer, isTimerRunning } = useWorkout()
+  const { activeWorkout } = useWorkout()
   const location = useLocation()
-  const navigate = useNavigate()
   const [showPopover, setShowPopover] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const popoverRef = useRef<HTMLDivElement>(null)
@@ -67,23 +60,13 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className={styles.container}>
-      {/* Mobile Header */}
-      {isMobile && (
+      {/* Mobile Header - hide during active workout */}
+      {isMobile && !activeWorkout && (
         <header className={styles.mobileHeader}>
-          {activeWorkout ? (
-            <button
-              className={styles.workoutIndicator}
-              onClick={() => navigate(`/programs/${activeWorkout.programId}`)}
-            >
-              <Play size={14} className={isTimerRunning ? styles.pulseIcon : ''} />
-              <span>{formatTime(timer)}</span>
-            </button>
-          ) : (
-            <div className={styles.mobileHeaderLogo}>
-              <Dumbbell size={20} />
-              <span>Gymerr</span>
-            </div>
-          )}
+          <div className={styles.mobileHeaderLogo}>
+            <Dumbbell size={20} />
+            <span>Gymerr</span>
+          </div>
           {user && (
             <div className={styles.mobileUserSection} ref={popoverRef}>
               <button

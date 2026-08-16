@@ -54,8 +54,12 @@ interface PreviousStats {
 }
 
 const formatTime = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  }
   return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 };
 
@@ -70,7 +74,6 @@ const ProgramDetail = () => {
     isTimerRunning,
     currentExerciseIndex,
     currentSetIndex,
-    completedSets,
     startWorkout,
     stopWorkout,
     setIsTimerRunning,
@@ -221,7 +224,11 @@ const ProgramDetail = () => {
     );
 
     const totalSets = exercises.length;
-    const completedCount = completedSets.size;
+    const completedCount = exercises.filter(
+      (ex) =>
+        workoutData.get(ex.rowIndex)?.weight &&
+        workoutData.get(ex.rowIndex)?.repsAchieved,
+    ).length;
     const isWorkoutComplete = completedCount === totalSets && totalSets > 0;
 
     const currentExercise = groupedByExercise[currentExerciseIndex];
@@ -231,49 +238,55 @@ const ProgramDetail = () => {
     const previousSet =
       currentSetIndex > 0 ? currentExerciseSets[currentSetIndex - 1] : null;
 
-    const isSetCompleted = currentSet && completedSets.has(currentSet.rowIndex);
+    const currentSetData = currentSet
+      ? workoutData.get(currentSet.rowIndex)
+      : null;
+    const isSetCompleted =
+      currentSetData?.weight && currentSetData?.repsAchieved;
     const prevStats = previousStats.get(currentExerciseName);
 
     return (
       <div className={styles.workoutContainer}>
-        {/* Sticky header with timer */}
-        <div className={styles.stickyHeader}>
-          <div className={styles.workoutHeader}>
-            <div className={styles.timerSection}>
-              <span className={styles.timer}>{formatTime(timer)}</span>
-              <div className={styles.timerControls}>
-                {isTimerRunning ? (
-                  <button
-                    onClick={() => setIsTimerRunning(false)}
-                    className={styles.timerBtn}
-                    aria-label="Pause timer"
-                  >
-                    <Pause size={18} />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setIsTimerRunning(true)}
-                    className={styles.timerBtn}
-                    aria-label="Resume timer"
-                  >
-                    <Play size={18} />
-                  </button>
-                )}
+        {/* Sticky header with timer - hide timer when workout complete */}
+        {!isWorkoutComplete && (
+          <div className={styles.stickyHeader}>
+            <div className={styles.workoutHeader}>
+              <div className={styles.timerSection}>
+                <span className={styles.timer}>{formatTime(timer)}</span>
+                <div className={styles.timerControls}>
+                  {isTimerRunning ? (
+                    <button
+                      onClick={() => setIsTimerRunning(false)}
+                      className={styles.timerBtn}
+                      aria-label="Pause timer"
+                    >
+                      <Pause size={18} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setIsTimerRunning(true)}
+                      className={styles.timerBtn}
+                      aria-label="Resume timer"
+                    >
+                      <Play size={18} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className={styles.progressSection}>
-              <div className={styles.progressBar}>
-                <div
-                  className={styles.progressFill}
-                  style={{ width: `${(completedCount / totalSets) * 100}%` }}
-                />
+              <div className={styles.progressSection}>
+                <div className={styles.progressBar}>
+                  <div
+                    className={styles.progressFill}
+                    style={{ width: `${(completedCount / totalSets) * 100}%` }}
+                  />
+                </div>
+                <span className={styles.progressText}>
+                  {completedCount}/{totalSets}
+                </span>
               </div>
-              <span className={styles.progressText}>
-                {completedCount}/{totalSets}
-              </span>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Workout complete banner */}
         {isWorkoutComplete && (
@@ -281,7 +294,9 @@ const ProgramDetail = () => {
             <Check size={24} />
             <div>
               <span className={styles.completeTitle}>Workout Complete!</span>
-              <span className={styles.completeSubtitle}>All {totalSets} sets finished</span>
+              <span className={styles.completeSubtitle}>
+                All {totalSets} sets finished
+              </span>
             </div>
           </div>
         )}
@@ -289,9 +304,10 @@ const ProgramDetail = () => {
         {/* Exercise tabs */}
         <div className={styles.exerciseTabs}>
           {groupedByExercise.map(([name, sets], idx) => {
-            const completedInExercise = sets.filter((s) =>
-              completedSets.has(s.rowIndex),
-            ).length;
+            const completedInExercise = sets.filter((s) => {
+              const data = workoutData.get(s.rowIndex);
+              return data?.weight && data?.repsAchieved;
+            }).length;
             const isComplete = completedInExercise === sets.length;
             const isCurrent = idx === currentExerciseIndex;
             return (
@@ -325,40 +341,57 @@ const ProgramDetail = () => {
 
         {/* Set indicators */}
         <div className={styles.setIndicators}>
-          {currentExerciseSets.map((set, idx) => (
-            <button
-              key={set.rowIndex}
-              onClick={() => {
-                setCurrentSetIndex(idx);
-                setShowNotes(false);
-              }}
-              className={`${styles.setIndicator} ${
-                idx === currentSetIndex ? styles.setIndicatorActive : ""
-              } ${completedSets.has(set.rowIndex) ? styles.setIndicatorDone : ""}`}
-            >
-              {completedSets.has(set.rowIndex) ? <Check size={14} /> : set.set}
-            </button>
-          ))}
+          {currentExerciseSets.map((set, idx) => {
+            const setData = workoutData.get(set.rowIndex);
+            const setIsDone = setData?.weight && setData?.repsAchieved;
+            return (
+              <button
+                key={set.rowIndex}
+                onClick={() => {
+                  setCurrentSetIndex(idx);
+                  setShowNotes(false);
+                }}
+                className={`${styles.setIndicator} ${
+                  idx === currentSetIndex ? styles.setIndicatorActive : ""
+                } ${setIsDone ? styles.setIndicatorDone : ""}`}
+              >
+                {setIsDone ? <Check size={14} /> : set.set}
+              </button>
+            );
+          })}
         </div>
 
         {/* Current set input */}
         {currentSet && (
-          <div className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ''}`}>
+          <div
+            className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ""}`}
+          >
             <div className={styles.setHeader}>
               <button
                 className={styles.setNavBtn}
-                onClick={() => setCurrentSetIndex(Math.max(0, currentSetIndex - 1))}
+                onClick={() =>
+                  setCurrentSetIndex(Math.max(0, currentSetIndex - 1))
+                }
                 disabled={currentSetIndex === 0}
               >
                 <ChevronLeft size={20} />
               </button>
               <span className={styles.setLabel}>
                 Set {currentSet.set}/{currentExerciseSets.length}
-                {isSetCompleted && <Check size={14} className={styles.setDoneIcon} />}
+                {isSetCompleted && (
+                  <Check size={14} className={styles.setDoneIcon} />
+                )}
               </span>
               <button
                 className={styles.setNavBtn}
-                onClick={() => setCurrentSetIndex(Math.min(currentExerciseSets.length - 1, currentSetIndex + 1))}
+                onClick={() =>
+                  setCurrentSetIndex(
+                    Math.min(
+                      currentExerciseSets.length - 1,
+                      currentSetIndex + 1,
+                    ),
+                  )
+                }
                 disabled={currentSetIndex === currentExerciseSets.length - 1}
               >
                 <ChevronRight size={20} />
@@ -374,20 +407,33 @@ const ProgramDetail = () => {
                   onClick={() => {
                     const stats = prevStats.sets[currentSetIndex];
                     if (stats.weight) {
-                      updateExercise(currentSet.rowIndex, "weight", stats.weight);
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "weight",
+                        stats.weight,
+                      );
                     }
                     if (stats.reps) {
-                      updateExercise(currentSet.rowIndex, "repsAchieved", stats.reps);
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "repsAchieved",
+                        stats.reps,
+                      );
                     }
                     if (stats.rir) {
-                      updateExercise(currentSet.rowIndex, "rirAchieved", stats.rir);
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "rirAchieved",
+                        stats.rir,
+                      );
                     }
                   }}
                 >
                   <div className={styles.prevStatsHeader}>
                     <History size={14} />
                     <span>
-                      Week {prevStats.week}: {prevStats.sets[currentSetIndex].weight}
+                      Week {prevStats.week}:{" "}
+                      {prevStats.sets[currentSetIndex].weight}
                       {weightUnit} × {prevStats.sets[currentSetIndex].reps}
                       {prevStats.sets[currentSetIndex].rir &&
                         ` @ ${prevStats.sets[currentSetIndex].rir}`}
@@ -408,8 +454,11 @@ const ProgramDetail = () => {
                   className={styles.copyBtn}
                 >
                   <Copy size={14} />
-                  Set {previousSet.set}: {workoutData.get(previousSet.rowIndex)?.weight}
-                  {weightUnit} × {workoutData.get(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
+                  Set {previousSet.set}:{" "}
+                  {workoutData.get(previousSet.rowIndex)?.weight}
+                  {weightUnit} ×{" "}
+                  {workoutData.get(previousSet.rowIndex)?.repsAchieved ||
+                    previousSet.targetReps}
                 </button>
               )}
             </div>
@@ -417,16 +466,16 @@ const ProgramDetail = () => {
             <div className={styles.inputSection}>
               {/* Weight */}
               <div className={styles.inputGroup}>
-                <span className={styles.inputLabel}>Weight ({weightUnit})</span>
+                <span className={styles.inputLabel}>{weightUnit}</span>
                 <div className={styles.stepperRow}>
                   <button
                     onClick={() =>
-                      adjustValue(currentSet.rowIndex, "weight", -2.5)
+                      adjustValue(currentSet.rowIndex, "weight", 1.25)
                     }
                     className={styles.stepperBtn}
-                    aria-label="Decrease weight"
+                    aria-label="Increase weight"
                   >
-                    <Minus size={24} />
+                    <Plus size={18} />
                   </button>
                   <input
                     type="text"
@@ -444,12 +493,12 @@ const ProgramDetail = () => {
                   />
                   <button
                     onClick={() =>
-                      adjustValue(currentSet.rowIndex, "weight", 2.5)
+                      adjustValue(currentSet.rowIndex, "weight", -1.25)
                     }
                     className={styles.stepperBtn}
-                    aria-label="Increase weight"
+                    aria-label="Decrease weight"
                   >
-                    <Plus size={24} />
+                    <Minus size={18} />
                   </button>
                 </div>
               </div>
@@ -460,12 +509,12 @@ const ProgramDetail = () => {
                 <div className={styles.stepperRow}>
                   <button
                     onClick={() =>
-                      adjustValue(currentSet.rowIndex, "repsAchieved", -1)
+                      adjustValue(currentSet.rowIndex, "repsAchieved", 1)
                     }
                     className={styles.stepperBtn}
-                    aria-label="Decrease reps"
+                    aria-label="Increase reps"
                   >
-                    <Minus size={24} />
+                    <Plus size={18} />
                   </button>
                   <input
                     type="text"
@@ -485,12 +534,12 @@ const ProgramDetail = () => {
                   />
                   <button
                     onClick={() =>
-                      adjustValue(currentSet.rowIndex, "repsAchieved", 1)
+                      adjustValue(currentSet.rowIndex, "repsAchieved", -1)
                     }
                     className={styles.stepperBtn}
-                    aria-label="Increase reps"
+                    aria-label="Decrease reps"
                   >
-                    <Plus size={24} />
+                    <Minus size={18} />
                   </button>
                 </div>
               </div>
@@ -501,12 +550,12 @@ const ProgramDetail = () => {
                 <div className={styles.stepperRow}>
                   <button
                     onClick={() =>
-                      adjustValue(currentSet.rowIndex, "rirAchieved", -1)
+                      adjustValue(currentSet.rowIndex, "rirAchieved", 1)
                     }
                     className={styles.stepperBtn}
-                    aria-label="Decrease RIR"
+                    aria-label="Increase RIR"
                   >
-                    <Minus size={24} />
+                    <Plus size={18} />
                   </button>
                   <input
                     type="text"
@@ -526,12 +575,12 @@ const ProgramDetail = () => {
                   />
                   <button
                     onClick={() =>
-                      adjustValue(currentSet.rowIndex, "rirAchieved", 1)
+                      adjustValue(currentSet.rowIndex, "rirAchieved", -1)
                     }
                     className={styles.stepperBtn}
-                    aria-label="Increase RIR"
+                    aria-label="Decrease RIR"
                   >
-                    <Plus size={24} />
+                    <Minus size={18} />
                   </button>
                 </div>
               </div>
@@ -558,20 +607,32 @@ const ProgramDetail = () => {
               />
             )}
 
-            {/* Complete button */}
-            <button
-              onClick={() => completeSet(currentSet.rowIndex)}
-              className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
-            >
-              <Check size={24} />
-              {isSetCompleted ? "Set Completed" : "Complete Set"}
-            </button>
+            {isWorkoutComplete && (
+              <button onClick={stopWorkout} className={styles.backToProgram}>
+                Back to Program
+              </button>
+            )}
 
-            {/* End workout button */}
-            <button onClick={handleStopWorkout} className={styles.endWorkoutBtn}>
-              <Square size={16} />
-              <span>End Workout</span>
-            </button>
+            {!isWorkoutComplete && (
+              <>
+                <button
+                  disabled={!isSetCompleted}
+                  onClick={() => completeSet(currentSet.rowIndex)}
+                  className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
+                >
+                  <Check size={24} />
+                  {"Complete set"}
+                </button>
+
+                <button
+                  onClick={handleStopWorkout}
+                  className={styles.endWorkoutBtn}
+                >
+                  <Square size={16} />
+                  <span>End Workout</span>
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -625,7 +686,9 @@ const ProgramDetail = () => {
                     <div className={styles.workoutCardText}>
                       <span className={styles.workoutName}>{workout.name}</span>
                       {workout.completedDate && (
-                        <span className={styles.workoutDate}>{workout.completedDate}</span>
+                        <span className={styles.workoutDate}>
+                          {workout.completedDate}
+                        </span>
                       )}
                     </div>
                   </div>
