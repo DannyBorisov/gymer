@@ -85,8 +85,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const authUrl = apiUrl(`/auth/google${isNative ? "?native=true" : ""}`);
 
     if (isNative) {
-      // Use in-app browser for native - it handles redirects properly
-      await Browser.open({ url: authUrl });
+      // Open in Safari for OAuth
+      await Browser.open({
+        url: authUrl,
+        windowName: "_blank"
+      });
     } else {
       window.location.href = authUrl;
     }

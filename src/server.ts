@@ -117,28 +117,28 @@ fastify.get("/auth/google/callback", async (request, reply) => {
         session: { tokens, user },
         expires: Date.now() + 60000, // 60 seconds
       });
-      // Return an HTML page that redirects - more reliable than direct redirect
+      // Return an HTML page with a button to return to app
       reply.type("text/html");
       return `
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Redirecting...</title>
+          <title>Login Successful</title>
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <style>
             body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #1a1a2e; color: white; }
-            .container { text-align: center; }
-            a { color: #4a9eff; font-size: 18px; }
+            .container { text-align: center; padding: 20px; }
+            h1 { color: #22c55e; margin-bottom: 10px; }
+            p { color: #aaa; margin-bottom: 30px; }
+            .btn { display: inline-block; background: #4a9eff; color: white; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-size: 18px; font-weight: 600; }
           </style>
         </head>
         <body>
           <div class="container">
-            <p>Login successful!</p>
-            <p><a href="gymerr://auth/callback?token=${authToken}">Tap here to return to the app</a></p>
+            <h1>✓ Login Successful</h1>
+            <p>Tap the button below to return to Gymerr</p>
+            <a href="gymerr://auth/callback?token=${authToken}" class="btn">Open Gymerr</a>
           </div>
-          <script>
-            window.location.href = "gymerr://auth/callback?token=${authToken}";
-          </script>
         </body>
         </html>
       `;
