@@ -26,11 +26,12 @@ export class GoogleSheets {
     );
   }
 
-  getAuthUrl(): string {
+  getAuthUrl(state?: string): string {
     return this.oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: config.google.scopes,
       prompt: "consent",
+      state,
     });
   }
 

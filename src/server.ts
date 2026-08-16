@@ -90,13 +90,16 @@ fastify.get("/api/health", async () => {
 
 // Google OAuth routes
 
-fastify.get("/auth/google", async (_request, reply) => {
-  const authUrl = fastify.sheets.getAuthUrl();
+fastify.get("/auth/google", async (request, reply) => {
+  const { native } = request.query as { native?: string };
+  // Pass state to indicate native app request
+  const state = native === "true" ? "native" : "web";
+  const authUrl = fastify.sheets.getAuthUrl(state);
   return reply.redirect(authUrl);
 });
 
 fastify.get("/auth/google/callback", async (request, reply) => {
-  const { code } = request.query as { code: string };
+  const { code, state } = request.query as { code: string; state?: string };
   if (!code) {
     return reply.status(400).send({ error: "Missing code parameter" });
   }
@@ -104,9 +107,17 @@ fastify.get("/auth/google/callback", async (request, reply) => {
   try {
     const { tokens, user } = await fastify.sheets.handleCallback(code);
     setSession(reply, { tokens, user });
+
+    // For native app, redirect to custom URL scheme
+    if (state === "native") {
+      return reply.redirect("gymerr://auth/callback?success=true");
+    }
     return reply.redirect("/");
   } catch (error) {
     fastify.log.error(error);
+    if (state === "native") {
+      return reply.redirect("gymerr://auth/callback?error=auth_failed");
+    }
     return reply.redirect("/login?error=auth_failed");
   }
 });

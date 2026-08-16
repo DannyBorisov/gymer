@@ -1,5 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
+import { apiUrl } from "../utils/api";
 
 interface UserInfo {
   email: string;
@@ -25,7 +28,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await fetch("/api/auth/google/status");
+      const response = await fetch(apiUrl("/api/auth/google/status"), {
+        credentials: "include",
+      });
       const data = await response.json();
       setIsAuthenticated(data.authenticated);
       setUser(data.user);
@@ -39,17 +44,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     checkAuth();
+
+    // Listen for deep link callbacks on native platforms
+    if (Capacitor.isNativePlatform()) {
+      App.addListener("appUrlOpen", (event) => {
+        // Handle gymerr://auth/callback?success=true
+        if (event.url.includes("auth/callback")) {
+          const url = new URL(event.url);
+          if (url.searchParams.get("success") === "true") {
+            checkAuth();
+          }
+        }
+      });
+    }
   }, []);
 
   const login = () => {
-    window.location.href = "/auth/google";
+    const isNative = Capacitor.isNativePlatform();
+    const authUrl = apiUrl(`/auth/google${isNative ? "?native=true" : ""}`);
+    window.location.href = authUrl;
   };
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch(apiUrl("/api/auth/logout"), {
+      method: "POST",
+      credentials: "include",
+    });
     setIsAuthenticated(false);
     setUser(null);
-    window.location.href = "/login";
   };
 
   return (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, Loader2 } from 'lucide-react'
+import { apiUrl } from '../../utils/api'
 import styles from './Programs.module.css'
 
 interface Program {
@@ -18,7 +19,7 @@ const Programs = () => {
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const response = await fetch('/api/programs')
+        const response = await fetch(apiUrl('/api/programs'), { credentials: 'include' })
         const data = await response.json()
 
         if (response.ok) {

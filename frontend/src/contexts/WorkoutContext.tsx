@@ -7,6 +7,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { apiUrl } from "../utils/api";
 
 interface ExerciseRow {
   rowIndex: number;
@@ -172,9 +173,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         ? `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`
         : undefined;
 
-      await fetch(`/api/programs/${activeWorkout.programId}/rows`, {
+      await fetch(apiUrl(`/api/programs/${activeWorkout.programId}/rows`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           updates,
           ...(includeDate && { completedDate, firstRowIndex })

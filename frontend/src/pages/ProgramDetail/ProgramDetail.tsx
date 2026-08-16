@@ -18,6 +18,7 @@ import {
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import { ScrollableInput } from "../../components/ScrollableInput";
+import { apiUrl } from "../../utils/api";
 import styles from "./ProgramDetail.module.css";
 
 interface ExerciseRow {
@@ -95,7 +96,9 @@ const ProgramDetail = () => {
 
   const fetchProgram = useCallback(async () => {
     try {
-      const response = await fetch(`/api/programs/${id}`);
+      const response = await fetch(apiUrl(`/api/programs/${id}`), {
+        credentials: "include",
+      });
       const data = await response.json();
 
       if (response.ok) {
