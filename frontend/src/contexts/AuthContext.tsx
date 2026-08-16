@@ -61,9 +61,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for deep link callbacks on native platforms
     if (Capacitor.isNativePlatform()) {
       App.addListener("appUrlOpen", async (event) => {
-        // DEBUG: Show that we received a deep link
-        alert("Deep link received: " + event.url);
-
         // Handle gymerr://auth/callback?token=xxx
         if (event.url.includes("auth/callback")) {
           // Close the in-app browser
@@ -90,12 +87,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }
                 setIsAuthenticated(true);
                 setUser(data.user);
-                alert("Login successful!");
-              } else {
-                alert("Token exchange failed: " + JSON.stringify(data));
               }
             } catch (err) {
-              alert("Error: " + err);
+              console.error("Token exchange failed:", err);
             }
           }
         }

@@ -18,6 +18,7 @@
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 @media (max-width: 767px) {
@@ -286,7 +287,7 @@
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: #0f0f0f;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.02em;
 }
 
 @media (min-width: 768px) {
