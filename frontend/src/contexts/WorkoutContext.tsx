@@ -86,9 +86,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [completedSets, setCompletedSets] = useState<Set<number>>(new Set());
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const timerStartRef = useRef<number>(0);
+  const hasUnsavedChangesRef = useRef(false);
 
   // Wake Lock - keep screen on during workout
   useEffect(() => {
@@ -183,6 +183,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       });
 
       setHasUnsavedChanges(false);
+      hasUnsavedChangesRef.current = false;
     } catch (error) {
       console.error("Failed to save:", error);
     } finally {
@@ -190,17 +191,18 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [activeWorkout, workoutData]);
 
-  // Auto-save effect
+  // Auto-save every 5 seconds during active workout
   useEffect(() => {
-    if (hasUnsavedChanges) {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(saveWorkout, 3000);
-    }
+    if (!activeWorkout) return;
 
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
-  }, [hasUnsavedChanges, saveWorkout]);
+    const interval = setInterval(() => {
+      if (hasUnsavedChangesRef.current) {
+        saveWorkout();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [activeWorkout, saveWorkout]);
 
   const startWorkout = useCallback(
     (programId: string, week: number, workout: Workout) => {
@@ -251,6 +253,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         return newData;
       });
       setHasUnsavedChanges(true);
+      hasUnsavedChangesRef.current = true;
     },
     [],
   );
@@ -272,36 +275,64 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         return newData;
       });
       setHasUnsavedChanges(true);
+      hasUnsavedChangesRef.current = true;
     },
     [],
   );
 
   const completeSet = useCallback(
     (rowIndex: number) => {
-      // Auto-fill repsAchieved with targetReps if empty
-      let updatedData: Map<number, ExerciseRow> = workoutData;
-      setWorkoutData((prev) => {
-        const newData = new Map(prev);
-        const row = newData.get(rowIndex);
-        if (row && !row.repsAchieved) {
-          newData.set(rowIndex, { ...row, repsAchieved: row.targetReps.toString() });
-          setHasUnsavedChanges(true);
-        }
-        updatedData = newData;
-        return newData;
-      });
+      // Build updated data synchronously first
+      const newData = new Map(workoutData);
+      const row = newData.get(rowIndex);
+      if (row && !row.repsAchieved) {
+        newData.set(rowIndex, { ...row, repsAchieved: row.targetReps.toString() });
+      }
 
+      // Update state
+      setWorkoutData(newData);
+      setHasUnsavedChanges(true);
+      hasUnsavedChangesRef.current = true;
       setCompletedSets((prev) => new Set([...prev, rowIndex]));
 
       // Check if this completes all sets (all have weight + reps)
-      const allSetsComplete = Array.from(updatedData.values()).every(
-        (row) => row.weight && row.repsAchieved
+      const allSetsComplete = Array.from(newData.values()).every(
+        (r) => r.weight && r.repsAchieved
       );
 
       // If all sets are now complete, save with date
       if (allSetsComplete) {
-        // Use setTimeout to ensure state updates are processed
-        setTimeout(() => saveWorkout(true), 100);
+        // Save immediately with the updated data
+        const doSave = async () => {
+          if (!activeWorkout) return;
+          setIsSaving(true);
+          try {
+            const updates = Array.from(newData.values()).map((r) => ({
+              rowIndex: r.rowIndex,
+              weight: r.weight,
+              repsAchieved: r.repsAchieved,
+              rirAchieved: r.rirAchieved,
+              notes: r.notes,
+            }));
+
+            const firstRowIndex = Math.min(...Array.from(newData.keys()));
+            const today = new Date();
+            const completedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+            await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ updates, completedDate, firstRowIndex }),
+            });
+
+            setHasUnsavedChanges(false);
+          } catch (error) {
+            console.error("Failed to save:", error);
+          } finally {
+            setIsSaving(false);
+          }
+        };
+        doSave();
       }
 
       // Auto-advance to next set
@@ -325,7 +356,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setCurrentSetIndex(0);
       }
     },
-    [workoutData, currentExerciseIndex, currentSetIndex, saveWorkout],
+    [workoutData, currentExerciseIndex, currentSetIndex, activeWorkout],
   );
 
   return (
