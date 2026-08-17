@@ -1,31 +1,19 @@
 {
   "name": "gymerr",
   "version": "1.0.0",
-  "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc && cd frontend && npm run build",
-    "start": "node dist/server.js"
+    "dev:frontend": "npm run dev -w @gymerr/frontend",
+    "dev:backend": "npm run dev -w @gymerr/backend",
+    "build": "npm run build -w @gymerr/shared && npm run build -w @gymerr/backend && npm run build -w @gymerr/frontend",
+    "build:frontend": "npm run build -w @gymerr/frontend",
+    "build:backend": "npm run build -w @gymerr/backend"
   },
   "dependencies": {
-    "@capacitor/app": "^8.1.1",
-    "@capacitor/browser": "^8.0.4",
-    "@capacitor/cli": "^8.5.0",
-    "@capacitor/core": "^8.5.0",
-    "@capacitor/ios": "^8.5.0",
-    "@capacitor/keyboard": "^8.0.5",
-    "@fastify/cookie": "^11.1.2",
-    "@fastify/cors": "^11.3.0",
-    "@fastify/static": "^8.3.0",
-    "dotenv": "^17.4.2",
-    "fastify": "^5.12.0",
-    "fastify-plugin": "^6.0.0",
-    "googleapis": "^174.0.1",
-    "zod": "^4.4.3"
-  },
-  "devDependencies": {
-    "@types/node": "^20.14.10",
-    "tsx": "^4.16.2",
-    "typescript": "^5.5.3"
+    "@anthropic-ai/sdk": "^0.117.1",
+    "@vercel/node": "^5.10.1"
   }
 }

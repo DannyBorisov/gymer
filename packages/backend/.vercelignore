@@ -1,0 +1,2 @@
+# Ignore src directory from function detection
+# Only api/ should be treated as serverless functions
