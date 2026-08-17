@@ -164,8 +164,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         notes: row.notes,
       }));
 
-      // Get the first row index (smallest rowIndex in workout)
-      const firstRowIndex = Math.min(...Array.from(workoutData.keys()).map(k => workoutData.get(k)!.rowIndex));
+      // Get the last row index (largest rowIndex in workout) for the date
+      const dateRowIndex = Math.max(...Array.from(workoutData.keys()));
 
       // Format date as DD/MM/YYYY
       const today = new Date();
@@ -178,7 +178,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           updates,
-          ...(includeDate && { completedDate, firstRowIndex })
+          ...(includeDate && { completedDate, dateRowIndex })
         }),
       });
 
@@ -315,17 +315,22 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
               notes: r.notes,
             }));
 
-            const firstRowIndex = Math.min(...Array.from(newData.keys()));
+            const lastRowIndex = Math.max(...Array.from(newData.keys()));
             const today = new Date();
             const completedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
-            await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
+            const response = await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ updates, completedDate, firstRowIndex }),
+              body: JSON.stringify({ updates, completedDate, dateRowIndex: lastRowIndex }),
             });
 
+            if (!response.ok) {
+              console.error("Save failed:", await response.text());
+            }
+
             setHasUnsavedChanges(false);
+            hasUnsavedChangesRef.current = false;
           } catch (error) {
             console.error("Failed to save:", error);
           } finally {

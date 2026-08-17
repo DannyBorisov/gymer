@@ -439,7 +439,7 @@ interface UpdateRowsBody {
     notes: string;
   }[];
   completedDate?: string;
-  firstRowIndex?: number;
+  dateRowIndex?: number;
 }
 
 fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>(
@@ -451,7 +451,7 @@ fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>(
     }
 
     const { id } = request.params;
-    const { updates, completedDate, firstRowIndex } = request.body;
+    const { updates, completedDate, dateRowIndex } = request.body;
 
     try {
       // Batch update the cells - columns H (Weight), I (Reps Achieved), J (RIR Achieved), K (Notes)
@@ -467,10 +467,10 @@ fastify.patch<{ Params: { id: string }; Body: UpdateRowsBody }>(
         ],
       }));
 
-      // Add date to first row if provided
-      if (completedDate && firstRowIndex) {
+      // Add date to specified row if provided
+      if (completedDate && dateRowIndex) {
         data.push({
-          range: `Sheet1!A${firstRowIndex}`,
+          range: `Sheet1!A${dateRowIndex}`,
           values: [[completedDate]],
         });
       }
