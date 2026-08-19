@@ -4,7 +4,6 @@ import {
   useState,
   useEffect,
   useRef,
-  useCallback,
   type ReactNode,
 } from "react";
 import { apiFetch } from "../utils/api";
@@ -201,12 +200,12 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [isActive, workoutId, exercises, sets]);
 
-  const hasRecoveryData = useCallback((): boolean => {
+  const hasRecoveryData = (): boolean => {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved !== null;
-  }, []);
+  };
 
-  const recoverWorkout = useCallback(() => {
+  const recoverWorkout = () => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -222,13 +221,13 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-  }, []);
+  };
 
-  const dismissRecovery = useCallback(() => {
+  const dismissRecovery = () => {
     localStorage.removeItem(STORAGE_KEY);
-  }, []);
+  };
 
-  const loadExercises = useCallback(async () => {
+  const loadExercises = async () => {
     setIsLoadingExercises(true);
     try {
       const response = await apiFetch("/api/quick-workouts/exercises");
@@ -241,9 +240,9 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoadingExercises(false);
     }
-  }, []);
+  };
 
-  const startWorkout = useCallback(() => {
+  const startWorkout = () => {
     const id = generateId();
     setWorkoutId(id);
     setExercises([]);
@@ -251,14 +250,14 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
     setTimer(0);
     timerStartRef.current = Date.now();
     setIsActive(true);
-  }, []);
+  };
 
-  const stopWorkout = useCallback(() => {
+  const stopWorkout = () => {
     setIsActive(false);
     timerStartRef.current = 0;
-  }, []);
+  };
 
-  const addExercise = useCallback((name: string) => {
+  const addExercise = (name: string) => {
     setExercises((prev) => {
       if (prev.includes(name)) return prev;
       return [...prev, name];
@@ -282,9 +281,9 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
       }
       return prev;
     });
-  }, []);
+  };
 
-  const renameExercise = useCallback((oldName: string, newName: string) => {
+  const renameExercise = (oldName: string, newName: string) => {
     if (!newName.trim() || oldName === newName) return;
 
     setExercises((prev) =>
@@ -295,14 +294,14 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
         s.exercise === oldName ? { ...s, exercise: newName } : s
       )
     );
-  }, []);
+  };
 
-  const removeExercise = useCallback((name: string) => {
+  const removeExercise = (name: string) => {
     setExercises((prev) => prev.filter((e) => e !== name));
     setSets((prev) => prev.filter((s) => s.exercise !== name));
-  }, []);
+  };
 
-  const addSet = useCallback((exercise: string) => {
+  const addSet = (exercise: string) => {
     setSets((prev) => {
       const existingSets = prev.filter((s) => s.exercise === exercise);
       const newSetNumber = existingSets.length + 1;
@@ -321,9 +320,9 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
         },
       ];
     });
-  }, []);
+  };
 
-  const removeSet = useCallback((setId: string) => {
+  const removeSet = (setId: string) => {
     setSets((prev) => {
       const setToRemove = prev.find((s) => s.id === setId);
       if (!setToRemove) return prev;
@@ -339,36 +338,34 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
         return s;
       });
     });
-  }, []);
+  };
 
-  const updateSet = useCallback(
-    (
-      setId: string,
-      field: "weight" | "reps" | "rir" | "notes",
-      value: string
-    ) => {
-      setSets((prev) =>
-        prev.map((s) => (s.id === setId ? { ...s, [field]: value } : s))
-      );
-    },
-    []
-  );
+  const updateSet = (
+    setId: string,
+    field: "weight" | "reps" | "rir" | "notes",
+    value: string
+  ) => {
+    setSets((prev) =>
+      prev.map((s) => (s.id === setId ? { ...s, [field]: value } : s))
+    );
+  };
 
-  const adjustSetValue = useCallback(
-    (setId: string, field: "weight" | "reps" | "rir", delta: number) => {
-      setSets((prev) =>
-        prev.map((s) => {
-          if (s.id !== setId) return s;
-          const currentValue = parseFloat(s[field]) || 0;
-          const newValue = Math.max(0, currentValue + delta);
-          return { ...s, [field]: newValue.toString() };
-        })
-      );
-    },
-    []
-  );
+  const adjustSetValue = (
+    setId: string,
+    field: "weight" | "reps" | "rir",
+    delta: number
+  ) => {
+    setSets((prev) =>
+      prev.map((s) => {
+        if (s.id !== setId) return s;
+        const currentValue = parseFloat(s[field]) || 0;
+        const newValue = Math.max(0, currentValue + delta);
+        return { ...s, [field]: newValue.toString() };
+      })
+    );
+  };
 
-  const completeWorkout = useCallback(async (): Promise<boolean> => {
+  const completeWorkout = async (): Promise<boolean> => {
     if (!workoutId || sets.length === 0) return false;
 
     // Filter out sets with no data or no exercise name
@@ -411,9 +408,9 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsSaving(false);
     }
-  }, [workoutId, sets, timer]);
+  };
 
-  const discardWorkout = useCallback(() => {
+  const discardWorkout = () => {
     localStorage.removeItem(STORAGE_KEY);
     setIsActive(false);
     setWorkoutId(null);
@@ -421,7 +418,7 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
     setSets([]);
     setTimer(0);
     timerStartRef.current = 0;
-  }, []);
+  };
 
   return (
     <QuickWorkoutContext.Provider

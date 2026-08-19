@@ -10,6 +10,7 @@ import Login from "./pages/Login/Login";
 import Programs from "./pages/Programs/Programs";
 import ProgramDetail from "./pages/ProgramDetail/ProgramDetail";
 import CreateProgram from "./pages/CreateProgram/CreateProgram";
+import ActiveWorkout from "./pages/ActiveWorkout/ActiveWorkout";
 import QuickWorkout from "./pages/QuickWorkout/QuickWorkout";
 import Weight from "./pages/Weight/Weight";
 
@@ -37,6 +38,10 @@ const App = () => {
                           <Route
                             path="/programs/:id"
                             element={<ProgramDetail />}
+                          />
+                          <Route
+                            path="/workout"
+                            element={<ActiveWorkout />}
                           />
                           <Route
                             path="/quick-workout"

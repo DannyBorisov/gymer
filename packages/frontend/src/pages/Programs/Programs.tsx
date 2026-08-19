@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, Loader2, Plus, Zap } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
+import { formatDate } from '../../lib/date'
 import styles from './Programs.module.css'
 
 interface Program {
@@ -37,14 +38,6 @@ const Programs = () => {
 
     fetchPrograms()
   }, [])
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
 
   return (
     <div className={styles.container}>

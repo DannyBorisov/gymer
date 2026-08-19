@@ -1,0 +1,584 @@
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Haptics, NotificationType } from "@capacitor/haptics";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Square,
+  Check,
+  MessageSquare,
+  Copy,
+  History,
+  Timer,
+  X,
+} from "lucide-react";
+import { useSettings } from "../../contexts/SettingsContext";
+import { useWorkout, type ExerciseRow } from "../../contexts/WorkoutContext";
+import { ScrollableInput } from "../../components/ScrollableInput";
+import { formatTime, formatRestTimer } from "../../lib/time";
+import styles from "../ProgramDetail/ProgramDetail.module.css";
+
+const ActiveWorkout = () => {
+  const navigate = useNavigate();
+  const { weightUnit, showRestSuggestion: restSuggestionEnabled, restTimerDuration } = useSettings();
+  const {
+    activeWorkout,
+    workoutData,
+    timer,
+    duration,
+    currentExerciseIndex,
+    currentSetIndex,
+    previousStats,
+    stopWorkout,
+    updateExercise,
+    adjustValue,
+    completeSet,
+    completeWorkout,
+    setCurrentExerciseIndex,
+    setCurrentSetIndex,
+  } = useWorkout();
+
+  const [showNotes, setShowNotes] = useState(false);
+  const [showSetComplete, setShowSetComplete] = useState(false);
+
+  // Rest timer state
+  const [restTimer, setRestTimer] = useState(0);
+  const [isRestTimerActive, setIsRestTimerActive] = useState(false);
+  const [restTimerStartTime, setRestTimerStartTime] = useState<number | null>(null);
+  const [showRestSuggestion, setShowRestSuggestion] = useState(false);
+  const [triggeredForSet, setTriggeredForSet] = useState<number | null>(null);
+  const [hasVibrated, setHasVibrated] = useState(false);
+  const restTimerIntervalRef = useRef<ReturnType<typeof setInterval>>();
+  const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Refs for swipe and auto-scroll
+  const exerciseTabsRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
+  const minSwipeDistance = 50;
+
+  // Redirect if no active workout
+  useEffect(() => {
+    if (!activeWorkout) {
+      navigate("/programs");
+    }
+  }, [activeWorkout, navigate]);
+
+  // Handle input focus - show rest timer suggestion after delay
+  const handleInputActivity = (currentRowIndex: number) => {
+    if (!restSuggestionEnabled || isRestTimerActive || showRestSuggestion || triggeredForSet === currentRowIndex) return;
+
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+
+    suggestionTimeoutRef.current = setTimeout(() => {
+      setShowRestSuggestion(true);
+      setTriggeredForSet(currentRowIndex);
+    }, 3000);
+  };
+
+  // Start rest timer
+  const startRestTimer = () => {
+    setRestTimer(0);
+    setRestTimerStartTime(Date.now());
+    setIsRestTimerActive(true);
+    setShowRestSuggestion(false);
+    setHasVibrated(false);
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+  };
+
+  // Stop rest timer
+  const stopRestTimer = () => {
+    setIsRestTimerActive(false);
+    setRestTimer(0);
+    setRestTimerStartTime(null);
+    if (restTimerIntervalRef.current) {
+      clearInterval(restTimerIntervalRef.current);
+    }
+  };
+
+  // Swipe gesture handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (totalSets: number, currentIdx: number) => {
+    const swipeDistance = touchStartX.current - touchEndX.current;
+    if (Math.abs(swipeDistance) > minSwipeDistance) {
+      if (swipeDistance > 0 && currentIdx < totalSets - 1) {
+        setCurrentSetIndex(currentIdx + 1);
+      } else if (swipeDistance < 0 && currentIdx > 0) {
+        setCurrentSetIndex(currentIdx - 1);
+      }
+    }
+  };
+
+  // Rest timer count up effect
+  useEffect(() => {
+    if (isRestTimerActive && restTimerStartTime) {
+      restTimerIntervalRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - restTimerStartTime) / 1000);
+        setRestTimer(elapsed);
+      }, 1000);
+
+      return () => {
+        if (restTimerIntervalRef.current) {
+          clearInterval(restTimerIntervalRef.current);
+        }
+      };
+    }
+  }, [isRestTimerActive, restTimerStartTime]);
+
+  // Vibrate when rest timer reaches duration
+  useEffect(() => {
+    if (isRestTimerActive && restTimer === restTimerDuration && !hasVibrated) {
+      setHasVibrated(true);
+      Haptics.notification({ type: NotificationType.Success });
+    }
+  }, [restTimer, restTimerDuration, isRestTimerActive, hasVibrated]);
+
+  // Reset suggestion state when set changes
+  useEffect(() => {
+    setShowRestSuggestion(false);
+    setTriggeredForSet(null);
+    if (suggestionTimeoutRef.current) {
+      clearTimeout(suggestionTimeoutRef.current);
+    }
+  }, [currentSetIndex, currentExerciseIndex]);
+
+  // Auto-scroll to current exercise tab
+  useEffect(() => {
+    if (exerciseTabsRef.current) {
+      const tabs = exerciseTabsRef.current.children;
+      const activeTab = tabs[currentExerciseIndex] as HTMLElement;
+      if (activeTab) {
+        activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [currentExerciseIndex]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (restTimerIntervalRef.current) {
+        clearInterval(restTimerIntervalRef.current);
+      }
+      if (suggestionTimeoutRef.current) {
+        clearTimeout(suggestionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle complete set with animation
+  const handleCompleteSet = (rowIndex: number) => {
+    setShowSetComplete(true);
+    completeSet(rowIndex);
+
+    setTimeout(() => {
+      setShowSetComplete(false);
+    }, 400);
+  };
+
+  // Handle complete workout (last set)
+  const handleCompleteWorkout = async (rowIndex: number) => {
+    setShowSetComplete(true);
+    await completeWorkout(rowIndex);
+
+    setTimeout(() => {
+      setShowSetComplete(false);
+    }, 400);
+  };
+
+  const handleStopWorkout = async () => {
+    await stopWorkout();
+    navigate(`/programs/${activeWorkout?.programId}`);
+  };
+
+  const copyFromPreviousSet = (
+    currentSet: ExerciseRow,
+    previousSet: ExerciseRow,
+  ) => {
+    if (previousSet.weight) {
+      updateExercise(currentSet.rowIndex, "weight", previousSet.weight);
+    }
+    if (previousSet.repsAchieved) {
+      updateExercise(currentSet.rowIndex, "repsAchieved", previousSet.repsAchieved);
+    }
+    if (previousSet.rirAchieved) {
+      updateExercise(currentSet.rowIndex, "rirAchieved", previousSet.rirAchieved);
+    }
+  };
+
+  if (!activeWorkout) {
+    return null;
+  }
+
+  // Helper to find row by index
+  const getRow = (rowIndex: number) => workoutData.find((r) => r.rowIndex === rowIndex);
+
+  const groupedByExercise = Object.entries(
+    workoutData.reduce(
+      (acc, ex) => {
+        if (!acc[ex.exercise]) acc[ex.exercise] = [];
+        acc[ex.exercise].push(ex);
+        return acc;
+      },
+      {} as Record<string, ExerciseRow[]>,
+    ),
+  );
+
+  const totalSets = workoutData.length;
+  const completedCount = workoutData.filter(
+    (ex) => ex.weight && ex.repsAchieved,
+  ).length;
+  const isWorkoutComplete = duration !== null;
+
+  const currentExercise = groupedByExercise[currentExerciseIndex];
+  const currentExerciseName = currentExercise?.[0] || "";
+  const currentExerciseSets = currentExercise?.[1] || [];
+  const currentSet = currentExerciseSets[currentSetIndex];
+  const previousSet = currentSetIndex > 0 ? currentExerciseSets[currentSetIndex - 1] : null;
+
+  const currentSetData = currentSet ? getRow(currentSet.rowIndex) : null;
+  const isSetCompleted = currentSetData?.weight && currentSetData?.repsAchieved;
+  const prevStats = previousStats[currentExerciseName];
+
+  // Check if all OTHER sets are complete
+  const isLastSet = currentSet && workoutData.every(
+    (ex) => ex.rowIndex === currentSet.rowIndex || (ex.weight && ex.repsAchieved)
+  );
+
+  return (
+    <div className={styles.workoutContainer}>
+      {/* Sticky header with timer */}
+      {!isWorkoutComplete && (
+        <div className={styles.stickyHeader}>
+          <div className={styles.workoutHeader}>
+            <div className={styles.timerSection}>
+              <span className={styles.timer}>{formatTime(timer)}</span>
+              {showRestSuggestion && currentSet ? (
+                <div className={styles.restTimerSuggestion}>
+                  <button
+                    onClick={startRestTimer}
+                    className={styles.restTimerSuggestionBtn}
+                  >
+                    <Timer size={16} />
+                    <span>Start rest timer</span>
+                  </button>
+                  <button
+                    onClick={() => setShowRestSuggestion(false)}
+                    className={styles.restTimerDismiss}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={isRestTimerActive ? stopRestTimer : startRestTimer}
+                  className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ''}`}
+                >
+                  <Timer size={16} />
+                  <span>{isRestTimerActive ? formatRestTimer(restTimer) : 'Rest'}</span>
+                </button>
+              )}
+            </div>
+            <div className={styles.progressSection}>
+              <div className={styles.progressBar}>
+                <div
+                  className={styles.progressFill}
+                  style={{ width: `${(completedCount / totalSets) * 100}%` }}
+                />
+              </div>
+              <span className={styles.progressText}>
+                {completedCount}/{totalSets}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Workout complete banner */}
+      {isWorkoutComplete && (
+        <div className={styles.workoutCompleteBanner}>
+          <Check size={24} />
+          <div>
+            <span className={styles.completeTitle}>Workout Complete!</span>
+            <span className={styles.completeSubtitle}>
+              All {totalSets} sets finished{duration !== null && ` • ${formatTime(duration)}`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Exercise tabs */}
+      <div className={styles.exerciseTabsWrapper}>
+        <div className={styles.exerciseTabs} ref={exerciseTabsRef}>
+          {groupedByExercise.map(([name, sets], idx) => {
+            const completedInExercise = sets.filter((s) => {
+              const data = getRow(s.rowIndex);
+              return data?.weight && data?.repsAchieved;
+            }).length;
+            const isComplete = completedInExercise === sets.length;
+            const isCurrent = idx === currentExerciseIndex;
+            return (
+              <button
+                key={name}
+                onClick={() => {
+                  setCurrentExerciseIndex(idx);
+                  setCurrentSetIndex(0);
+                  setShowNotes(false);
+                }}
+                className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
+              >
+                <span className={styles.exerciseTabName}>{name}</span>
+                <span className={styles.exerciseTabCount}>
+                  {completedInExercise}/{sets.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Current exercise info */}
+      <div className={styles.currentExerciseInfo}>
+        <span className={styles.currentExerciseName}>
+          {currentExerciseName}
+        </span>
+        <span className={styles.currentExerciseMeta}>
+          {currentSet?.targetReps} reps @ {currentSet?.rir}
+        </span>
+      </div>
+
+      {/* Set indicators */}
+      <div className={styles.setIndicators}>
+        {currentExerciseSets.map((set, idx) => {
+          const setData = getRow(set.rowIndex);
+          const setIsDone = setData?.weight && setData?.repsAchieved;
+          return (
+            <button
+              key={set.rowIndex}
+              onClick={() => {
+                setCurrentSetIndex(idx);
+                setShowNotes(false);
+              }}
+              className={`${styles.setIndicator} ${
+                idx === currentSetIndex ? styles.setIndicatorActive : ""
+              } ${setIsDone ? styles.setIndicatorDone : ""}`}
+            >
+              {setIsDone ? <Check size={14} /> : set.set}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Current set input */}
+      {currentSet && (
+        <div
+          className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ""}`}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={() => handleTouchEnd(currentExerciseSets.length, currentSetIndex)}
+        >
+          {/* Set complete animation overlay */}
+          {showSetComplete && (
+            <div className={styles.setCompleteOverlay}>
+              <div className={styles.setCompleteIcon}>
+                <Check size={48} strokeWidth={3} />
+              </div>
+            </div>
+          )}
+          <div className={styles.inputsCenter}>
+            <div className={styles.setHeader}>
+              <button
+                className={styles.setNavBtn}
+                onClick={() => setCurrentSetIndex(Math.max(0, currentSetIndex - 1))}
+                disabled={currentSetIndex === 0}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span className={styles.setLabel}>
+                Set {currentSet.set}/{currentExerciseSets.length}
+                {isSetCompleted && (
+                  <Check size={14} className={styles.setDoneIcon} />
+                )}
+              </span>
+              <button
+                className={styles.setNavBtn}
+                onClick={() =>
+                  setCurrentSetIndex(
+                    Math.min(currentExerciseSets.length - 1, currentSetIndex + 1)
+                  )
+                }
+                disabled={currentSetIndex === currentExerciseSets.length - 1}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+
+            {/* Quick fill options */}
+            <div className={styles.quickFillContainer}>
+              {prevStats && prevStats.sets[currentSetIndex] && (
+                <button
+                  className={styles.prevStats}
+                  onClick={() => {
+                    const stats = prevStats.sets[currentSetIndex];
+                    if (stats.weight) {
+                      updateExercise(currentSet.rowIndex, "weight", stats.weight);
+                    }
+                    if (stats.reps) {
+                      updateExercise(currentSet.rowIndex, "repsAchieved", stats.reps);
+                    }
+                    if (stats.rir) {
+                      updateExercise(currentSet.rowIndex, "rirAchieved", stats.rir);
+                    }
+                  }}
+                >
+                  <div className={styles.prevStatsHeader}>
+                    <History size={14} />
+                    <span>
+                      Week {prevStats.week}:{" "}
+                      {prevStats.sets[currentSetIndex].weight}
+                      {weightUnit} × {prevStats.sets[currentSetIndex].reps}
+                      {prevStats.sets[currentSetIndex].rir &&
+                        ` @ ${prevStats.sets[currentSetIndex].rir}`}
+                    </span>
+                  </div>
+                </button>
+              )}
+
+              {!isWorkoutComplete && previousSet && getRow(previousSet.rowIndex)?.weight && (
+                <button
+                  onClick={() =>
+                    copyFromPreviousSet(currentSet, getRow(previousSet.rowIndex)!)
+                  }
+                  className={styles.copyBtn}
+                >
+                  <Copy size={14} />
+                  Set {previousSet.set}:{" "}
+                  {getRow(previousSet.rowIndex)?.weight}
+                  {weightUnit} ×{" "}
+                  {getRow(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
+                </button>
+              )}
+            </div>
+
+            <div className={styles.inputSection}>
+              <ScrollableInput
+                label={weightUnit}
+                value={getRow(currentSet.rowIndex)?.weight || ""}
+                onChange={(val) => updateExercise(currentSet.rowIndex, "weight", val)}
+                onAdjust={(delta) => adjustValue(currentSet.rowIndex, "weight", delta)}
+                step={1.25}
+                inputMode="decimal"
+                placeholder="0"
+                onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
+              />
+              <ScrollableInput
+                label="Reps"
+                value={getRow(currentSet.rowIndex)?.repsAchieved || ""}
+                onChange={(val) => updateExercise(currentSet.rowIndex, "repsAchieved", val)}
+                onAdjust={(delta) => adjustValue(currentSet.rowIndex, "repsAchieved", delta)}
+                step={1}
+                placeholder={currentSet.targetReps.toString()}
+                onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
+              />
+              <ScrollableInput
+                label="RIR"
+                value={getRow(currentSet.rowIndex)?.rirAchieved || ""}
+                onChange={(val) => updateExercise(currentSet.rowIndex, "rirAchieved", val)}
+                onAdjust={(delta) => adjustValue(currentSet.rowIndex, "rirAchieved", delta)}
+                step={1}
+                placeholder={currentSet.rir}
+                max={10}
+              />
+            </div>
+
+            {/* Notes */}
+            {isWorkoutComplete ? (
+              <div className={styles.notesSection}>
+                <div className={styles.notesLabel}>
+                  <MessageSquare size={16} />
+                  <span>Notes</span>
+                </div>
+                <textarea
+                  value={getRow(currentSet.rowIndex)?.notes || ""}
+                  onChange={(e) => updateExercise(currentSet.rowIndex, "notes", e.target.value)}
+                  placeholder="How did it feel? Any adjustments needed?"
+                  className={styles.notesTextarea}
+                  rows={2}
+                />
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => setShowNotes(!showNotes)}
+                  className={styles.notesToggle}
+                >
+                  <MessageSquare size={16} />
+                  {showNotes ? "Hide notes" : "Add notes"}
+                </button>
+
+                {showNotes && (
+                  <textarea
+                    value={getRow(currentSet.rowIndex)?.notes || ""}
+                    onChange={(e) => updateExercise(currentSet.rowIndex, "notes", e.target.value)}
+                    placeholder="How did it feel? Any adjustments needed?"
+                    className={styles.notesTextarea}
+                    rows={2}
+                  />
+                )}
+              </>
+            )}
+          </div>
+
+          <div className={styles.buttonsContainer}>
+            {isWorkoutComplete && (
+              <button onClick={handleStopWorkout} className={styles.backToProgram}>
+                Back to Program
+              </button>
+            )}
+
+            {!isWorkoutComplete && (
+              <>
+                <button
+                  disabled={
+                    !getRow(currentSet.rowIndex)?.weight ||
+                    !getRow(currentSet.rowIndex)?.repsAchieved
+                  }
+                  onClick={() =>
+                    isLastSet
+                      ? handleCompleteWorkout(currentSet.rowIndex)
+                      : handleCompleteSet(currentSet.rowIndex)
+                  }
+                  className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
+                >
+                  <Check size={24} />
+                  {isLastSet ? "Complete workout" : "Complete set"}
+                </button>
+
+                <button
+                  onClick={handleStopWorkout}
+                  className={styles.endWorkoutBtn}
+                >
+                  <Square size={16} />
+                  <span>End workout</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ActiveWorkout;

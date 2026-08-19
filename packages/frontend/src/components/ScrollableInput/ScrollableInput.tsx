@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import { Plus, Minus } from "lucide-react";
 import { useScrollableInput } from "../../hooks/useScrollableInput";
 import styles from "./ScrollableInput.module.css";
@@ -33,26 +33,23 @@ export function ScrollableInput({
 
   const numericValue = parseFloat(value) || 0;
 
-  const handleScrollChange = useCallback(
-    (newValue: number) => {
-      // Format the value - show decimals only if step has decimals
-      const formatted = step % 1 === 0
-        ? newValue.toString()
-        : newValue.toFixed(2).replace(/\.?0+$/, "");
-      onChange(formatted);
-      onInputActivity?.();
+  const handleScrollChange = (newValue: number) => {
+    // Format the value - show decimals only if step has decimals
+    const formatted = step % 1 === 0
+      ? newValue.toString()
+      : newValue.toFixed(2).replace(/\.?0+$/, "");
+    onChange(formatted);
+    onInputActivity?.();
 
-      // Show scrolling state
-      setIsScrolling(true);
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
-      scrollTimeoutRef.current = setTimeout(() => {
-        setIsScrolling(false);
-      }, 150);
-    },
-    [onChange, step, onInputActivity]
-  );
+    // Show scrolling state
+    setIsScrolling(true);
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 150);
+  };
 
   const scrollHandlers = useScrollableInput({
     value: numericValue,

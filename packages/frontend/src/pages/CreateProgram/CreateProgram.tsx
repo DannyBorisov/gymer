@@ -1,9 +1,20 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Trash2, ChevronRight, ChevronLeft, ExternalLink, Loader2, Dumbbell, Calendar, Clock } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  ChevronRight,
+  ChevronLeft,
+  ExternalLink,
+  Loader2,
+  Dumbbell,
+  Calendar,
+  Clock,
+} from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { presets } from "../../data/presets";
 import { apiFetch } from "../../utils/api";
+import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import type { Workout, Exercise, Program } from "../../types/program";
 import styles from "./CreateProgram.module.css";
 
@@ -13,6 +24,7 @@ interface ExerciseRowProps {
   onUpdate: (field: keyof Exercise, value: string | number) => void;
   onRemove: () => void;
   canRemove: boolean;
+  onOpenDrawer: () => void;
 }
 
 const ExerciseRow = ({
@@ -21,6 +33,7 @@ const ExerciseRow = ({
   onUpdate,
   onRemove,
   canRemove,
+  onOpenDrawer,
 }: ExerciseRowProps) => {
   return (
     <div className={styles.exerciseRow}>
@@ -29,9 +42,11 @@ const ExerciseRow = ({
         <input
           type="text"
           value={exercise.name}
+          onFocus={onOpenDrawer}
           onChange={(e) => onUpdate("name", e.target.value)}
           className={styles.exerciseNameInput}
           placeholder="Exercise name"
+          readOnly
         />
         <button
           type="button"
@@ -92,8 +107,13 @@ interface WorkoutSectionProps {
   onRemove: () => void;
   onAddExercise: () => void;
   onRemoveExercise: (exerciseIndex: number) => void;
-  onUpdateExercise: (exerciseIndex: number, field: keyof Exercise, value: string | number) => void;
+  onUpdateExercise: (
+    exerciseIndex: number,
+    field: keyof Exercise,
+    value: string | number,
+  ) => void;
   canRemove: boolean;
+  onOpenDrawer: (exerciseIndex: number) => void;
 }
 
 const WorkoutSection = ({
@@ -105,6 +125,7 @@ const WorkoutSection = ({
   onRemoveExercise,
   onUpdateExercise,
   canRemove,
+  onOpenDrawer,
 }: WorkoutSectionProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -154,9 +175,12 @@ const WorkoutSection = ({
               key={exerciseIndex}
               exercise={exercise}
               index={exerciseIndex}
-              onUpdate={(field, value) => onUpdateExercise(exerciseIndex, field, value)}
+              onUpdate={(field, value) =>
+                onUpdateExercise(exerciseIndex, field, value)
+              }
               onRemove={() => onRemoveExercise(exerciseIndex)}
               canRemove={workout.exercises.length > 1}
+              onOpenDrawer={() => onOpenDrawer(exerciseIndex)}
             />
           ))}
           <button
@@ -173,8 +197,8 @@ const WorkoutSection = ({
   );
 };
 
-const getFrequencyLabel = (frequency: Program['frequency']) => {
-  if (frequency === 'every-other-day') return 'Every other day';
+const getFrequencyLabel = (frequency: Program["frequency"]) => {
+  if (frequency === "every-other-day") return "Every other day";
   return `${frequency}x per week`;
 };
 
@@ -193,22 +217,49 @@ const CreateProgram = () => {
     resetProgram,
   } = useCreateProgram();
 
-  const [mode, setMode] = useState<'templates' | 'edit'>('templates');
+  const [mode, setMode] = useState<"templates" | "edit">("templates");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; url?: string; error?: string } | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    url?: string;
+    error?: string;
+  } | null>(null);
+
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeExercise, setActiveExercise] = useState<{
+    workoutIndex: number;
+    exerciseIndex: number;
+  } | null>(null);
+
+  const handleOpenDrawer = (workoutIndex: number, exerciseIndex: number) => {
+    setActiveExercise({ workoutIndex, exerciseIndex });
+    setDrawerOpen(true);
+  };
+
+  const handleSelectExercise = (exerciseName: string) => {
+    if (activeExercise) {
+      updateExercise(
+        activeExercise.workoutIndex,
+        activeExercise.exerciseIndex,
+        "name",
+        exerciseName
+      );
+    }
+  };
 
   const handleSelectTemplate = (templateProgram: Program) => {
     loadProgram(templateProgram);
-    setMode('edit');
+    setMode("edit");
   };
 
   const handleCreateFromScratch = () => {
     resetProgram();
-    setMode('edit');
+    setMode("edit");
   };
 
   const handleBack = () => {
-    setMode('templates');
+    setMode("templates");
     setResult(null);
   };
 
@@ -229,7 +280,10 @@ const CreateProgram = () => {
       if (response.ok) {
         setResult({ success: true, url: data.url });
       } else {
-        setResult({ success: false, error: data.error || "Failed to create program" });
+        setResult({
+          success: false,
+          error: data.error || "Failed to create program",
+        });
       }
     } catch {
       setResult({ success: false, error: "Network error" });
@@ -239,7 +293,7 @@ const CreateProgram = () => {
   };
 
   // Template Selection Screen
-  if (mode === 'templates') {
+  if (mode === "templates") {
     return (
       <div className={styles.container}>
         <div className={styles.stickyHeader}>
@@ -250,7 +304,9 @@ const CreateProgram = () => {
 
           <div className={styles.pageHeader}>
             <h1 className={styles.title}>Choose a Template</h1>
-            <p className={styles.subtitle}>Start with a proven program and customize it to your needs</p>
+            <p className={styles.subtitle}>
+              Start with a proven program and customize it to your needs
+            </p>
           </div>
         </div>
 
@@ -258,8 +314,12 @@ const CreateProgram = () => {
           {presets.map((preset) => (
             <div key={preset.id} className={styles.templateCard}>
               <div className={styles.templateInfo}>
-                <h2 className={styles.templateName}>{preset.program.name}</h2>
-                <p className={styles.templateDescription}>{preset.description}</p>
+                <div className={styles.templateHeader}>
+                  <h2 className={styles.templateName}>{preset.program.name}</h2>
+                  <p className={styles.templateDescription}>
+                    {preset.description}
+                  </p>
+                </div>
                 <div className={styles.templateMeta}>
                   <span className={styles.metaItem}>
                     <Dumbbell size={14} />
@@ -353,6 +413,9 @@ const CreateProgram = () => {
                   updateExercise(workoutIndex, exerciseIndex, field, value)
                 }
                 canRemove={program.workouts.length > 1}
+                onOpenDrawer={(exerciseIndex) =>
+                  handleOpenDrawer(workoutIndex, exerciseIndex)
+                }
               />
             ))}
           </div>
@@ -373,7 +436,7 @@ const CreateProgram = () => {
               </a>
               <button
                 type="button"
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 className={styles.goBackBtn}
               >
                 Go to Programs
@@ -402,6 +465,20 @@ const CreateProgram = () => {
           )}
         </div>
       </form>
+
+      {/* Exercise Drawer */}
+      <ExerciseDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onSelect={handleSelectExercise}
+        currentValue={
+          activeExercise
+            ? program.workouts[activeExercise.workoutIndex]?.exercises[
+                activeExercise.exerciseIndex
+              ]?.name
+            : ""
+        }
+      />
     </div>
   );
 };

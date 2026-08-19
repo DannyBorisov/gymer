@@ -11,17 +11,8 @@ import {
 } from "lucide-react";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import { useSettings } from "../../contexts/SettingsContext";
+import { formatTime } from "../../lib/time";
 import styles from "./QuickWorkout.module.css";
-
-const formatTime = (seconds: number) => {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-};
 
 const QuickWorkout = () => {
   const navigate = useNavigate();

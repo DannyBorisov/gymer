@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Check, Loader2, Bell, BellOff } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
 import { useSettings } from '../../contexts/SettingsContext'
 import { scheduleWeightReminder, cancelWeightReminder, getWeightReminderTime, setWeightReminderTime } from '../../utils/notifications'
+import { formatTimeFor24h } from '../../lib/time'
 import styles from './Weight.module.css'
 
 interface WeightEntry {
@@ -21,23 +22,22 @@ const Weight = () => {
   })
   const [reminderTime, setReminderTime] = useState(() => getWeightReminderTime())
 
-  const fetchEntries = useCallback(async () => {
-    try {
-      const response = await apiFetch('/api/body-weight')
-      const data = await response.json()
-      if (response.ok && data.entries) {
-        setEntries(data.entries)
-      }
-    } catch (err) {
-      console.error('Weight fetch error:', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
+    const fetchEntries = async () => {
+      try {
+        const response = await apiFetch('/api/body-weight')
+        const data = await response.json()
+        if (response.ok && data.entries) {
+          setEntries(data.entries)
+        }
+      } catch (err) {
+        console.error('Weight fetch error:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
     fetchEntries()
-  }, [fetchEntries])
+  }, [])
 
   // Schedule/cancel reminder when toggle changes
   useEffect(() => {
@@ -108,10 +108,6 @@ const Weight = () => {
   const todayStr = getTodayStr()
   const hasLoggedToday = entries[0]?.date === todayStr
 
-  const formatTimeFor24h = () => {
-    return `${String(reminderTime.hour).padStart(2, '0')}:${String(reminderTime.minute).padStart(2, '0')}`
-  }
-
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const [hourStr, minuteStr] = e.target.value.split(':')
     const hour = parseInt(hourStr, 10)
@@ -131,7 +127,7 @@ const Weight = () => {
           {reminderEnabled && (
             <input
               type="time"
-              value={formatTimeFor24h()}
+              value={formatTimeFor24h(reminderTime.hour, reminderTime.minute)}
               onChange={handleTimeChange}
               className={styles.timeInput}
             />
