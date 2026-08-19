@@ -184,6 +184,33 @@ export class GoogleSheets {
     });
     return response.data.values || null;
   }
+
+  async appendRows(
+    tokens: Tokens,
+    spreadsheetId: string,
+    range: string,
+    values: (string | number)[][],
+  ): Promise<void> {
+    const sheets = this.getSheetsClient(tokens);
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: { values },
+    });
+  }
+
+  async getSheetNames(tokens: Tokens, spreadsheetId: string): Promise<string[]> {
+    const sheets = this.getSheetsClient(tokens);
+    const response = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: "sheets.properties.title",
+    });
+    return (
+      response.data.sheets?.map((sheet) => sheet.properties?.title || "") || []
+    );
+  }
 }
 
 declare module "fastify" {

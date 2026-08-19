@@ -242,14 +242,16 @@ const CreateProgram = () => {
   if (mode === 'templates') {
     return (
       <div className={styles.container}>
-        <Link to="/" className={styles.backLink}>
-          <ChevronLeft size={16} />
-          Back to Programs
-        </Link>
+        <div className={styles.stickyHeader}>
+          <Link to="/programs" className={styles.backLink}>
+            <ChevronLeft size={16} />
+            Back to Programs
+          </Link>
 
-        <div className={styles.pageHeader}>
-          <h1 className={styles.title}>Choose a Template</h1>
-          <p className={styles.subtitle}>Start with a proven program and customize it to your needs</p>
+          <div className={styles.pageHeader}>
+            <h1 className={styles.title}>Choose a Template</h1>
+            <p className={styles.subtitle}>Start with a proven program and customize it to your needs</p>
+          </div>
         </div>
 
         <div className={styles.templateGrid}>
@@ -285,13 +287,17 @@ const CreateProgram = () => {
           ))}
         </div>
 
+        <div className={styles.orDivider}>
+          <span>OR</span>
+        </div>
+
         <button
           type="button"
           onClick={handleCreateFromScratch}
           className={styles.createFromScratchBtn}
         >
           <Plus size={18} />
-          Create from scratch
+          Start from scratch
         </button>
       </div>
     );

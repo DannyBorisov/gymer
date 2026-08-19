@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronRight, Loader2, Plus } from 'lucide-react'
+import { ChevronRight, Loader2, Plus, Zap } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
 import styles from './Programs.module.css'
 
@@ -63,6 +63,21 @@ const Programs = () => {
         </div>
       ) : (
         <div className={styles.programsList}>
+          <Link to="/quick-workout" className={styles.quickWorkoutCard}>
+            <div className={styles.quickWorkoutInfo}>
+              <div className={styles.quickWorkoutIcon}>
+                <Zap size={20} />
+              </div>
+              <div className={styles.quickWorkoutText}>
+                <span className={styles.quickWorkoutName}>Quick Workout</span>
+                <span className={styles.quickWorkoutDescription}>
+                  Log a spontaneous gym session
+                </span>
+              </div>
+            </div>
+            <ChevronRight size={16} className={styles.chevronIcon} />
+          </Link>
+
           {programs.map((program) => (
             <Link
               key={program.id}

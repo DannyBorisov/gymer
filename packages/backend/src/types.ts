@@ -61,6 +61,7 @@ export interface UpdateRowsRequest {
   }[];
   completedDate?: string;
   dateRowIndex?: number;
+  duration?: string;
 }
 
 export interface CreateProgramRequest {
@@ -83,4 +84,30 @@ export interface ProgramListItem {
 export interface UserInfo {
   email: string;
   name: string;
+}
+
+// Quick Workout types
+export interface QuickWorkoutSet {
+  exercise: string;
+  set: number;
+  weight: string;
+  reps: string;
+  rir: string;
+  notes: string;
+}
+
+export interface SaveQuickWorkoutRequest {
+  workoutId: string;
+  duration: string;
+  sets: QuickWorkoutSet[];
+}
+
+// Body weight tracking
+export interface BodyWeightEntry {
+  date: string;
+  weight: string;
+}
+
+export interface SaveBodyWeightRequest {
+  weight: string;
 }

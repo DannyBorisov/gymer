@@ -42,6 +42,7 @@ interface Workout {
   exercises: ExerciseRow[];
   isComplete: boolean;
   completedDate: string;
+  duration?: string;
 }
 
 interface Week {
@@ -81,6 +82,7 @@ const ProgramDetail = () => {
     activeWorkout,
     workoutData,
     timer,
+    duration,
     currentExerciseIndex,
     currentSetIndex,
     startWorkout,
@@ -102,14 +104,21 @@ const ProgramDetail = () => {
   >(new Map());
   const [showSetComplete, setShowSetComplete] = useState(false);
 
-  // Rest timer state
+  // Rest timer state - use timestamp for background support
   const [restTimer, setRestTimer] = useState(0);
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
+  const [restTimerStartTime, setRestTimerStartTime] = useState<number | null>(null);
   const [showRestSuggestion, setShowRestSuggestion] = useState(false);
   const [triggeredForSet, setTriggeredForSet] = useState<number | null>(null);
   const [hasVibrated, setHasVibrated] = useState(false);
   const restTimerIntervalRef = useRef<ReturnType<typeof setInterval>>();
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Refs for swipe and auto-scroll
+  const exerciseTabsRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
+  const minSwipeDistance = 50;
 
   const fetchProgram = useCallback(async () => {
     try {
@@ -150,9 +159,10 @@ const ProgramDetail = () => {
     }, 3000);
   }, [restSuggestionEnabled, isRestTimerActive, showRestSuggestion, triggeredForSet]);
 
-  // Start rest timer (counts up)
+  // Start rest timer (counts up) - use timestamp for background support
   const startRestTimer = useCallback(() => {
     setRestTimer(0);
+    setRestTimerStartTime(Date.now());
     setIsRestTimerActive(true);
     setShowRestSuggestion(false);
     setHasVibrated(false);
@@ -165,16 +175,41 @@ const ProgramDetail = () => {
   const stopRestTimer = useCallback(() => {
     setIsRestTimerActive(false);
     setRestTimer(0);
+    setRestTimerStartTime(null);
     if (restTimerIntervalRef.current) {
       clearInterval(restTimerIntervalRef.current);
     }
   }, []);
 
-  // Rest timer count up effect
+  // Swipe gesture handlers for set navigation
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((totalSets: number, currentIdx: number) => {
+    const swipeDistance = touchStartX.current - touchEndX.current;
+    if (Math.abs(swipeDistance) > minSwipeDistance) {
+      if (swipeDistance > 0 && currentIdx < totalSets - 1) {
+        // Swipe left - go to next set
+        setCurrentSetIndex(currentIdx + 1);
+      } else if (swipeDistance < 0 && currentIdx > 0) {
+        // Swipe right - go to previous set
+        setCurrentSetIndex(currentIdx - 1);
+      }
+    }
+  }, [setCurrentSetIndex]);
+
+  // Rest timer count up effect - uses timestamp for background support
   useEffect(() => {
-    if (isRestTimerActive) {
+    if (isRestTimerActive && restTimerStartTime) {
       restTimerIntervalRef.current = setInterval(() => {
-        setRestTimer((prev) => prev + 1);
+        const elapsed = Math.floor((Date.now() - restTimerStartTime) / 1000);
+        setRestTimer(elapsed);
       }, 1000);
 
       return () => {
@@ -183,7 +218,7 @@ const ProgramDetail = () => {
         }
       };
     }
-  }, [isRestTimerActive]);
+  }, [isRestTimerActive, restTimerStartTime]);
 
   // Vibrate when rest timer reaches duration
   useEffect(() => {
@@ -203,6 +238,17 @@ const ProgramDetail = () => {
       clearTimeout(suggestionTimeoutRef.current);
     }
   }, [currentSetIndex, currentExerciseIndex]);
+
+  // Auto-scroll to current exercise tab when it changes
+  useEffect(() => {
+    if (exerciseTabsRef.current) {
+      const tabs = exerciseTabsRef.current.children;
+      const activeTab = tabs[currentExerciseIndex] as HTMLElement;
+      if (activeTab) {
+        activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [currentExerciseIndex]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -328,7 +374,7 @@ const ProgramDetail = () => {
       <div className={styles.container}>
         <div className={styles.errorState}>
           <p>{error}</p>
-          <Link to="/" className={styles.backLink}>
+          <Link to="/programs" className={styles.backLink}>
             Back to Programs
           </Link>
         </div>
@@ -428,7 +474,7 @@ const ProgramDetail = () => {
             <div>
               <span className={styles.completeTitle}>Workout Complete!</span>
               <span className={styles.completeSubtitle}>
-                All {totalSets} sets finished
+                All {totalSets} sets finished{duration !== null && ` • ${formatTime(duration)}`}
               </span>
             </div>
           </div>
@@ -436,7 +482,7 @@ const ProgramDetail = () => {
 
         {/* Exercise tabs */}
         <div className={styles.exerciseTabsWrapper}>
-          <div className={styles.exerciseTabs}>
+          <div className={styles.exerciseTabs} ref={exerciseTabsRef}>
             {groupedByExercise.map(([name, sets], idx) => {
               const completedInExercise = sets.filter((s) => {
                 const data = workoutData.get(s.rowIndex);
@@ -500,6 +546,9 @@ const ProgramDetail = () => {
         {currentSet && (
           <div
             className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ""}`}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={() => handleTouchEnd(currentExerciseSets.length, currentSetIndex)}
           >
             {/* Set complete animation overlay */}
             {showSetComplete && (
@@ -586,8 +635,8 @@ const ProgramDetail = () => {
                 </button>
               )}
 
-              {/* Copy from previous set in current workout */}
-              {previousSet && workoutData.get(previousSet.rowIndex)?.weight && (
+              {/* Copy from previous set in current workout - hide when workout complete */}
+              {!isWorkoutComplete && previousSet && workoutData.get(previousSet.rowIndex)?.weight && (
                 <button
                   onClick={() =>
                     copyFromPreviousSet(
@@ -650,25 +699,45 @@ const ProgramDetail = () => {
               />
             </div>
 
-            {/* Notes toggle */}
-            <button
-              onClick={() => setShowNotes(!showNotes)}
-              className={styles.notesToggle}
-            >
-              <MessageSquare size={16} />
-              {showNotes ? "Hide notes" : "Add notes"}
-            </button>
+            {/* Notes - show toggle during workout, show directly when complete */}
+            {isWorkoutComplete ? (
+              <div className={styles.notesSection}>
+                <div className={styles.notesLabel}>
+                  <MessageSquare size={16} />
+                  <span>Notes</span>
+                </div>
+                <textarea
+                  value={workoutData.get(currentSet.rowIndex)?.notes || ""}
+                  onChange={(e) =>
+                    updateExercise(currentSet.rowIndex, "notes", e.target.value)
+                  }
+                  placeholder="How did it feel? Any adjustments needed?"
+                  className={styles.notesTextarea}
+                  rows={2}
+                />
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={() => setShowNotes(!showNotes)}
+                  className={styles.notesToggle}
+                >
+                  <MessageSquare size={16} />
+                  {showNotes ? "Hide notes" : "Add notes"}
+                </button>
 
-            {showNotes && (
-              <textarea
-                value={workoutData.get(currentSet.rowIndex)?.notes || ""}
-                onChange={(e) =>
-                  updateExercise(currentSet.rowIndex, "notes", e.target.value)
-                }
-                placeholder="How did it feel? Any adjustments needed?"
-                className={styles.notesTextarea}
-                rows={2}
-              />
+                {showNotes && (
+                  <textarea
+                    value={workoutData.get(currentSet.rowIndex)?.notes || ""}
+                    onChange={(e) =>
+                      updateExercise(currentSet.rowIndex, "notes", e.target.value)
+                    }
+                    placeholder="How did it feel? Any adjustments needed?"
+                    className={styles.notesTextarea}
+                    rows={2}
+                  />
+                )}
+              </>
             )}
             </div>
 
@@ -713,7 +782,7 @@ const ProgramDetail = () => {
   // Program overview
   return (
     <div className={styles.container}>
-      <Link to="/" className={styles.backLink}>
+      <Link to="/programs" className={styles.backLink}>
         <ChevronLeft size={16} />
         Back to Programs
       </Link>
@@ -759,6 +828,7 @@ const ProgramDetail = () => {
                       {workout.completedDate && (
                         <span className={styles.workoutDate}>
                           {formatDateWithDay(workout.completedDate)}
+                          {workout.duration && ` • ${workout.duration}`}
                         </span>
                       )}
                     </div>

@@ -16,7 +16,8 @@ const getInitials = (name: string) => {
 }
 
 const navItems = [
-  { to: '/', label: 'Programs', icon: Dumbbell },
+  { to: '/programs', label: 'Programs', icon: Dumbbell },
+  { to: '/weight', label: 'Weight', icon: Scale },
 ]
 
 interface LayoutProps {
@@ -52,7 +53,7 @@ const Layout = ({ children }: LayoutProps) => {
   }, [])
 
   const isActiveRoute = (path: string) => {
-    if (path === '/') return location.pathname === '/'
+    if (path === '/programs') return location.pathname === '/programs' || location.pathname.startsWith('/programs/')
     return location.pathname.startsWith(path)
   }
 

@@ -1,7 +1,35 @@
 .container {
   width: 100%;
   max-width: 800px;
-  padding-bottom: 2rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.stickyHeader {
+  position: sticky;
+  top: -1.5rem;
+  background: #fafafa;
+  z-index: 10;
+  padding-top: 1.5rem;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  box-shadow: 0 1px 0 #e5e5e5;
+}
+
+@media (min-width: 768px) {
+  .stickyHeader {
+    top: 0;
+    padding-top: 0.5rem;
+  }
 }
 
 .backLink {
@@ -11,7 +39,7 @@
   color: #737373;
   text-decoration: none;
   font-size: 0.875rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   transition: color 0.15s ease;
   min-height: var(--touch-target);
   background: none;
@@ -53,7 +81,30 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
+}
+
+/* OR Divider */
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.orDivider::before,
+.orDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e5e5e5;
+}
+
+.orDivider span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a1a1a1;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .templateCard {
@@ -171,10 +222,16 @@
 
 /* Form */
 .form {
-  padding-bottom: 4rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+@media (max-width: 767px) {
+  .form {
+    padding-bottom: calc(140px + var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .programNameInput {
@@ -207,21 +264,22 @@
 
 /* Workouts */
 .workoutsContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: block;
 }
 
 .workoutsGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: block;
+}
+
+.workoutsGrid > * + * {
+  margin-top: 0.75rem;
 }
 
 .workoutsHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 0.75rem;
 }
 
 .workoutsTitle {
@@ -257,7 +315,7 @@
   background: #fff;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
-  overflow: hidden;
+  display: block;
 }
 
 .workoutHeader {
@@ -265,8 +323,15 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: #fafafa;
+  padding-top: 2rem;
+  margin-top: -1.5rem;
+  background: #fff;
   border-bottom: 1px solid #e5e5e5;
+  border-radius: 8px 8px 0 0;
+  position: -webkit-sticky;
+  position: sticky;
+  top: -1.5rem;
+  z-index: 8;
 }
 
 .collapseBtn {
@@ -368,6 +433,7 @@
 /* Exercises Table */
 .exercisesTable {
   padding: 0.5rem;
+  background: #fff;
 }
 
 .tableHeader {
@@ -621,7 +687,15 @@
 
 @media (max-width: 767px) {
   .formActions {
+    position: fixed;
+    bottom: calc(var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
     flex-direction: column;
+    background: #fafafa;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid #e5e5e5;
+    z-index: 10;
   }
 }
 

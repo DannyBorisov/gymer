@@ -41,6 +41,7 @@ interface WorkoutContextType {
   activeWorkout: ActiveWorkout | null;
   workoutData: Map<number, ExerciseRow>;
   timer: number;
+  duration: number | null;
   isTimerRunning: boolean;
   isSaving: boolean;
   hasUnsavedChanges: boolean;
@@ -78,6 +79,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     new Map(),
   );
   const [timer, setTimer] = useState(0);
+  const [duration, setDuration] = useState<number | null>(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -151,6 +153,14 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [isTimerRunning]);
 
+  // Format timer as hh:mm:ss (with leading zeros)
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
   const saveWorkout = useCallback(async (includeDate = false) => {
     if (!activeWorkout || workoutData.size === 0) return;
 
@@ -164,8 +174,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         notes: row.notes,
       }));
 
-      // Get the last row index (largest rowIndex in workout) for the date
-      const dateRowIndex = Math.max(...Array.from(workoutData.keys()));
+      // Get the first row index (smallest rowIndex in workout) for the date
+      const dateRowIndex = Math.min(...Array.from(workoutData.keys()));
 
       // Format date as DD/MM/YYYY
       const today = new Date();
@@ -173,23 +183,34 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         ? `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`
         : undefined;
 
-      await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
+      // Format duration as hh:mm
+      const duration = includeDate ? formatDuration(timer) : undefined;
+
+      const response = await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           updates,
-          ...(includeDate && { completedDate, dateRowIndex })
+          ...(includeDate && { completedDate, dateRowIndex, duration })
         }),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Save failed:", response.status, errorText);
+        return;
+      }
 
       setHasUnsavedChanges(false);
       hasUnsavedChangesRef.current = false;
     } catch (error) {
-      console.error("Failed to save:", error);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      console.error("Failed to save:", errMsg);
+      console.error("Program ID:", activeWorkout.programId);
     } finally {
       setIsSaving(false);
     }
-  }, [activeWorkout, workoutData]);
+  }, [activeWorkout, workoutData, timer]);
 
   // Auto-save every 5 seconds during active workout
   useEffect(() => {
@@ -213,6 +234,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       setWorkoutData(data);
       setActiveWorkout({ programId, week, workout });
       setTimer(0);
+      setDuration(null);
       timerStartRef.current = Date.now();
       setIsTimerRunning(true);
       setCurrentExerciseIndex(0);
@@ -225,14 +247,18 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const stopWorkout = useCallback(async () => {
     setIsTimerRunning(false);
     timerStartRef.current = 0;
-    // Only include date if all sets are complete (have weight + reps)
+    // Only save if workout is NOT complete (incomplete workouts get saved without date)
+    // Complete workouts were already saved via auto-save during the workout
     const allComplete = Array.from(workoutData.values()).every(
       (row) => row.weight && row.repsAchieved
     );
-    await saveWorkout(allComplete);
+    if (!allComplete) {
+      await saveWorkout(false);
+    }
     setActiveWorkout(null);
     setWorkoutData(new Map());
     setTimer(0);
+    setDuration(null);
     setCompletedSets(new Set());
     setCurrentExerciseIndex(0);
     setCurrentSetIndex(0);
@@ -300,9 +326,12 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         (r) => r.weight && r.repsAchieved
       );
 
-      // If all sets are now complete, save with date
+      // If all sets are now complete, stop timer, capture duration, and save with date
       if (allSetsComplete) {
-        // Save immediately with the updated data
+        setDuration(timer);
+        setIsTimerRunning(false);
+
+        // Save immediately with the correct date/duration
         const doSave = async () => {
           if (!activeWorkout) return;
           setIsSaving(true);
@@ -315,19 +344,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
               notes: r.notes,
             }));
 
-            const lastRowIndex = Math.max(...Array.from(newData.keys()));
+            const firstRowIndex = Math.min(...Array.from(newData.keys()));
             const today = new Date();
             const completedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+            const durationStr = formatDuration(timer);
 
-            const response = await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
+            await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ updates, completedDate, dateRowIndex: lastRowIndex }),
+              body: JSON.stringify({ updates, completedDate, dateRowIndex: firstRowIndex, duration: durationStr }),
             });
-
-            if (!response.ok) {
-              console.error("Save failed:", await response.text());
-            }
 
             setHasUnsavedChanges(false);
             hasUnsavedChangesRef.current = false;
@@ -361,7 +387,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setCurrentSetIndex(0);
       }
     },
-    [workoutData, currentExerciseIndex, currentSetIndex, activeWorkout],
+    [workoutData, currentExerciseIndex, currentSetIndex, activeWorkout, timer],
   );
 
   return (
@@ -370,6 +396,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         activeWorkout,
         workoutData,
         timer,
+        duration,
         isTimerRunning,
         isSaving,
         hasUnsavedChanges,

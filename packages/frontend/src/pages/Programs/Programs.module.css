@@ -172,3 +172,76 @@
   border-color: #a1a1a1;
   color: #0f0f0f;
 }
+
+/* Quick Workout Card */
+.quickWorkoutCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  min-height: var(--touch-target);
+}
+
+@media (max-width: 767px) {
+  .quickWorkoutCard {
+    padding: 1rem;
+  }
+}
+
+.quickWorkoutCard:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+}
+
+.quickWorkoutInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.quickWorkoutIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #f59e0b;
+  border-radius: 10px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.quickWorkoutText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.quickWorkoutName {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #92400e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quickWorkoutDescription {
+  font-size: 0.8125rem;
+  color: #b45309;
+}
+
+.quickWorkoutCard .chevronIcon {
+  color: #d97706;
+}
+
+.quickWorkoutCard:hover .chevronIcon {
+  color: #92400e;
+}

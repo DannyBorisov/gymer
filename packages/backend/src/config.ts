@@ -6,8 +6,9 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env from monorepo root for local development
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+// Load .env - try backend package first, then monorepo root
+dotenv.config({ path: path.resolve(__dirname, "../.env") });  // packages/backend/.env
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });  // root .env
 
 const EnvSchema = z.object({
   PORT: z.coerce.number().default(3002),

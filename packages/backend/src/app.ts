@@ -4,7 +4,7 @@ import fastifyCors from "@fastify/cors";
 import crypto from "crypto";
 import config from "./config.js";
 import googleSheetsPlugin, { type UserInfo } from "./plugins/googleSheets.js";
-import type { CreateProgramRequest, UpdateRowsRequest } from "./types.js";
+import type { CreateProgramRequest, UpdateRowsRequest, SaveQuickWorkoutRequest, SaveBodyWeightRequest } from "./types.js";
 
 interface SessionData {
   tokens?: {
@@ -69,8 +69,11 @@ export function buildApp() {
       "https://gymerr.co",
       "https://www.gymerr.co",
       /\.vercel\.app$/,
+      "capacitor://localhost",
+      "ionic://localhost",
     ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
 
   // Session helpers
@@ -93,14 +96,17 @@ export function buildApp() {
   }
 
   function setSession(
-    reply: { setCookie: (name: string, value: string, options: object) => void },
+    reply: {
+      setCookie: (name: string, value: string, options: object) => void;
+    },
     data: SessionData,
   ) {
+    const isProduction = process.env.NODE_ENV === "production";
     reply.setCookie("session", encrypt(data), {
       path: "/",
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
   }
@@ -135,7 +141,9 @@ export function buildApp() {
 
     // For native app, pass code directly - app will exchange it
     if (state === "native") {
-      return reply.redirect(`gymerr://auth/callback?code=${encodeURIComponent(code)}`);
+      return reply.redirect(
+        `gymerr://auth/callback?code=${encodeURIComponent(code)}`,
+      );
     }
 
     // For web, exchange code here
@@ -145,7 +153,9 @@ export function buildApp() {
       return reply.redirect(config.env.FRONTEND_URL);
     } catch (error) {
       fastify.log.error(error);
-      return reply.redirect(`${config.env.FRONTEND_URL}/login?error=auth_failed`);
+      return reply.redirect(
+        `${config.env.FRONTEND_URL}/login?error=auth_failed`,
+      );
     }
   });
 
@@ -180,7 +190,9 @@ export function buildApp() {
         return { success: true, user, sessionToken };
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ error: "Failed to exchange auth code" });
+        return reply
+          .status(500)
+          .send({ error: "Failed to exchange auth code" });
       }
     },
   );
@@ -269,7 +281,9 @@ export function buildApp() {
         };
       } catch (error) {
         fastify.log.error(error);
-        return reply.status(500).send({ error: "Failed to create spreadsheet" });
+        return reply
+          .status(500)
+          .send({ error: "Failed to create spreadsheet" });
       }
     },
   );
@@ -311,8 +325,12 @@ export function buildApp() {
           fastify.sheets.getFileName(session.tokens, id),
         ]);
 
+        console.log(data);
+
         if (!data || data.length < 2) {
-          return reply.status(404).send({ error: "Program not found or empty" });
+          return reply
+            .status(404)
+            .send({ error: "Program not found or empty" });
         }
 
         const rows = data.slice(1).map((row, index) => ({
@@ -342,15 +360,31 @@ export function buildApp() {
           workouts.get(row.workout)!.push(row);
         }
 
+        // Helper to detect duration format (H:MM:SS or HH:MM:SS)
+        const isDurationFormat = (str: string) =>
+          /^\d{1,2}:\d{2}:\d{2}$/.test(str);
+
         const program = Array.from(weeks.entries()).map(
           ([weekNum, workouts]) => ({
             week: weekNum,
-            workouts: Array.from(workouts.entries()).map(([name, exercises]) => ({
-              name,
-              exercises,
-              isComplete: exercises.every((e) => e.repsAchieved !== ""),
-              completedDate: exercises[0]?.date || "",
-            })),
+            workouts: Array.from(workouts.entries()).map(
+              ([name, exercises]) => {
+                const completedDate = exercises[0]?.date || "";
+                // Duration is stored in the second row's date column
+                const secondRowDate = exercises[1]?.date || "";
+                const duration = isDurationFormat(secondRowDate)
+                  ? secondRowDate
+                  : "";
+
+                return {
+                  name,
+                  exercises,
+                  isComplete: exercises.every((e) => e.repsAchieved !== ""),
+                  completedDate,
+                  duration,
+                };
+              },
+            ),
           }),
         );
 
@@ -371,7 +405,7 @@ export function buildApp() {
       }
 
       const { id } = request.params;
-      const { updates, completedDate, dateRowIndex } = request.body;
+      const { updates, completedDate, dateRowIndex, duration } = request.body;
 
       try {
         const data = updates.map((update) => ({
@@ -391,6 +425,14 @@ export function buildApp() {
             range: `Sheet1!A${dateRowIndex}`,
             values: [[completedDate]],
           });
+
+          // Write duration one row below the date
+          if (duration) {
+            data.push({
+              range: `Sheet1!A${dateRowIndex + 1}`,
+              values: [[duration]],
+            });
+          }
         }
 
         await fastify.sheets.batchUpdate(session.tokens, id, data);
@@ -398,6 +440,324 @@ export function buildApp() {
       } catch (error) {
         fastify.log.error(error);
         return reply.status(500).send({ error: "Failed to update program" });
+      }
+    },
+  );
+
+  // Quick Workout routes
+  const QUICK_WORKOUTS_SHEET_NAME = "Gymerr Quick Workouts";
+
+  // Create or get the quick workouts spreadsheet
+  fastify.post("/api/quick-workouts", async (request, reply) => {
+    const session = getSession(request);
+    if (!session.tokens) {
+      return reply.status(401).send({ error: "Not authenticated" });
+    }
+
+    try {
+      // Check if sheet already exists
+      const query =
+        "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='gymerrQuickWorkouts' and value='true' } and trashed=false";
+      const files = await fastify.sheets.listFiles(session.tokens, query);
+
+      if (files.length > 0) {
+        return {
+          spreadsheetId: files[0].id,
+          url: `https://docs.google.com/spreadsheets/d/${files[0].id}`,
+          created: false,
+        };
+      }
+
+      // Create new spreadsheet with headers
+      const spreadsheetId = await fastify.sheets.createSpreadsheet(
+        session.tokens,
+        QUICK_WORKOUTS_SHEET_NAME,
+      );
+
+      await fastify.sheets.setFileProperties(session.tokens, spreadsheetId, {
+        gymerrQuickWorkouts: "true",
+      });
+
+      const headers = [
+        ["Date", "WorkoutId", "Exercise", "Set", "Weight", "Reps", "RIR", "Notes", "Duration"],
+      ];
+      await fastify.sheets.update(
+        session.tokens,
+        spreadsheetId,
+        "Sheet1!A1",
+        headers,
+      );
+
+      return {
+        spreadsheetId,
+        url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+        created: true,
+      };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply
+        .status(500)
+        .send({ error: "Failed to create quick workouts sheet" });
+    }
+  });
+
+  // Get unique exercise names from all program sheets for autocomplete
+  fastify.get("/api/quick-workouts/exercises", async (request, reply) => {
+    const session = getSession(request);
+    if (!session.tokens) {
+      return reply.status(401).send({ error: "Not authenticated" });
+    }
+
+    try {
+      // Get all program spreadsheets
+      const query =
+        "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='createdBy' and value='gymerr' } and trashed=false";
+      const files = await fastify.sheets.listFiles(session.tokens, query);
+
+      const exerciseSet = new Set<string>();
+
+      // Fetch exercise names from each spreadsheet
+      for (const file of files) {
+        try {
+          const data = await fastify.sheets.get(
+            session.tokens,
+            file.id,
+            "Sheet1!D:D", // Exercise column
+          );
+          if (data) {
+            for (const row of data.slice(1)) {
+              // Skip header
+              const exerciseName = String(row[0] || "").trim();
+              if (exerciseName) {
+                exerciseSet.add(exerciseName);
+              }
+            }
+          }
+        } catch (err) {
+          // Skip individual sheet errors
+          fastify.log.warn(`Failed to read exercises from ${file.name}: ${err}`);
+        }
+      }
+
+      // Also check quick workouts sheet for exercises
+      const quickWorkoutsQuery =
+        "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='gymerrQuickWorkouts' and value='true' } and trashed=false";
+      const quickWorkoutsFiles = await fastify.sheets.listFiles(
+        session.tokens,
+        quickWorkoutsQuery,
+      );
+
+      if (quickWorkoutsFiles.length > 0) {
+        try {
+          const data = await fastify.sheets.get(
+            session.tokens,
+            quickWorkoutsFiles[0].id,
+            "Sheet1!C:C", // Exercise column in quick workouts
+          );
+          if (data) {
+            for (const row of data.slice(1)) {
+              const exerciseName = String(row[0] || "").trim();
+              if (exerciseName) {
+                exerciseSet.add(exerciseName);
+              }
+            }
+          }
+        } catch (err) {
+          fastify.log.warn(`Failed to read exercises from quick workouts: ${err}`);
+        }
+      }
+
+      return { exercises: Array.from(exerciseSet).sort() };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({ error: "Failed to fetch exercises" });
+    }
+  });
+
+  // Save a completed quick workout
+  fastify.post<{ Body: SaveQuickWorkoutRequest }>(
+    "/api/quick-workouts/save",
+    async (request, reply) => {
+      const session = getSession(request);
+      if (!session.tokens) {
+        return reply.status(401).send({ error: "Not authenticated" });
+      }
+
+      const { workoutId, duration, sets } = request.body;
+
+      if (!workoutId || !sets || sets.length === 0) {
+        return reply.status(400).send({ error: "Missing required fields" });
+      }
+
+      try {
+        // Ensure the quick workouts sheet exists
+        const query =
+          "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='gymerrQuickWorkouts' and value='true' } and trashed=false";
+        const files = await fastify.sheets.listFiles(session.tokens, query);
+
+        let spreadsheetId: string;
+        if (files.length === 0) {
+          // Create the sheet
+          spreadsheetId = await fastify.sheets.createSpreadsheet(
+            session.tokens,
+            QUICK_WORKOUTS_SHEET_NAME,
+          );
+          await fastify.sheets.setFileProperties(session.tokens, spreadsheetId, {
+            gymerrQuickWorkouts: "true",
+          });
+          const headers = [
+            ["Date", "WorkoutId", "Exercise", "Set", "Weight", "Reps", "RIR", "Notes", "Duration"],
+          ];
+          await fastify.sheets.update(
+            session.tokens,
+            spreadsheetId,
+            "Sheet1!A1",
+            headers,
+          );
+        } else {
+          spreadsheetId = files[0].id;
+        }
+
+        // Format date as DD/MM/YYYY
+        const today = new Date();
+        const dateStr = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+
+        // Build rows to append
+        const rows: (string | number)[][] = sets.map((set, index) => [
+          index === 0 ? dateStr : "", // Date only on first row
+          workoutId,
+          set.exercise,
+          set.set,
+          set.weight,
+          set.reps,
+          set.rir,
+          set.notes,
+          index === 0 ? duration : "", // Duration only on first row
+        ]);
+
+        await fastify.sheets.appendRows(
+          session.tokens,
+          spreadsheetId,
+          "Sheet1!A:I",
+          rows,
+        );
+
+        return { success: true, spreadsheetId };
+      } catch (error) {
+        fastify.log.error(error);
+        return reply
+          .status(500)
+          .send({ error: "Failed to save quick workout" });
+      }
+    },
+  );
+
+  // Body Weight Tracking
+  const BODY_WEIGHT_SHEET_NAME = "Gymerr Body Weight";
+
+  // Get recent body weight entries
+  fastify.get("/api/body-weight", async (request, reply) => {
+    const session = getSession(request);
+    if (!session.tokens) {
+      return reply.status(401).send({ error: "Not authenticated" });
+    }
+
+    try {
+      const query =
+        "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='gymerrBodyWeight' and value='true' } and trashed=false";
+      const files = await fastify.sheets.listFiles(session.tokens, query);
+
+      if (files.length === 0) {
+        return { entries: [], spreadsheetId: null };
+      }
+
+      const spreadsheetId = files[0].id;
+      const data = await fastify.sheets.get(
+        session.tokens,
+        spreadsheetId,
+        "Sheet1!A:B",
+      );
+
+      if (!data || data.length < 2) {
+        return { entries: [], spreadsheetId };
+      }
+
+      // Get last 30 entries (most recent first)
+      const entries = data
+        .slice(1)
+        .filter((row) => row[0] && row[1])
+        .map((row) => ({
+          date: String(row[0]),
+          weight: String(row[1]),
+        }))
+        .reverse()
+        .slice(0, 30);
+
+      return { entries, spreadsheetId };
+    } catch (error) {
+      fastify.log.error(error);
+      return reply.status(500).send({ error: "Failed to fetch body weight" });
+    }
+  });
+
+  // Save body weight entry
+  fastify.post<{ Body: SaveBodyWeightRequest }>(
+    "/api/body-weight",
+    async (request, reply) => {
+      const session = getSession(request);
+      if (!session.tokens) {
+        return reply.status(401).send({ error: "Not authenticated" });
+      }
+
+      const { weight } = request.body;
+
+      if (!weight) {
+        return reply.status(400).send({ error: "Weight is required" });
+      }
+
+      try {
+        // Find or create the body weight sheet
+        const query =
+          "mimeType='application/vnd.google-apps.spreadsheet' and appProperties has { key='gymerrBodyWeight' and value='true' } and trashed=false";
+        const files = await fastify.sheets.listFiles(session.tokens, query);
+
+        let spreadsheetId: string;
+        if (files.length === 0) {
+          // Create the sheet
+          spreadsheetId = await fastify.sheets.createSpreadsheet(
+            session.tokens,
+            BODY_WEIGHT_SHEET_NAME,
+          );
+          await fastify.sheets.setFileProperties(session.tokens, spreadsheetId, {
+            gymerrBodyWeight: "true",
+          });
+          const headers = [["Date", "Weight"]];
+          await fastify.sheets.update(
+            session.tokens,
+            spreadsheetId,
+            "Sheet1!A1",
+            headers,
+          );
+        } else {
+          spreadsheetId = files[0].id;
+        }
+
+        // Format date as DD/MM/YYYY
+        const today = new Date();
+        const dateStr = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+
+        // Append the weight entry
+        await fastify.sheets.appendRows(
+          session.tokens,
+          spreadsheetId,
+          "Sheet1!A:B",
+          [[dateStr, weight]],
+        );
+
+        return { success: true, date: dateStr, weight };
+      } catch (error) {
+        fastify.log.error(error);
+        return reply.status(500).send({ error: "Failed to save body weight" });
       }
     },
   );

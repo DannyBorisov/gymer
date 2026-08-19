@@ -1,0 +1,184 @@
+.container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #0f0f0f;
+  margin: 0;
+  letter-spacing: -0.025em;
+}
+
+@media (max-width: 767px) {
+  .title {
+    font-size: 1.25rem;
+  }
+}
+
+/* Log Card */
+.logCard {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.logLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #737373;
+  margin-bottom: 0.75rem;
+}
+
+.inputRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  background: #fafafa;
+  color: #0f0f0f;
+  text-align: center;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #22c55e;
+  background: #fff;
+}
+
+.input::placeholder {
+  color: #a1a1a1;
+  font-weight: 400;
+}
+
+.saveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  background: #22c55e;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.saveBtn:disabled {
+  background: #e5e5e5;
+  color: #a1a1a1;
+  cursor: not-allowed;
+}
+
+.saveBtn:active:not(:disabled) {
+  background: #16a34a;
+}
+
+.loggedToday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  color: #22c55e;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* History Section */
+.historySection {
+  padding-bottom: calc(var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
+@media (min-width: 768px) {
+  .historySection {
+    padding-bottom: 0;
+  }
+}
+
+.historyTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a1a1a1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.75rem 0;
+}
+
+.historyList {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.historyItem:last-child {
+  border-bottom: none;
+}
+
+.historyDate {
+  font-size: 0.9375rem;
+  color: #525252;
+}
+
+.historyWeight {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f0f0f;
+}
+
+/* States */
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: #737373;
+  font-size: 0.875rem;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 2rem;
+  color: #a1a1a1;
+  font-size: 0.9375rem;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

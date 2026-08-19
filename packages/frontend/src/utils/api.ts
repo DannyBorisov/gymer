@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
 
 // API base URL - from environment or defaults
 // For native apps, always use the production URL
@@ -27,24 +27,55 @@ export function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
-// Authenticated fetch wrapper
+// Authenticated fetch wrapper - uses native HTTP on iOS to avoid WKWebView issues
 export async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const headers = {
-    ...getAuthHeaders(),
-    ...(options.headers || {}),
+  const authHeaders = getAuthHeaders();
+
+  // Merge headers properly
+  const headers: Record<string, string> = {
+    ...authHeaders,
   };
 
-  // Don't use credentials: "include" on native - it causes issues
-  // We use Bearer token auth anyway, not cookies
+  // Handle options.headers whether it's a Headers object or plain object
+  if (options.headers) {
+    if (options.headers instanceof Headers) {
+      options.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+    } else {
+      Object.assign(headers, options.headers);
+    }
+  }
+
+  const url = apiUrl(path);
+  const method = (options.method || 'GET').toUpperCase();
+
+  // Use native HTTP on iOS/Android to avoid WKWebView fetch issues
+  if (Capacitor.isNativePlatform()) {
+    console.log(`[API Native] ${method} ${url}`);
+
+    const response = await CapacitorHttp.request({
+      url,
+      method,
+      headers,
+      data: options.body ? JSON.parse(options.body as string) : undefined,
+    });
+
+    // Convert CapacitorHttp response to fetch-like Response
+    return new Response(JSON.stringify(response.data), {
+      status: response.status,
+      headers: response.headers,
+    });
+  }
+
+  // Web: use regular fetch with credentials for cookie auth
+  console.log(`[API Web] ${method} ${url}`);
+
   const fetchOptions: RequestInit = {
     ...options,
     headers,
+    credentials: "include",
   };
 
-  // Only include credentials for web (cookie-based sessions)
-  if (!Capacitor.isNativePlatform()) {
-    fetchOptions.credentials = "include";
-  }
-
-  return fetch(apiUrl(path), fetchOptions);
+  return fetch(url, fetchOptions);
 }
