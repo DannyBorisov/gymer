@@ -5,6 +5,9 @@
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 1.5rem;
 }
 
@@ -14,6 +17,52 @@
   color: #0f0f0f;
   margin: 0;
   letter-spacing: -0.025em;
+}
+
+.reminderControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timeInput {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #0f0f0f;
+  cursor: pointer;
+}
+
+.timeInput:focus {
+  outline: none;
+  border-color: #22c55e;
+}
+
+.reminderBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  background: #fff;
+  color: #a1a1a1;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.reminderBtn:active {
+  transform: scale(0.95);
+}
+
+.reminderBtnActive {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #fff;
 }
 
 @media (max-width: 767px) {

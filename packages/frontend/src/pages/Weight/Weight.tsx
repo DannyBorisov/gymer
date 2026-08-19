@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Loader2, Bell, BellOff } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
 import { useSettings } from '../../contexts/SettingsContext'
+import { scheduleWeightReminder, cancelWeightReminder, getWeightReminderTime, setWeightReminderTime } from '../../utils/notifications'
 import styles from './Weight.module.css'
 
 interface WeightEntry {
@@ -15,6 +16,10 @@ const Weight = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [weightInput, setWeightInput] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [reminderEnabled, setReminderEnabled] = useState(() => {
+    return localStorage.getItem('weightReminderEnabled') === 'true'
+  })
+  const [reminderTime, setReminderTime] = useState(() => getWeightReminderTime())
 
   const fetchEntries = useCallback(async () => {
     try {
@@ -33,6 +38,21 @@ const Weight = () => {
   useEffect(() => {
     fetchEntries()
   }, [fetchEntries])
+
+  // Schedule/cancel reminder when toggle changes
+  useEffect(() => {
+    if (reminderEnabled) {
+      scheduleWeightReminder()
+    } else {
+      cancelWeightReminder()
+    }
+  }, [reminderEnabled])
+
+  const toggleReminder = async () => {
+    const newValue = !reminderEnabled
+    setReminderEnabled(newValue)
+    localStorage.setItem('weightReminderEnabled', String(newValue))
+  }
 
   const handleSave = async () => {
     if (!weightInput.trim()) return
@@ -88,10 +108,42 @@ const Weight = () => {
   const todayStr = getTodayStr()
   const hasLoggedToday = entries[0]?.date === todayStr
 
+  const formatTimeFor24h = () => {
+    return `${String(reminderTime.hour).padStart(2, '0')}:${String(reminderTime.minute).padStart(2, '0')}`
+  }
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const [hourStr, minuteStr] = e.target.value.split(':')
+    const hour = parseInt(hourStr, 10)
+    const minute = parseInt(minuteStr, 10)
+    setReminderTime({ hour, minute })
+    setWeightReminderTime(hour, minute)
+    if (reminderEnabled) {
+      scheduleWeightReminder()
+    }
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>Body Weight</h1>
+        <div className={styles.reminderControls}>
+          {reminderEnabled && (
+            <input
+              type="time"
+              value={formatTimeFor24h()}
+              onChange={handleTimeChange}
+              className={styles.timeInput}
+            />
+          )}
+          <button
+            onClick={toggleReminder}
+            className={`${styles.reminderBtn} ${reminderEnabled ? styles.reminderBtnActive : ''}`}
+            title={reminderEnabled ? 'Disable reminder' : 'Enable daily reminder'}
+          >
+            {reminderEnabled ? <Bell size={18} /> : <BellOff size={18} />}
+          </button>
+        </div>
       </div>
 
       {/* Log weight input */}
