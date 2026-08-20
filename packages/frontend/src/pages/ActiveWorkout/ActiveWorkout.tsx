@@ -16,11 +16,16 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout, type ExerciseRow } from "../../contexts/WorkoutContext";
 import { ScrollableInput } from "../../components/ScrollableInput";
 import { formatTime, formatRestTimer } from "../../lib/time";
+import { updateRestTimer, updateExerciseName } from "../../utils/liveActivity";
 import styles from "../ProgramDetail/ProgramDetail.module.css";
 
 const ActiveWorkout = () => {
   const navigate = useNavigate();
-  const { weightUnit, showRestSuggestion: restSuggestionEnabled, restTimerDuration } = useSettings();
+  const {
+    weightUnit,
+    showRestSuggestion: restSuggestionEnabled,
+    restTimerDuration,
+  } = useSettings();
   const {
     activeWorkout,
     workoutData,
@@ -44,7 +49,9 @@ const ActiveWorkout = () => {
   // Rest timer state
   const [restTimer, setRestTimer] = useState(0);
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
-  const [restTimerStartTime, setRestTimerStartTime] = useState<number | null>(null);
+  const [restTimerStartTime, setRestTimerStartTime] = useState<number | null>(
+    null,
+  );
   const [showRestSuggestion, setShowRestSuggestion] = useState(false);
   const [triggeredForSet, setTriggeredForSet] = useState<number | null>(null);
   const [hasVibrated, setHasVibrated] = useState(false);
@@ -66,7 +73,13 @@ const ActiveWorkout = () => {
 
   // Handle input focus - show rest timer suggestion after delay
   const handleInputActivity = (currentRowIndex: number) => {
-    if (!restSuggestionEnabled || isRestTimerActive || showRestSuggestion || triggeredForSet === currentRowIndex) return;
+    if (
+      !restSuggestionEnabled ||
+      isRestTimerActive ||
+      showRestSuggestion ||
+      triggeredForSet === currentRowIndex
+    )
+      return;
 
     if (suggestionTimeoutRef.current) {
       clearTimeout(suggestionTimeoutRef.current);
@@ -79,7 +92,7 @@ const ActiveWorkout = () => {
   };
 
   // Start rest timer
-  const startRestTimer = () => {
+  const startRestTimer = (exerciseName: string) => {
     setRestTimer(0);
     setRestTimerStartTime(Date.now());
     setIsRestTimerActive(true);
@@ -88,15 +101,23 @@ const ActiveWorkout = () => {
     if (suggestionTimeoutRef.current) {
       clearTimeout(suggestionTimeoutRef.current);
     }
+    // Update Live Activity to show rest timer
+    if (activeWorkout) {
+      updateRestTimer(true, activeWorkout.workout.name, exerciseName);
+    }
   };
 
   // Stop rest timer
-  const stopRestTimer = () => {
+  const stopRestTimer = (exerciseName: string) => {
     setIsRestTimerActive(false);
     setRestTimer(0);
     setRestTimerStartTime(null);
     if (restTimerIntervalRef.current) {
       clearInterval(restTimerIntervalRef.current);
+    }
+    // Update Live Activity to hide rest timer
+    if (activeWorkout) {
+      updateRestTimer(false, activeWorkout.workout.name, exerciseName);
     }
   };
 
@@ -160,7 +181,11 @@ const ActiveWorkout = () => {
       const tabs = exerciseTabsRef.current.children;
       const activeTab = tabs[currentExerciseIndex] as HTMLElement;
       if (activeTab) {
-        activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        activeTab.scrollIntoView({
+          behavior: "smooth",
+          inline: "center",
+          block: "nearest",
+        });
       }
     }
   }, [currentExerciseIndex]);
@@ -176,6 +201,18 @@ const ActiveWorkout = () => {
       }
     };
   }, []);
+
+  // Update Live Activity when exercise changes
+  useEffect(() => {
+    if (activeWorkout && currentExerciseIndex >= 0 && !isRestTimerActive) {
+      // Get exercise name from workoutData
+      const exerciseNames = [...new Set(workoutData.map((e) => e.exercise))];
+      const exerciseName = exerciseNames[currentExerciseIndex];
+      if (exerciseName) {
+        updateExerciseName(exerciseName, activeWorkout.workout.name);
+      }
+    }
+  }, [currentExerciseIndex, activeWorkout, isRestTimerActive, workoutData]);
 
   // Handle complete set with animation
   const handleCompleteSet = (rowIndex: number) => {
@@ -210,10 +247,18 @@ const ActiveWorkout = () => {
       updateExercise(currentSet.rowIndex, "weight", previousSet.weight);
     }
     if (previousSet.repsAchieved) {
-      updateExercise(currentSet.rowIndex, "repsAchieved", previousSet.repsAchieved);
+      updateExercise(
+        currentSet.rowIndex,
+        "repsAchieved",
+        previousSet.repsAchieved,
+      );
     }
     if (previousSet.rirAchieved) {
-      updateExercise(currentSet.rowIndex, "rirAchieved", previousSet.rirAchieved);
+      updateExercise(
+        currentSet.rowIndex,
+        "rirAchieved",
+        previousSet.rirAchieved,
+      );
     }
   };
 
@@ -222,7 +267,8 @@ const ActiveWorkout = () => {
   }
 
   // Helper to find row by index
-  const getRow = (rowIndex: number) => workoutData.find((r) => r.rowIndex === rowIndex);
+  const getRow = (rowIndex: number) =>
+    workoutData.find((r) => r.rowIndex === rowIndex);
 
   const groupedByExercise = Object.entries(
     workoutData.reduce(
@@ -245,16 +291,21 @@ const ActiveWorkout = () => {
   const currentExerciseName = currentExercise?.[0] || "";
   const currentExerciseSets = currentExercise?.[1] || [];
   const currentSet = currentExerciseSets[currentSetIndex];
-  const previousSet = currentSetIndex > 0 ? currentExerciseSets[currentSetIndex - 1] : null;
+  const previousSet =
+    currentSetIndex > 0 ? currentExerciseSets[currentSetIndex - 1] : null;
 
   const currentSetData = currentSet ? getRow(currentSet.rowIndex) : null;
   const isSetCompleted = currentSetData?.weight && currentSetData?.repsAchieved;
   const prevStats = previousStats[currentExerciseName];
 
+
   // Check if all OTHER sets are complete
-  const isLastSet = currentSet && workoutData.every(
-    (ex) => ex.rowIndex === currentSet.rowIndex || (ex.weight && ex.repsAchieved)
-  );
+  const isLastSet =
+    currentSet &&
+    workoutData.every(
+      (ex) =>
+        ex.rowIndex === currentSet.rowIndex || (ex.weight && ex.repsAchieved),
+    );
 
   return (
     <div className={styles.workoutContainer}>
@@ -267,7 +318,7 @@ const ActiveWorkout = () => {
               {showRestSuggestion && currentSet ? (
                 <div className={styles.restTimerSuggestion}>
                   <button
-                    onClick={startRestTimer}
+                    onClick={() => startRestTimer(currentExerciseName)}
                     className={styles.restTimerSuggestionBtn}
                   >
                     <Timer size={16} />
@@ -282,11 +333,13 @@ const ActiveWorkout = () => {
                 </div>
               ) : (
                 <button
-                  onClick={isRestTimerActive ? stopRestTimer : startRestTimer}
-                  className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ''}`}
+                  onClick={() => isRestTimerActive ? stopRestTimer(currentExerciseName) : startRestTimer(currentExerciseName)}
+                  className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ""}`}
                 >
                   <Timer size={16} />
-                  <span>{isRestTimerActive ? formatRestTimer(restTimer) : 'Rest'}</span>
+                  <span>
+                    {isRestTimerActive ? formatRestTimer(restTimer) : "Rest"}
+                  </span>
                 </button>
               )}
             </div>
@@ -312,7 +365,8 @@ const ActiveWorkout = () => {
           <div>
             <span className={styles.completeTitle}>Workout Complete!</span>
             <span className={styles.completeSubtitle}>
-              All {totalSets} sets finished{duration !== null && ` • ${formatTime(duration)}`}
+              All {totalSets} sets finished
+              {duration !== null && ` • ${formatTime(duration)}`}
             </span>
           </div>
         </div>
@@ -386,7 +440,9 @@ const ActiveWorkout = () => {
           className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ""}`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
-          onTouchEnd={() => handleTouchEnd(currentExerciseSets.length, currentSetIndex)}
+          onTouchEnd={() =>
+            handleTouchEnd(currentExerciseSets.length, currentSetIndex)
+          }
         >
           {/* Set complete animation overlay */}
           {showSetComplete && (
@@ -400,7 +456,9 @@ const ActiveWorkout = () => {
             <div className={styles.setHeader}>
               <button
                 className={styles.setNavBtn}
-                onClick={() => setCurrentSetIndex(Math.max(0, currentSetIndex - 1))}
+                onClick={() =>
+                  setCurrentSetIndex(Math.max(0, currentSetIndex - 1))
+                }
                 disabled={currentSetIndex === 0}
               >
                 <ChevronLeft size={20} />
@@ -415,7 +473,10 @@ const ActiveWorkout = () => {
                 className={styles.setNavBtn}
                 onClick={() =>
                   setCurrentSetIndex(
-                    Math.min(currentExerciseSets.length - 1, currentSetIndex + 1)
+                    Math.min(
+                      currentExerciseSets.length - 1,
+                      currentSetIndex + 1,
+                    ),
                   )
                 }
                 disabled={currentSetIndex === currentExerciseSets.length - 1}
@@ -432,13 +493,25 @@ const ActiveWorkout = () => {
                   onClick={() => {
                     const stats = prevStats.sets[currentSetIndex];
                     if (stats.weight) {
-                      updateExercise(currentSet.rowIndex, "weight", stats.weight);
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "weight",
+                        stats.weight,
+                      );
                     }
                     if (stats.reps) {
-                      updateExercise(currentSet.rowIndex, "repsAchieved", stats.reps);
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "repsAchieved",
+                        stats.reps,
+                      );
                     }
                     if (stats.rir) {
-                      updateExercise(currentSet.rowIndex, "rirAchieved", stats.rir);
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "rirAchieved",
+                        stats.rir,
+                      );
                     }
                   }}
                 >
@@ -455,29 +528,39 @@ const ActiveWorkout = () => {
                 </button>
               )}
 
-              {!isWorkoutComplete && previousSet && getRow(previousSet.rowIndex)?.weight && (
-                <button
-                  onClick={() =>
-                    copyFromPreviousSet(currentSet, getRow(previousSet.rowIndex)!)
-                  }
-                  className={styles.copyBtn}
-                >
-                  <Copy size={14} />
-                  Set {previousSet.set}:{" "}
-                  {getRow(previousSet.rowIndex)?.weight}
-                  {weightUnit} ×{" "}
-                  {getRow(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
-                </button>
-              )}
+              {!isWorkoutComplete &&
+                previousSet &&
+                getRow(previousSet.rowIndex)?.weight && (
+                  <button
+                    onClick={() =>
+                      copyFromPreviousSet(
+                        currentSet,
+                        getRow(previousSet.rowIndex)!,
+                      )
+                    }
+                    className={styles.copyBtn}
+                  >
+                    <Copy size={14} />
+                    Set {previousSet.set}:{" "}
+                    {getRow(previousSet.rowIndex)?.weight}
+                    {weightUnit} ×{" "}
+                    {getRow(previousSet.rowIndex)?.repsAchieved ||
+                      previousSet.targetReps}
+                  </button>
+                )}
             </div>
 
             <div className={styles.inputSection}>
               <ScrollableInput
                 label={weightUnit}
                 value={getRow(currentSet.rowIndex)?.weight || ""}
-                onChange={(val) => updateExercise(currentSet.rowIndex, "weight", val)}
-                onAdjust={(delta) => adjustValue(currentSet.rowIndex, "weight", delta)}
-                step={1.25}
+                onChange={(val) =>
+                  updateExercise(currentSet.rowIndex, "weight", val)
+                }
+                onAdjust={(delta) =>
+                  adjustValue(currentSet.rowIndex, "weight", delta)
+                }
+                step={25}
                 inputMode="decimal"
                 placeholder="0"
                 onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
@@ -485,8 +568,12 @@ const ActiveWorkout = () => {
               <ScrollableInput
                 label="Reps"
                 value={getRow(currentSet.rowIndex)?.repsAchieved || ""}
-                onChange={(val) => updateExercise(currentSet.rowIndex, "repsAchieved", val)}
-                onAdjust={(delta) => adjustValue(currentSet.rowIndex, "repsAchieved", delta)}
+                onChange={(val) =>
+                  updateExercise(currentSet.rowIndex, "repsAchieved", val)
+                }
+                onAdjust={(delta) =>
+                  adjustValue(currentSet.rowIndex, "repsAchieved", delta)
+                }
                 step={1}
                 placeholder={currentSet.targetReps.toString()}
                 onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
@@ -494,8 +581,12 @@ const ActiveWorkout = () => {
               <ScrollableInput
                 label="RIR"
                 value={getRow(currentSet.rowIndex)?.rirAchieved || ""}
-                onChange={(val) => updateExercise(currentSet.rowIndex, "rirAchieved", val)}
-                onAdjust={(delta) => adjustValue(currentSet.rowIndex, "rirAchieved", delta)}
+                onChange={(val) =>
+                  updateExercise(currentSet.rowIndex, "rirAchieved", val)
+                }
+                onAdjust={(delta) =>
+                  adjustValue(currentSet.rowIndex, "rirAchieved", delta)
+                }
                 step={1}
                 placeholder={currentSet.rir}
                 max={10}
@@ -511,7 +602,9 @@ const ActiveWorkout = () => {
                 </div>
                 <textarea
                   value={getRow(currentSet.rowIndex)?.notes || ""}
-                  onChange={(e) => updateExercise(currentSet.rowIndex, "notes", e.target.value)}
+                  onChange={(e) =>
+                    updateExercise(currentSet.rowIndex, "notes", e.target.value)
+                  }
                   placeholder="How did it feel? Any adjustments needed?"
                   className={styles.notesTextarea}
                   rows={2}
@@ -530,7 +623,13 @@ const ActiveWorkout = () => {
                 {showNotes && (
                   <textarea
                     value={getRow(currentSet.rowIndex)?.notes || ""}
-                    onChange={(e) => updateExercise(currentSet.rowIndex, "notes", e.target.value)}
+                    onChange={(e) =>
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "notes",
+                        e.target.value,
+                      )
+                    }
                     placeholder="How did it feel? Any adjustments needed?"
                     className={styles.notesTextarea}
                     rows={2}
@@ -542,7 +641,10 @@ const ActiveWorkout = () => {
 
           <div className={styles.buttonsContainer}>
             {isWorkoutComplete && (
-              <button onClick={handleStopWorkout} className={styles.backToProgram}>
+              <button
+                onClick={handleStopWorkout}
+                className={styles.backToProgram}
+              >
                 Back to Program
               </button>
             )}

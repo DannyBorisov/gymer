@@ -83,6 +83,7 @@
   .main {
     margin-left: 0;
     padding: 1.5rem;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -152,7 +153,7 @@
   align-items: center;
   gap: 0.75rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   margin-bottom: 0.75rem;
 }
 
@@ -196,7 +197,10 @@
 .settingsSection {
   padding-bottom: 0.75rem;
   margin-bottom: 0.75rem;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .settingsRow {
@@ -296,22 +300,24 @@
 .signOutButton {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.5rem 0.625rem;
-  background: none;
+  padding: 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
   border: none;
-  border-radius: 6px;
-  color: #a1a1a1;
+  border-radius: 12px;
+  color: #ef4444;
   font-size: 0.875rem;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s ease;
   min-height: var(--touch-target);
 }
 
-.signOutButton:hover {
-  background-color: #2a2a2a;
-  color: #fafafa;
+.signOutButton:hover,
+.signOutButton:active {
+  background: rgba(239, 68, 68, 0.2);
 }
 
 /* Mobile Header */
@@ -416,21 +422,25 @@
   z-index: 101;
 }
 
-/* Mobile Bottom Navigation */
+/* Mobile Bottom Navigation - Tinder-style bubble */
 .bottomNav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
-  background-color: #0f0f0f;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: 1rem;
+  right: 1rem;
+  height: auto;
+  background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-around;
   z-index: 100;
-  border-top: 1px solid #1f1f1f;
-  padding-top: 0.5rem;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding: 6px 8px;
+  border-radius: 20px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .bottomNavItem {
@@ -438,39 +448,50 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  background: none;
-  border: none;
+  gap: 2px;
   flex: 1;
-  padding: 0.625rem 0.5rem;
-  color: #737373;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 14px;
+  color: #6b6b6b;
   text-decoration: none;
   font-size: 0.625rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  transition: color 0.15s ease;
+  transition: all 0.2s ease;
+}
+
+.bottomNavItem svg {
+  width: 20px;
+  height: 20px;
 }
 
 .bottomNavItem:active {
-  opacity: 0.7;
+  transform: scale(0.95);
 }
 
 .bottomNavActive {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: #fff;
+  box-shadow:
+    0 4px 12px rgba(59, 130, 246, 0.35);
 }
 
 /* Bottom Popover (Profile menu from footer) */
 .bottomPopover {
-  position: absolute;
-  bottom: 100%;
-  right: 0.5rem;
-  left: 0.5rem;
-  margin-bottom: 0.5rem;
-  background-color: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  border-radius: 12px;
-  padding: 1rem;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  position: fixed;
+  bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  right: 1rem;
+  left: 1rem;
+  background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.25rem;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   z-index: 101;
 }

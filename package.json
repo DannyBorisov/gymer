@@ -6,12 +6,16 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "patch-package",
     "dev:frontend": "npm run dev -w @gymerr/frontend",
     "dev:backend": "npm run dev -w @gymerr/backend",
     "build": "npm run build -w @gymerr/shared && npm run build -w @gymerr/backend && npm run build -w @gymerr/frontend",
     "build:frontend": "npm run build -w @gymerr/frontend",
     "build:backend": "npm run build -w @gymerr/backend",
-    "ios:deploy":"npm run cap:sync -w @gymerr/frontend"
+    "deploy:ios":"npm run cap:sync -w @gymerr/frontend"
+  },
+  "devDependencies": {
+    "patch-package": "^8.0.1"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

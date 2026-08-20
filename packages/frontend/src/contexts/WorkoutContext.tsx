@@ -9,6 +9,10 @@ import {
 import { apiFetch } from "../utils/api";
 import { formatDuration } from "../lib/time";
 import { formatTodayDDMMYYYY } from "../lib/date";
+import {
+  startWorkoutLiveActivity,
+  endWorkoutLiveActivity,
+} from "../utils/liveActivity";
 
 export interface ExerciseRow {
   rowIndex: number;
@@ -178,6 +182,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [isTimerRunning]);
 
+  // Live Activity timer auto-updates natively - no need to send updates from app
+
   const saveWorkout = async (includeDate = false) => {
     if (!activeWorkout || workoutData.length === 0) return;
 
@@ -243,17 +249,30 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     programData: Week[],
     name: string
   ) => {
-    setWorkoutData(workout.exercises.map((ex) => ({ ...ex })));
+    const exercises = workout.exercises.map((ex) => ({ ...ex }));
+    setWorkoutData(exercises);
     setActiveWorkout({ programId, week, workout });
     setProgram(programData);
     setProgramName(name);
-    setTimer(0);
-    setDuration(null);
-    timerStartRef.current = Date.now();
-    setIsTimerRunning(true);
     setCurrentExerciseIndex(0);
     setCurrentSetIndex(0);
-    setCompletedSets(new Set());
+
+    // Check if workout was already completed (based on server data, not field values)
+    if (workout.isComplete || workout.completedDate) {
+      // Workout already complete from server - don't start timer
+      setTimer(0);
+      setDuration(0); // Mark as complete
+      timerStartRef.current = 0;
+      setIsTimerRunning(false);
+      setCompletedSets(new Set(exercises.map((ex) => ex.rowIndex)));
+    } else {
+      // Normal start - begin timer
+      setTimer(0);
+      setDuration(null);
+      timerStartRef.current = Date.now();
+      setIsTimerRunning(true);
+      setCompletedSets(new Set());
+    }
 
     // Calculate previous stats for each exercise
     const stats: Record<string, PreviousStats> = {};
@@ -286,11 +305,21 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     setPreviousStats(stats);
+
+    // Only start Live Activity if workout is not already complete
+    if (!workout.isComplete && !workout.completedDate) {
+      const firstExercise = workout.exercises[0]?.exercise || "";
+      startWorkoutLiveActivity(workout.name, firstExercise);
+    }
   };
 
   const stopWorkout = async () => {
     setIsTimerRunning(false);
     timerStartRef.current = 0;
+
+    // End Live Activity
+    endWorkoutLiveActivity();
+
     // Only save if workout is NOT complete (incomplete workouts get saved without date)
     // Complete workouts were already saved via auto-save during the workout
     const allComplete = workoutData.every(
