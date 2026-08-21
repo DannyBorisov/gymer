@@ -64,6 +64,8 @@ extension JSONLayoutParser {
                 "trailing": .trailing
             ]
             
+            let maxWidth = getDouble(from: resolveValue(element.properties["maxWidth"], with: data)) ?? 0
+
             let textView = content
                 .if(fontSize != 0){ view in
                     view.font(.system(size: CGFloat(fontSize)))
@@ -85,6 +87,9 @@ extension JSONLayoutParser {
                 }
                 .if(monospacedDigit == true){ view in
                     view.monospacedDigit()
+                }
+                .if(maxWidth > 0){ view in
+                    view.frame(maxWidth: CGFloat(maxWidth))
                 }
             
             Logger.viewCycle.error("📀 buildTextView -> fontSize: \(fontSize), fontWeight: \(fontWeight), color: \(color), fontFamily: \(fontFamily), alignment: \(alignment), lineLimit: \(lineLimit), monospacedDigit: \(monospacedDigit)")

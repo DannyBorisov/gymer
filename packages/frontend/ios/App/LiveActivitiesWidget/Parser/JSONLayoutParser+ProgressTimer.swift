@@ -36,8 +36,12 @@ extension JSONLayoutParser {
                 timerInterval: startDate...Date.distantFuture,
                 pauseTime: nil,
                 countsDown: false,
-                showsHours: true
-            ).modifier(ViewModifierText(element: element, data: data)))
+                showsHours: false
+            )
+            .monospacedDigit()
+            .modifier(ViewModifierText(element: element, data: data))
+            .frame(maxWidth: 50)
+            .fixedSize(horizontal: true, vertical: false))
         }
 
         // For "countdown" style, count DOWN to the end date

@@ -82,33 +82,24 @@ const createDynamicIslandLayout = (startTime: number): DynamicIslandLayout => ({
     },
   },
   compactLeading: {
-    type: "container",
-    properties: [{ direction: "horizontal" }, { spacing: 6 }],
-    children: [
-      {
-        type: "image",
-        properties: [{ systemName: "dumbbell.fill" }, { color: WORKOUT_COLOR }],
-      },
-      {
-        type: "timer",
-        properties: [
-          { endTime: startTime },
-          { style: "timer" },
-          { fontSize: 14 },
-          { fontWeight: "semibold" },
-          { color: "#FFFFFF" },
-          { monospacedDigit: true },
-        ],
-      },
-    ],
-  },
-  compactTrailing: {
     type: "text",
     properties: [
       { text: "{{exerciseName}}" },
-      { fontSize: 12 },
+      { fontSize: 11 },
+      { fontWeight: "medium" },
       { color: "#FFFFFF" },
       { lineLimit: 1 },
+      { maxWidth: 45 },
+    ],
+  },
+  compactTrailing: {
+    type: "timer",
+    properties: [
+      { endTime: startTime },
+      { style: "timer" },
+      { fontSize: 14 },
+      { fontWeight: "semibold" },
+      { color: WORKOUT_COLOR },
     ],
   },
   minimal: {
@@ -228,31 +219,16 @@ const createDynamicIslandLayoutWithRest = (workoutStart: number, restStart: numb
     },
   },
   compactLeading: {
-    type: "container",
-    properties: [{ direction: "horizontal" }, { spacing: 6 }],
-    children: [
-      {
-        type: "image",
-        properties: [{ systemName: "timer" }, { color: REST_COLOR }],
-      },
-      {
-        type: "timer",
-        properties: [
-          { endTime: restStart },
-          { style: "timer" },
-          { fontSize: 14 },
-          { fontWeight: "semibold" },
-          { color: REST_COLOR },
-          { monospacedDigit: true },
-        ],
-      },
-    ],
+    type: "image",
+    properties: [{ systemName: "timer" }, { color: REST_COLOR }],
   },
   compactTrailing: {
-    type: "text",
+    type: "timer",
     properties: [
-      { text: "Rest" },
-      { fontSize: 12 },
+      { endTime: restStart },
+      { style: "timer" },
+      { fontSize: 14 },
+      { fontWeight: "semibold" },
       { color: REST_COLOR },
     ],
   },

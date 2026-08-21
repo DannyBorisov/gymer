@@ -1,383 +1,198 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import {
-  ChevronLeft,
-  Plus,
-  X,
-  Check,
-  Trash2,
-  Loader2,
-  ChevronDown,
-} from "lucide-react";
-import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
-import { useSettings } from "../../contexts/SettingsContext";
-import { formatTime } from "../../lib/time";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Trash2, ChevronLeft, Play } from "lucide-react";
+import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
+import { useWorkout } from "../../contexts/WorkoutContext";
 import styles from "./QuickWorkout.module.css";
+
+interface QuickExercise {
+  name: string;
+  sets: number;
+  reps: number;
+  rir: number;
+}
 
 const QuickWorkout = () => {
   const navigate = useNavigate();
-  const { weightUnit } = useSettings();
-  const {
-    isActive,
-    exercises,
-    sets,
-    timer,
-    isSaving,
-    availableExercises,
-    isLoadingExercises,
-    startWorkout,
-    addExercise,
-    renameExercise,
-    removeExercise,
-    addSet,
-    removeSet,
-    updateSet,
-    completeWorkout,
-    discardWorkout,
-    loadExercises,
-    hasRecoveryData,
-    recoverWorkout,
-    dismissRecovery,
-  } = useQuickWorkout();
+  const { startQuickWorkout } = useWorkout();
+  const [exercises, setExercises] = useState<QuickExercise[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showRecovery, setShowRecovery] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<string | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const handleAddExercises = (names: string[]) => {
+    const newExercises = names.map((name) => ({
+      name,
+      sets: 3,
+      reps: 10,
+      rir: 2,
+    }));
+    setExercises((prev) => [...prev, ...newExercises]);
+  };
 
-  // Check for recovery data on mount
-  useEffect(() => {
-    if (!isActive && hasRecoveryData()) {
-      setShowRecovery(true);
+  const handleUpdateExerciseName = (name: string) => {
+    if (editingIndex !== null) {
+      setExercises((prev) =>
+        prev.map((ex, i) => (i === editingIndex ? { ...ex, name } : ex))
+      );
     }
-  }, [isActive, hasRecoveryData]);
+    setEditingIndex(null);
+  };
 
-  // Load exercises on mount
-  useEffect(() => {
-    loadExercises();
-  }, [loadExercises]);
+  const handleRemoveExercise = (index: number) => {
+    setExercises((prev) => prev.filter((_, i) => i !== index));
+  };
 
-  // Start workout automatically when page loads (if not recovering)
-  useEffect(() => {
-    if (!isActive && !showRecovery) {
-      startWorkout();
-    }
-  }, [isActive, showRecovery, startWorkout]);
-
-  // Focus search input when drawer opens
-  useEffect(() => {
-    if (showSearch && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [showSearch]);
-
-  // Filter exercises based on search
-  const filteredExercises = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-    if (!query) return availableExercises;
-    return availableExercises.filter((ex) =>
-      ex.toLowerCase().includes(query)
+  const handleUpdateExercise = (
+    index: number,
+    field: "sets" | "reps" | "rir",
+    value: number
+  ) => {
+    setExercises((prev) =>
+      prev.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex))
     );
-  }, [availableExercises, searchQuery]);
-
-  const openExerciseSelector = (exerciseName: string | null) => {
-    setEditingExercise(exerciseName);
-    setSearchQuery("");
-    setShowSearch(true);
   };
 
-  const handleSelectExercise = (name: string) => {
-    if (editingExercise === null) {
-      // Adding new exercise
-      addExercise(name);
-    } else if (editingExercise === "") {
-      // New card with empty name - just add the exercise
-      addExercise(name);
-    } else {
-      // Renaming existing exercise
-      renameExercise(editingExercise, name);
-    }
-    setShowSearch(false);
-    setSearchQuery("");
-    setEditingExercise(null);
+  const handleStartWorkout = () => {
+    if (exercises.length === 0) return;
+    startQuickWorkout(exercises);
+    navigate("/workout");
   };
 
-  const handleAddNewExercise = () => {
-    const name = searchQuery.trim();
-    if (name) {
-      handleSelectExercise(name);
-    }
+  const openAddDrawer = () => {
+    setEditingIndex(null);
+    setDrawerOpen(true);
   };
 
-  const handleComplete = async () => {
-    const success = await completeWorkout();
-    if (success) {
-      navigate("/programs");
-    }
+  const openEditDrawer = (index: number) => {
+    setEditingIndex(index);
+    setDrawerOpen(true);
   };
 
-  const handleDiscard = () => {
-    discardWorkout();
-    navigate("/programs");
-  };
-
-  const handleRecover = () => {
-    recoverWorkout();
-    setShowRecovery(false);
-  };
-
-  const handleDismissRecovery = () => {
-    dismissRecovery();
-    setShowRecovery(false);
-    startWorkout();
-  };
-
-  // Recovery prompt
-  if (showRecovery) {
-    return (
-      <div className={styles.container}>
-        <Link to="/programs" className={styles.backLink}>
-          <ChevronLeft size={16} />
-          Back to Programs
-        </Link>
-        <div className={styles.recoveryBanner}>
-          <span className={styles.recoveryText}>
-            You have an unfinished quick workout. Would you like to continue?
-          </span>
-          <div className={styles.recoveryActions}>
-            <button onClick={handleRecover} className={styles.recoverBtn}>
-              Continue Workout
-            </button>
-            <button onClick={handleDismissRecovery} className={styles.dismissBtn}>
-              Start Fresh
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Get valid sets count (sets with exercise name and at least weight or reps)
-  const validSetsCount = sets.filter((s) => s.exercise && (s.weight || s.reps)).length;
+  const existingExerciseNames = exercises.map((e) => e.name);
 
   return (
-    <div className={styles.workoutContainer}>
-      {/* Header with timer */}
-      <div className={styles.header}>
-        <div className={styles.timerSection}>
-          <span className={styles.timer}>{formatTime(timer)}</span>
-        </div>
+    <div className={styles.container}>
+      <button onClick={() => navigate("/start-workout")} className={styles.backLink}>
+        <ChevronLeft size={16} />
+        Back
+      </button>
+
+      <div className={styles.pageHeader}>
+        <h1 className={styles.title}>Quick Workout</h1>
+        <p className={styles.subtitle}>Build your workout, then start training</p>
       </div>
 
-      {/* Exercise list */}
-      <div className={styles.exerciseList}>
-        {exercises.map((exerciseName) => {
-          const exerciseSets = sets.filter((s) => s.exercise === exerciseName);
-          return (
-            <div key={exerciseName} className={styles.exerciseCard}>
-              <div className={styles.exerciseCardHeader}>
-                <button
-                  onClick={() => openExerciseSelector(exerciseName)}
-                  className={styles.exerciseNameBtn}
-                >
-                  <span className={styles.exerciseName}>{exerciseName}</span>
-                  <ChevronDown size={16} />
-                </button>
-                <button
-                  onClick={() => removeExercise(exerciseName)}
-                  className={styles.removeExerciseBtn}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className={styles.setsList}>
-                {exerciseSets.map((set) => (
-                  <div key={set.id} className={styles.setRow}>
-                    <span className={styles.setNumber}>{set.set}</span>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      value={set.weight}
-                      onChange={(e) =>
-                        updateSet(set.id, "weight", e.target.value)
-                      }
-                      placeholder={weightUnit}
-                      className={styles.setInput}
-                    />
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={set.reps}
-                      onChange={(e) =>
-                        updateSet(set.id, "reps", e.target.value)
-                      }
-                      placeholder="Reps"
-                      className={styles.setInput}
-                    />
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={set.rir}
-                      onChange={(e) =>
-                        updateSet(set.id, "rir", e.target.value)
-                      }
-                      placeholder="RIR"
-                      className={styles.setInput}
-                    />
-                    {exerciseSets.length > 1 && (
-                      <button
-                        onClick={() => removeSet(set.id)}
-                        className={styles.removeSetBtn}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-
-                <button
-                  onClick={() => addSet(exerciseName)}
-                  className={styles.addSetBtn}
-                >
-                  <Plus size={16} />
-                  Add Set
-                </button>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Add exercise button */}
-        <button
-          onClick={() => openExerciseSelector(null)}
-          className={styles.addExerciseCard}
-        >
-          <Plus size={20} />
-          <span>Add Exercise</span>
-        </button>
-      </div>
-
-      {/* Bottom actions */}
-      {exercises.length > 0 && (
-        <div className={styles.bottomActions}>
-          <button
-            onClick={handleComplete}
-            disabled={validSetsCount === 0 || isSaving}
-            className={styles.completeBtn}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 size={20} className={styles.spinner} />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Check size={20} />
-                Complete Workout
-              </>
-            )}
-          </button>
-          <button onClick={handleDiscard} className={styles.discardBtn}>
-            Discard workout
+      {/* Exercises Section */}
+      <div className={styles.exercisesContainer}>
+        <div className={styles.exercisesHeader}>
+          <span className={styles.exercisesTitle}>Exercises</span>
+          <button onClick={openAddDrawer} className={styles.addExerciseBtn}>
+            <Plus size={14} />
+            Add Exercises
           </button>
         </div>
-      )}
 
-      {/* Discard button when no exercises */}
-      {exercises.length === 0 && (
-        <div className={styles.bottomActionsEmpty}>
-          <button onClick={handleDiscard} className={styles.discardBtnEmpty}>
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* Exercise search drawer */}
-      {showSearch && (
-        <div
-          className={styles.searchOverlay}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowSearch(false);
-              setSearchQuery("");
-              setEditingExercise(null);
-            }
-          }}
-        >
-          <div className={styles.searchModal}>
-            <div className={styles.searchHeader}>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search or add exercise..."
-                className={styles.searchInput}
-              />
-              <button
-                onClick={() => {
-                  setShowSearch(false);
-                  setSearchQuery("");
-                  setEditingExercise(null);
-                }}
-                className={styles.closeSearchBtn}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className={styles.searchResults}>
-              {isLoadingExercises ? (
-                <div className={styles.loadingState}>
-                  <Loader2 size={20} className={styles.spinner} />
-                  <span>Loading exercises...</span>
-                </div>
-              ) : (
-                <>
-                  {/* Add custom exercise option */}
-                  {searchQuery.trim() &&
-                    !availableExercises.some(
-                      (ex) => ex.toLowerCase() === searchQuery.trim().toLowerCase()
-                    ) && (
-                      <button
-                        onClick={handleAddNewExercise}
-                        className={styles.addNewExercise}
-                      >
-                        <Plus size={18} />
-                        Add "{searchQuery.trim()}"
-                      </button>
-                    )}
-
-                  {/* Search results */}
-                  {filteredExercises.map((ex) => {
-                    const isCurrentExercise = ex === editingExercise;
-                    const isAlreadyAdded = exercises.includes(ex) && !isCurrentExercise;
-                    return (
-                      <button
-                        key={ex}
-                        onClick={() => !isAlreadyAdded && handleSelectExercise(ex)}
-                        className={`${styles.searchResultItem} ${isAlreadyAdded ? styles.searchResultItemDisabled : ""} ${isCurrentExercise ? styles.searchResultItemCurrent : ""}`}
-                        disabled={isAlreadyAdded}
-                      >
-                        {ex}
-                        {isAlreadyAdded && <Check size={16} />}
-                      </button>
-                    );
-                  })}
-
-                  {filteredExercises.length === 0 && !searchQuery.trim() && (
-                    <p className={styles.emptyHint}>
-                      Start typing to search or add a new exercise
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
+        {exercises.length === 0 ? (
+          <div className={styles.emptyState}>
+            <p>No exercises yet. Add exercises to build your workout.</p>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className={styles.exercisesTable}>
+            {exercises.map((exercise, index) => (
+              <div key={`${exercise.name}-${index}`} className={styles.exerciseRow}>
+                <div className={styles.exerciseHeader}>
+                  <span className={styles.exerciseIndex}>{index + 1}</span>
+                  <input
+                    type="text"
+                    value={exercise.name}
+                    onFocus={() => openEditDrawer(index)}
+                    readOnly
+                    className={styles.exerciseNameInput}
+                    placeholder="Exercise name"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveExercise(index)}
+                    className={styles.removeBtn}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                <div className={styles.exerciseInputs}>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Sets</label>
+                    <input
+                      type="number"
+                      value={exercise.sets || ""}
+                      onChange={(e) =>
+                        handleUpdateExercise(index, "sets", Number(e.target.value))
+                      }
+                      className={styles.numberInput}
+                      placeholder="0"
+                      min={1}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>Reps</label>
+                    <input
+                      type="number"
+                      value={exercise.reps || ""}
+                      onChange={(e) =>
+                        handleUpdateExercise(index, "reps", Number(e.target.value))
+                      }
+                      className={styles.numberInput}
+                      placeholder="0"
+                      min={1}
+                      inputMode="numeric"
+                    />
+                  </div>
+                  <div className={styles.inputGroup}>
+                    <label className={styles.inputLabel}>RIR</label>
+                    <input
+                      type="number"
+                      value={exercise.rir || ""}
+                      onChange={(e) =>
+                        handleUpdateExercise(index, "rir", Number(e.target.value))
+                      }
+                      className={styles.numberInput}
+                      placeholder="0"
+                      min={0}
+                      max={10}
+                      inputMode="numeric"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Start Workout Button */}
+      <div className={styles.formActions}>
+        {exercises.length > 0 && (
+          <button onClick={handleStartWorkout} className={styles.startBtn}>
+            <Play size={18} />
+            Start Workout
+          </button>
+        )}
+      </div>
+
+      {/* Exercise Drawer */}
+      <ExerciseDrawer
+        isOpen={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setEditingIndex(null);
+        }}
+        onSelect={handleUpdateExerciseName}
+        onSelectMultiple={editingIndex === null ? handleAddExercises : undefined}
+        multiSelect={editingIndex === null}
+        currentValue={editingIndex !== null ? exercises[editingIndex]?.name : ""}
+        excludeExercises={editingIndex === null ? existingExerciseNames : []}
+      />
     </div>
   );
 };

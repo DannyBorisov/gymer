@@ -19,6 +19,8 @@
 		C1C73ABA30363E99006731DE /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C149164D303635B30058255B /* WidgetKit.framework */; };
 		C1C73ABB30363E99006731DE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C149164F303635B30058255B /* SwiftUI.framework */; };
 		C1C73AC630363E9B006731DE /* LiveActivitiesWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C1C73AB930363E99006731DE /* LiveActivitiesWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C1C73B1A3038A10B006731DE /* AppBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C73B183038A10B006731DE /* AppBridgeViewController.swift */; };
+		C1C73B1B3038A10B006731DE /* SoundPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C73B193038A10B006731DE /* SoundPlugin.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,6 +65,8 @@
 		C14916683036376C0058255B /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		C1C73AB930363E99006731DE /* LiveActivitiesWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LiveActivitiesWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1C73B17303640F9006731DE /* LiveActivitiesWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveActivitiesWidgetExtension.entitlements; sourceTree = "<group>"; };
+		C1C73B183038A10B006731DE /* AppBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBridgeViewController.swift; sourceTree = "<group>"; };
+		C1C73B193038A10B006731DE /* SoundPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundPlugin.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -124,6 +128,8 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				C1C73B183038A10B006731DE /* AppBridgeViewController.swift */,
+				C1C73B193038A10B006731DE /* SoundPlugin.swift */,
 				C14916683036376C0058255B /* App.entitlements */,
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -265,6 +271,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1C73B1A3038A10B006731DE /* AppBridgeViewController.swift in Sources */,
+				C1C73B1B3038A10B006731DE /* SoundPlugin.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 			);

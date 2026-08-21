@@ -422,25 +422,20 @@
   z-index: 101;
 }
 
-/* Mobile Bottom Navigation - Tinder-style bubble */
+/* Mobile Bottom Navigation - Bumble style floating */
 .bottomNav {
   position: fixed;
   bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  left: 1rem;
-  right: 1rem;
-  height: auto;
-  background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
+  left: 12px;
+  right: 12px;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: space-around;
   z-index: 100;
-  padding: 6px 8px;
-  border-radius: 20px;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 4px;
+  border-radius: 28px;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
 }
 
 .bottomNavItem {
@@ -448,24 +443,21 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
   flex: 1;
-  padding: 6px 8px;
+  padding: 4px 0;
   background: transparent;
   border: none;
-  border-radius: 14px;
-  color: #6b6b6b;
+  color: #a1a1a1;
   text-decoration: none;
   font-size: 0.625rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  transition: all 0.2s ease;
+  font-weight: 500;
+  transition: all 0.15s ease;
 }
 
 .bottomNavItem svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .bottomNavItem:active {
@@ -473,25 +465,57 @@
 }
 
 .bottomNavActive {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
-  box-shadow:
-    0 4px 12px rgba(59, 130, 246, 0.35);
+  color: #0f0f0f;
 }
 
-/* Bottom Popover (Profile menu from footer) */
-.bottomPopover {
-  position: fixed;
-  bottom: calc(70px + env(safe-area-inset-bottom, 0px));
-  right: 1rem;
-  left: 1rem;
-  background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 1.25rem;
-  box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.5),
-    0 2px 8px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  z-index: 101;
+.bottomNavActive .navIconWrapper {
+  background: #0f0f0f;
+  color: #fff;
 }
+
+/* Icon wrapper for pill effect */
+.navIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 32px;
+  border-radius: 16px;
+  transition: all 0.15s ease;
+}
+
+/* Center Start Button - round and elevated */
+.centerBtn {
+  position: relative;
+  top: -20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 50%;
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+  transition: all 0.15s ease;
+}
+
+.centerBtn svg {
+  width: 28px;
+  height: 28px;
+  margin-left: 2px;
+}
+
+.centerBtn span {
+  display: none;
+}
+
+.centerBtn:active {
+  transform: scale(0.92);
+}
+
+.centerBtnActive {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+

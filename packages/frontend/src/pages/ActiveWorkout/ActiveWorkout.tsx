@@ -11,12 +11,24 @@ import {
   History,
   Timer,
   X,
+  Plus,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
-import { useWorkout, type ExerciseRow } from "../../contexts/WorkoutContext";
+import {
+  useWorkout,
+  type ExerciseRow,
+  type QuickExercise,
+} from "../../contexts/WorkoutContext";
+import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { ScrollableInput } from "../../components/ScrollableInput";
 import { formatTime, formatRestTimer } from "../../lib/time";
 import { updateRestTimer, updateExerciseName } from "../../utils/liveActivity";
+import {
+  playRestTimerSound,
+  unlockAudio,
+  scheduleRestTimerNotification,
+  cancelRestTimerNotification,
+} from "../../utils/sound";
 import styles from "../ProgramDetail/ProgramDetail.module.css";
 
 const ActiveWorkout = () => {
@@ -34,6 +46,7 @@ const ActiveWorkout = () => {
     currentExerciseIndex,
     currentSetIndex,
     previousStats,
+    isQuickWorkout,
     stopWorkout,
     updateExercise,
     adjustValue,
@@ -41,10 +54,12 @@ const ActiveWorkout = () => {
     completeWorkout,
     setCurrentExerciseIndex,
     setCurrentSetIndex,
+    addExerciseToWorkout,
   } = useWorkout();
 
   const [showNotes, setShowNotes] = useState(false);
   const [showSetComplete, setShowSetComplete] = useState(false);
+  const [showAddExercise, setShowAddExercise] = useState(false);
 
   // Rest timer state
   const [restTimer, setRestTimer] = useState(0);
@@ -98,6 +113,8 @@ const ActiveWorkout = () => {
     setIsRestTimerActive(true);
     setShowRestSuggestion(false);
     setHasVibrated(false);
+    unlockAudio(); // Unlock audio on iOS for notification sound
+    scheduleRestTimerNotification(restTimerDuration); // Schedule background notification
     if (suggestionTimeoutRef.current) {
       clearTimeout(suggestionTimeoutRef.current);
     }
@@ -112,6 +129,7 @@ const ActiveWorkout = () => {
     setIsRestTimerActive(false);
     setRestTimer(0);
     setRestTimerStartTime(null);
+    cancelRestTimerNotification(); // Cancel background notification
     if (restTimerIntervalRef.current) {
       clearInterval(restTimerIntervalRef.current);
     }
@@ -158,11 +176,13 @@ const ActiveWorkout = () => {
     }
   }, [isRestTimerActive, restTimerStartTime]);
 
-  // Vibrate when rest timer reaches duration
+  // Vibrate and play sound when rest timer reaches duration
   useEffect(() => {
     if (isRestTimerActive && restTimer === restTimerDuration && !hasVibrated) {
       setHasVibrated(true);
+      cancelRestTimerNotification(); // Cancel background notification since we're handling it
       Haptics.notification({ type: NotificationType.Success });
+      playRestTimerSound(restTimerDuration);
     }
   }, [restTimer, restTimerDuration, isRestTimerActive, hasVibrated]);
 
@@ -236,7 +256,22 @@ const ActiveWorkout = () => {
 
   const handleStopWorkout = async () => {
     await stopWorkout();
-    navigate(`/programs/${activeWorkout?.programId}`);
+    if (isQuickWorkout) {
+      navigate("/programs");
+    } else {
+      navigate(`/programs/${activeWorkout?.programId}`);
+    }
+  };
+
+  const handleAddExercise = (name: string) => {
+    const exercise: QuickExercise = {
+      name,
+      sets: 3,
+      reps: 10,
+      rir: 2,
+    };
+    addExerciseToWorkout(exercise);
+    setShowAddExercise(false);
   };
 
   const copyFromPreviousSet = (
@@ -298,7 +333,6 @@ const ActiveWorkout = () => {
   const isSetCompleted = currentSetData?.weight && currentSetData?.repsAchieved;
   const prevStats = previousStats[currentExerciseName];
 
-
   // Check if all OTHER sets are complete
   const isLastSet =
     currentSet &&
@@ -333,7 +367,11 @@ const ActiveWorkout = () => {
                 </div>
               ) : (
                 <button
-                  onClick={() => isRestTimerActive ? stopRestTimer(currentExerciseName) : startRestTimer(currentExerciseName)}
+                  onClick={() =>
+                    isRestTimerActive
+                      ? stopRestTimer(currentExerciseName)
+                      : startRestTimer(currentExerciseName)
+                  }
                   className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ""}`}
                 >
                   <Timer size={16} />
@@ -399,6 +437,14 @@ const ActiveWorkout = () => {
               </button>
             );
           })}
+          {!isWorkoutComplete && (
+            <button
+              onClick={() => setShowAddExercise(true)}
+              className={styles.addExerciseTab}
+            >
+              <Plus size={16} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -560,7 +606,7 @@ const ActiveWorkout = () => {
                 onAdjust={(delta) =>
                   adjustValue(currentSet.rowIndex, "weight", delta)
                 }
-                step={25}
+                step={0.25}
                 inputMode="decimal"
                 placeholder="0"
                 onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
@@ -679,6 +725,14 @@ const ActiveWorkout = () => {
           </div>
         </div>
       )}
+
+      {/* Add Exercise Drawer */}
+      <ExerciseDrawer
+        isOpen={showAddExercise}
+        onClose={() => setShowAddExercise(false)}
+        onSelect={handleAddExercise}
+        excludeExercises={groupedByExercise.map(([name]) => name)}
+      />
     </div>
   );
 };

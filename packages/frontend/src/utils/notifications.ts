@@ -7,6 +7,14 @@ const DEFAULT_REMINDER_MINUTE = 0;
 
 const WEIGHT_REMINDER_ID = 1001;
 
+export function isWeightReminderEnabled(): boolean {
+  return localStorage.getItem('weightReminderEnabled') === 'true';
+}
+
+export function setWeightReminderEnabled(enabled: boolean): void {
+  localStorage.setItem('weightReminderEnabled', String(enabled));
+}
+
 export function getWeightReminderTime(): { hour: number; minute: number } {
   const stored = localStorage.getItem('weightReminderTime');
   if (stored) {

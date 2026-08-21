@@ -48,6 +48,13 @@ export interface PreviousStats {
   sets: { weight: string; reps: string; rir: string }[];
 }
 
+export interface QuickExercise {
+  name: string;
+  sets: number;
+  reps: number;
+  rir: number;
+}
+
 interface ActiveWorkout {
   programId: string;
   week: number;
@@ -69,6 +76,7 @@ interface WorkoutContextType {
   program: Week[];
   programName: string;
   previousStats: Record<string, PreviousStats>;
+  isQuickWorkout: boolean;
 
   // Actions
   startWorkout: (
@@ -78,6 +86,8 @@ interface WorkoutContextType {
     program: Week[],
     programName: string
   ) => void;
+  startQuickWorkout: (exercises: QuickExercise[]) => void;
+  addExerciseToWorkout: (exercise: QuickExercise) => void;
   stopWorkout: () => Promise<void>;
   setIsTimerRunning: (running: boolean) => void;
   updateExercise: (
@@ -115,6 +125,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [program, setProgram] = useState<Week[]>([]);
   const [programName, setProgramName] = useState<string>("");
   const [previousStats, setPreviousStats] = useState<Record<string, PreviousStats>>({});
+  const [isQuickWorkout, setIsQuickWorkout] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -187,6 +198,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const saveWorkout = async (includeDate = false) => {
     if (!activeWorkout || workoutData.length === 0) return;
 
+    // Quick workouts don't auto-save to server
+    if (isQuickWorkout) return;
+
     setIsSaving(true);
     try {
       const updates = workoutData.map((row) => ({
@@ -224,6 +238,41 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.error("Failed to save:", errMsg);
       console.error("Program ID:", activeWorkout.programId);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveQuickWorkout = async () => {
+    if (!activeWorkout || workoutData.length === 0) return;
+
+    const validSets = workoutData.filter((s) => s.weight || s.repsAchieved);
+    if (validSets.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      const response = await apiFetch("/api/quick-workouts/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workoutId: `quick-${Date.now()}`,
+          duration: formatDuration(timer),
+          sets: validSets.map((s) => ({
+            exercise: s.exercise,
+            set: s.set,
+            weight: s.weight,
+            reps: s.repsAchieved,
+            rir: s.rirAchieved,
+            notes: s.notes,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("Failed to save quick workout");
+      }
+    } catch (error) {
+      console.error("Failed to save quick workout:", error);
     } finally {
       setIsSaving(false);
     }
@@ -311,6 +360,84 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       const firstExercise = workout.exercises[0]?.exercise || "";
       startWorkoutLiveActivity(workout.name, firstExercise);
     }
+    setIsQuickWorkout(false);
+  };
+
+  const startQuickWorkout = (exercises: QuickExercise[]) => {
+    // Convert QuickExercise[] to ExerciseRow[]
+    const exerciseRows: ExerciseRow[] = [];
+    let rowIndex = 0;
+
+    exercises.forEach((ex) => {
+      for (let setNum = 1; setNum <= ex.sets; setNum++) {
+        exerciseRows.push({
+          rowIndex: rowIndex++,
+          date: "",
+          week: 1,
+          workout: "Quick Workout",
+          exercise: ex.name,
+          set: setNum,
+          targetReps: ex.reps,
+          rir: ex.rir.toString(),
+          weight: "",
+          repsAchieved: "",
+          rirAchieved: "",
+          notes: "",
+        });
+      }
+    });
+
+    const quickWorkout: Workout = {
+      name: "Quick Workout",
+      exercises: exerciseRows,
+      isComplete: false,
+    };
+
+    setWorkoutData(exerciseRows);
+    setActiveWorkout({ programId: "quick", week: 1, workout: quickWorkout });
+    setProgram([]);
+    setProgramName("Quick Workout");
+    setCurrentExerciseIndex(0);
+    setCurrentSetIndex(0);
+    setPreviousStats({});
+    setIsQuickWorkout(true);
+
+    // Start timer
+    setTimer(0);
+    setDuration(null);
+    timerStartRef.current = Date.now();
+    setIsTimerRunning(true);
+    setCompletedSets(new Set());
+
+    // Start Live Activity
+    const firstExercise = exercises[0]?.name || "";
+    startWorkoutLiveActivity("Quick Workout", firstExercise);
+  };
+
+  const addExerciseToWorkout = (exercise: QuickExercise) => {
+    if (!activeWorkout) return;
+
+    const currentMaxRowIndex = Math.max(...workoutData.map(r => r.rowIndex), -1);
+    const newRows: ExerciseRow[] = [];
+
+    for (let setNum = 1; setNum <= exercise.sets; setNum++) {
+      newRows.push({
+        rowIndex: currentMaxRowIndex + setNum,
+        date: "",
+        week: 1,
+        workout: activeWorkout.workout.name,
+        exercise: exercise.name,
+        set: setNum,
+        targetReps: exercise.reps,
+        rir: exercise.rir.toString(),
+        weight: "",
+        repsAchieved: "",
+        rirAchieved: "",
+        notes: "",
+      });
+    }
+
+    setWorkoutData(prev => [...prev, ...newRows]);
   };
 
   const stopWorkout = async () => {
@@ -338,6 +465,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setProgram([]);
     setProgramName("");
     setPreviousStats({});
+    setIsQuickWorkout(false);
   };
 
   const updateExercise = (
@@ -383,34 +511,36 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setWorkoutData(newData);
     setCompletedSets((prev) => new Set([...prev, rowIndex]));
 
-    // Save data immediately (without date)
-    const doSave = async () => {
-      if (!activeWorkout) return;
-      setIsSaving(true);
-      try {
-        const updates = newData.map((r) => ({
-          rowIndex: r.rowIndex,
-          weight: r.weight,
-          repsAchieved: r.repsAchieved,
-          rirAchieved: r.rirAchieved,
-          notes: r.notes,
-        }));
+    // Save data immediately (without date) - only for program workouts
+    if (!isQuickWorkout) {
+      const doSave = async () => {
+        if (!activeWorkout) return;
+        setIsSaving(true);
+        try {
+          const updates = newData.map((r) => ({
+            rowIndex: r.rowIndex,
+            weight: r.weight,
+            repsAchieved: r.repsAchieved,
+            rirAchieved: r.rirAchieved,
+            notes: r.notes,
+          }));
 
-        await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updates }),
-        });
+          await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ updates }),
+          });
 
-        setHasUnsavedChanges(false);
-        hasUnsavedChangesRef.current = false;
-      } catch (error) {
-        console.error("Failed to save:", error);
-      } finally {
-        setIsSaving(false);
-      }
-    };
-    doSave();
+          setHasUnsavedChanges(false);
+          hasUnsavedChangesRef.current = false;
+        } catch (error) {
+          console.error("Failed to save:", error);
+        } finally {
+          setIsSaving(false);
+        }
+      };
+      doSave();
+    }
 
     // Auto-advance to next set
     const groupedByExercise = Object.values(
@@ -447,34 +577,40 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setDuration(timer);
     setIsTimerRunning(false);
 
-    // Save with date
     if (!activeWorkout) return;
-    setIsSaving(true);
-    try {
-      const updates = newData.map((r) => ({
-        rowIndex: r.rowIndex,
-        weight: r.weight,
-        repsAchieved: r.repsAchieved,
-        rirAchieved: r.rirAchieved,
-        notes: r.notes,
-      }));
 
-      const firstRowIndex = Math.min(...newData.map((r) => r.rowIndex));
-      const completedDate = formatTodayDDMMYYYY();
-      const durationStr = formatDuration(timer);
+    if (isQuickWorkout) {
+      // Save quick workout
+      await saveQuickWorkout();
+    } else {
+      // Save program workout with date
+      setIsSaving(true);
+      try {
+        const updates = newData.map((r) => ({
+          rowIndex: r.rowIndex,
+          weight: r.weight,
+          repsAchieved: r.repsAchieved,
+          rirAchieved: r.rirAchieved,
+          notes: r.notes,
+        }));
 
-      await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates, completedDate, dateRowIndex: firstRowIndex, duration: durationStr }),
-      });
+        const firstRowIndex = Math.min(...newData.map((r) => r.rowIndex));
+        const completedDate = formatTodayDDMMYYYY();
+        const durationStr = formatDuration(timer);
 
-      setHasUnsavedChanges(false);
-      hasUnsavedChangesRef.current = false;
-    } catch (error) {
-      console.error("Failed to save:", error);
-    } finally {
-      setIsSaving(false);
+        await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ updates, completedDate, dateRowIndex: firstRowIndex, duration: durationStr }),
+        });
+
+        setHasUnsavedChanges(false);
+        hasUnsavedChangesRef.current = false;
+      } catch (error) {
+        console.error("Failed to save:", error);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -494,7 +630,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         program,
         programName,
         previousStats,
+        isQuickWorkout,
         startWorkout,
+        startQuickWorkout,
+        addExerciseToWorkout,
         stopWorkout,
         setIsTimerRunning,
         updateExercise,

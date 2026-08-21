@@ -1,16 +1,9 @@
 import { useState } from "react";
 import type { Program, Workout, Exercise, Frequency } from "../types/program";
 
-const createEmptyExercise = (): Exercise => ({
-  name: "",
-  sets: 0,
-  reps: 0,
-  rir: 0,
-});
-
 const createEmptyWorkout = (): Workout => ({
   name: "",
-  exercises: [createEmptyExercise()],
+  exercises: [],
 });
 
 const initialProgram: Program = {
@@ -68,12 +61,18 @@ export const useCreateProgram = () => {
     }));
   };
 
-  const addExercise = (workoutIndex: number) => {
+  const addExercises = (workoutIndex: number, exerciseNames: string[]) => {
+    const newExercises: Exercise[] = exerciseNames.map((name) => ({
+      name,
+      sets: 3,
+      reps: 10,
+      rir: 2,
+    }));
     setProgram((prev) => ({
       ...prev,
       workouts: prev.workouts.map((w, i) =>
         i === workoutIndex
-          ? { ...w, exercises: [...w.exercises, createEmptyExercise()] }
+          ? { ...w, exercises: [...w.exercises, ...newExercises] }
           : w
       ),
     }));
@@ -129,7 +128,7 @@ export const useCreateProgram = () => {
     addWorkout,
     removeWorkout,
     updateWorkoutName,
-    addExercise,
+    addExercises,
     removeExercise,
     updateExercise,
     resetProgram,

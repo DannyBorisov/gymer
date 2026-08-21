@@ -23,7 +23,6 @@ interface ExerciseRowProps {
   index: number;
   onUpdate: (field: keyof Exercise, value: string | number) => void;
   onRemove: () => void;
-  canRemove: boolean;
   onOpenDrawer: () => void;
 }
 
@@ -32,7 +31,6 @@ const ExerciseRow = ({
   index,
   onUpdate,
   onRemove,
-  canRemove,
   onOpenDrawer,
 }: ExerciseRowProps) => {
   return (
@@ -52,7 +50,6 @@ const ExerciseRow = ({
           type="button"
           onClick={onRemove}
           className={styles.removeBtn}
-          disabled={!canRemove}
         >
           <Trash2 size={14} />
         </button>
@@ -105,7 +102,7 @@ interface WorkoutSectionProps {
   workoutIndex: number;
   onUpdateName: (name: string) => void;
   onRemove: () => void;
-  onAddExercise: () => void;
+  onOpenAddDrawer: () => void;
   onRemoveExercise: (exerciseIndex: number) => void;
   onUpdateExercise: (
     exerciseIndex: number,
@@ -113,7 +110,7 @@ interface WorkoutSectionProps {
     value: string | number,
   ) => void;
   canRemove: boolean;
-  onOpenDrawer: (exerciseIndex: number) => void;
+  onOpenEditDrawer: (exerciseIndex: number) => void;
 }
 
 const WorkoutSection = ({
@@ -121,11 +118,11 @@ const WorkoutSection = ({
   workoutIndex,
   onUpdateName,
   onRemove,
-  onAddExercise,
+  onOpenAddDrawer,
   onRemoveExercise,
   onUpdateExercise,
   canRemove,
-  onOpenDrawer,
+  onOpenEditDrawer,
 }: WorkoutSectionProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -162,34 +159,41 @@ const WorkoutSection = ({
 
       {!isCollapsed && (
         <div className={styles.exercisesTable}>
-          <div className={styles.tableHeader}>
-            <span className={styles.colNum}>#</span>
-            <span className={styles.colExercise}>Exercise</span>
-            <span className={styles.colSets}>Sets</span>
-            <span className={styles.colReps}>Reps</span>
-            <span className={styles.colRir}>RIR</span>
-            <span className={styles.colAction}></span>
-          </div>
-          {workout.exercises.map((exercise, exerciseIndex) => (
-            <ExerciseRow
-              key={exerciseIndex}
-              exercise={exercise}
-              index={exerciseIndex}
-              onUpdate={(field, value) =>
-                onUpdateExercise(exerciseIndex, field, value)
-              }
-              onRemove={() => onRemoveExercise(exerciseIndex)}
-              canRemove={workout.exercises.length > 1}
-              onOpenDrawer={() => onOpenDrawer(exerciseIndex)}
-            />
-          ))}
+          {workout.exercises.length === 0 ? (
+            <div className={styles.emptyExercises}>
+              <p>No exercises yet</p>
+            </div>
+          ) : (
+            <>
+              <div className={styles.tableHeader}>
+                <span className={styles.colNum}>#</span>
+                <span className={styles.colExercise}>Exercise</span>
+                <span className={styles.colSets}>Sets</span>
+                <span className={styles.colReps}>Reps</span>
+                <span className={styles.colRir}>RIR</span>
+                <span className={styles.colAction}></span>
+              </div>
+              {workout.exercises.map((exercise, exerciseIndex) => (
+                <ExerciseRow
+                  key={exerciseIndex}
+                  exercise={exercise}
+                  index={exerciseIndex}
+                  onUpdate={(field, value) =>
+                    onUpdateExercise(exerciseIndex, field, value)
+                  }
+                  onRemove={() => onRemoveExercise(exerciseIndex)}
+                  onOpenDrawer={() => onOpenEditDrawer(exerciseIndex)}
+                />
+              ))}
+            </>
+          )}
           <button
             type="button"
-            onClick={onAddExercise}
+            onClick={onOpenAddDrawer}
             className={styles.addExerciseBtn}
           >
             <Plus size={14} />
-            Add Exercise
+            Add Exercises
           </button>
         </div>
       )}
@@ -210,7 +214,7 @@ const CreateProgram = () => {
     addWorkout,
     removeWorkout,
     updateWorkoutName,
-    addExercise,
+    addExercises,
     removeExercise,
     updateExercise,
     loadProgram,
@@ -227,24 +231,31 @@ const CreateProgram = () => {
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeExercise, setActiveExercise] = useState<{
-    workoutIndex: number;
-    exerciseIndex: number;
-  } | null>(null);
+  const [drawerMode, setDrawerMode] = useState<"add" | "edit">("add");
+  const [activeWorkoutIndex, setActiveWorkoutIndex] = useState<number>(0);
+  const [activeExerciseIndex, setActiveExerciseIndex] = useState<number | null>(null);
 
-  const handleOpenDrawer = (workoutIndex: number, exerciseIndex: number) => {
-    setActiveExercise({ workoutIndex, exerciseIndex });
+  const handleOpenAddDrawer = (workoutIndex: number) => {
+    setActiveWorkoutIndex(workoutIndex);
+    setActiveExerciseIndex(null);
+    setDrawerMode("add");
     setDrawerOpen(true);
   };
 
-  const handleSelectExercise = (exerciseName: string) => {
-    if (activeExercise) {
-      updateExercise(
-        activeExercise.workoutIndex,
-        activeExercise.exerciseIndex,
-        "name",
-        exerciseName
-      );
+  const handleOpenEditDrawer = (workoutIndex: number, exerciseIndex: number) => {
+    setActiveWorkoutIndex(workoutIndex);
+    setActiveExerciseIndex(exerciseIndex);
+    setDrawerMode("edit");
+    setDrawerOpen(true);
+  };
+
+  const handleAddExercises = (names: string[]) => {
+    addExercises(activeWorkoutIndex, names);
+  };
+
+  const handleUpdateExerciseName = (name: string) => {
+    if (activeExerciseIndex !== null) {
+      updateExercise(activeWorkoutIndex, activeExerciseIndex, "name", name);
     }
   };
 
@@ -291,6 +302,10 @@ const CreateProgram = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Get existing exercise names for current workout (to exclude from multi-select)
+  const existingExerciseNames =
+    program.workouts[activeWorkoutIndex]?.exercises.map((e) => e.name) || [];
 
   // Template Selection Screen
   if (mode === "templates") {
@@ -405,7 +420,7 @@ const CreateProgram = () => {
                 workoutIndex={workoutIndex}
                 onUpdateName={(name) => updateWorkoutName(workoutIndex, name)}
                 onRemove={() => removeWorkout(workoutIndex)}
-                onAddExercise={() => addExercise(workoutIndex)}
+                onOpenAddDrawer={() => handleOpenAddDrawer(workoutIndex)}
                 onRemoveExercise={(exerciseIndex) =>
                   removeExercise(workoutIndex, exerciseIndex)
                 }
@@ -413,8 +428,8 @@ const CreateProgram = () => {
                   updateExercise(workoutIndex, exerciseIndex, field, value)
                 }
                 canRemove={program.workouts.length > 1}
-                onOpenDrawer={(exerciseIndex) =>
-                  handleOpenDrawer(workoutIndex, exerciseIndex)
+                onOpenEditDrawer={(exerciseIndex) =>
+                  handleOpenEditDrawer(workoutIndex, exerciseIndex)
                 }
               />
             ))}
@@ -469,15 +484,19 @@ const CreateProgram = () => {
       {/* Exercise Drawer */}
       <ExerciseDrawer
         isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onSelect={handleSelectExercise}
+        onClose={() => {
+          setDrawerOpen(false);
+          setActiveExerciseIndex(null);
+        }}
+        onSelect={handleUpdateExerciseName}
+        onSelectMultiple={drawerMode === "add" ? handleAddExercises : undefined}
+        multiSelect={drawerMode === "add"}
         currentValue={
-          activeExercise
-            ? program.workouts[activeExercise.workoutIndex]?.exercises[
-                activeExercise.exerciseIndex
-              ]?.name
+          activeExerciseIndex !== null
+            ? program.workouts[activeWorkoutIndex]?.exercises[activeExerciseIndex]?.name
             : ""
         }
+        excludeExercises={drawerMode === "add" ? existingExerciseNames : []}
       />
     </div>
   );

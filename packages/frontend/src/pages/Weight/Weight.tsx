@@ -1,145 +1,126 @@
-import { useState, useEffect } from 'react'
-import { Check, Loader2, Bell, BellOff } from 'lucide-react'
-import { apiFetch } from '../../utils/api'
-import { useSettings } from '../../contexts/SettingsContext'
-import { scheduleWeightReminder, cancelWeightReminder, getWeightReminderTime, setWeightReminderTime } from '../../utils/notifications'
-import { formatTimeFor24h } from '../../lib/time'
-import styles from './Weight.module.css'
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { Check, Loader2, ChevronLeft } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+import { apiFetch } from "../../utils/api";
+import { useSettings } from "../../contexts/SettingsContext";
+
+import styles from "./Weight.module.css";
 
 interface WeightEntry {
-  date: string
-  weight: string
+  date: string;
+  weight: string;
 }
 
 const Weight = () => {
-  const { weightUnit } = useSettings()
-  const [entries, setEntries] = useState<WeightEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [weightInput, setWeightInput] = useState('')
-  const [isSaving, setIsSaving] = useState(false)
-  const [reminderEnabled, setReminderEnabled] = useState(() => {
-    return localStorage.getItem('weightReminderEnabled') === 'true'
-  })
-  const [reminderTime, setReminderTime] = useState(() => getWeightReminderTime())
+  const navigate = useNavigate();
+  const { weightUnit } = useSettings();
+  const [entries, setEntries] = useState<WeightEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [weightInput, setWeightInput] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchEntries = async () => {
       try {
-        const response = await apiFetch('/api/body-weight')
-        const data = await response.json()
+        const response = await apiFetch("/api/body-weight");
+        const data = await response.json();
         if (response.ok && data.entries) {
-          setEntries(data.entries)
+          setEntries(data.entries);
         }
       } catch (err) {
-        console.error('Weight fetch error:', err)
+        console.error("Weight fetch error:", err);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-    fetchEntries()
-  }, [])
-
-  // Schedule/cancel reminder when toggle changes
-  useEffect(() => {
-    if (reminderEnabled) {
-      scheduleWeightReminder()
-    } else {
-      cancelWeightReminder()
-    }
-  }, [reminderEnabled])
-
-  const toggleReminder = async () => {
-    const newValue = !reminderEnabled
-    setReminderEnabled(newValue)
-    localStorage.setItem('weightReminderEnabled', String(newValue))
-  }
+    };
+    fetchEntries();
+  }, []);
 
   const handleSave = async () => {
-    if (!weightInput.trim()) return
+    if (!weightInput.trim()) return;
 
-    setIsSaving(true)
+    setIsSaving(true);
     try {
-      const response = await apiFetch('/api/body-weight', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await apiFetch("/api/body-weight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ weight: weightInput }),
-      })
+      });
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         setEntries((prev) => [
           { date: data.date, weight: data.weight },
           ...prev,
-        ])
-        setWeightInput('')
+        ]);
+        setWeightInput("");
       }
     } catch (err) {
-      console.error('Weight save error:', err)
+      console.error("Weight save error:", err);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const getTodayStr = () => {
-    const today = new Date()
-    return `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`
-  }
+    const today = new Date();
+    return `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+  };
 
   const formatDisplayDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split('/')
-    const date = new Date(Number(year), Number(month) - 1, Number(day))
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
+    const [day, month, year] = dateStr.split("/");
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
     if (dateStr === getTodayStr()) {
-      return 'Today'
+      return "Today";
     }
     if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday'
+      return "Yesterday";
     }
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
-  const todayStr = getTodayStr()
-  const hasLoggedToday = entries[0]?.date === todayStr
+  const todayStr = getTodayStr();
+  const hasLoggedToday = entries[0]?.date === todayStr;
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const [hourStr, minuteStr] = e.target.value.split(':')
-    const hour = parseInt(hourStr, 10)
-    const minute = parseInt(minuteStr, 10)
-    setReminderTime({ hour, minute })
-    setWeightReminderTime(hour, minute)
-    if (reminderEnabled) {
-      scheduleWeightReminder()
-    }
-  }
+  // Prepare chart data (reverse to show chronological order, limit to last 30 entries)
+  const chartData = useMemo(() => {
+    return entries
+      .slice(0, 30)
+      .map((entry) => {
+        const [day, month] = entry.date.split("/");
+        return {
+          date: `${day}/${month}`,
+          weight: parseFloat(entry.weight),
+        };
+      })
+      .reverse();
+  }, [entries]);
 
   return (
     <div className={styles.container}>
+      <button className={styles.backBtn} onClick={() => navigate("/profile")}>
+        <ChevronLeft size={18} />
+        <span>Profile</span>
+      </button>
       <div className={styles.header}>
         <h1 className={styles.title}>Body Weight</h1>
-        <div className={styles.reminderControls}>
-          {reminderEnabled && (
-            <input
-              type="time"
-              value={formatTimeFor24h(reminderTime.hour, reminderTime.minute)}
-              onChange={handleTimeChange}
-              className={styles.timeInput}
-            />
-          )}
-          <button
-            onClick={toggleReminder}
-            className={`${styles.reminderBtn} ${reminderEnabled ? styles.reminderBtnActive : ''}`}
-            title={reminderEnabled ? 'Disable reminder' : 'Enable daily reminder'}
-          >
-            {reminderEnabled ? <Bell size={18} /> : <BellOff size={18} />}
-          </button>
-        </div>
       </div>
 
       {/* Log weight input */}
@@ -147,7 +128,9 @@ const Weight = () => {
         {hasLoggedToday ? (
           <div className={styles.loggedToday}>
             <Check size={20} />
-            <span>Logged today: {entries[0].weight} {weightUnit}</span>
+            <span>
+              Logged today: {entries[0].weight} {weightUnit}
+            </span>
           </div>
         ) : (
           <>
@@ -160,7 +143,7 @@ const Weight = () => {
                 onChange={(e) => setWeightInput(e.target.value)}
                 placeholder={weightUnit}
                 className={styles.input}
-                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
               />
               <button
                 onClick={handleSave}
@@ -178,9 +161,79 @@ const Weight = () => {
         )}
       </div>
 
+      {/* Chart */}
+      {!isLoading && chartData.length >= 2 && (
+        <div className={styles.chartSection}>
+          <h2 className={styles.sectionTitle}>Progress</h2>
+          <div className={styles.chartCard}>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 15, left: -10, bottom: 5 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f0f0f0"
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="date"
+                  axisLine={{ stroke: "#e5e5e5" }}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "#a1a1a1" }}
+                  interval="preserveStartEnd"
+                  dy={5}
+                />
+                <YAxis
+                  domain={["dataMin - 0.5", "dataMax + 0.5"]}
+                  axisLine={{ stroke: "#e5e5e5" }}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: "#a1a1a1" }}
+                  tickFormatter={(v) => `${v.toFixed(1)}`}
+                  width={40}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "#0f0f0f",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    fontSize: "12px",
+                  }}
+                  labelStyle={{ color: "#a1a1a1", marginBottom: "4px" }}
+                  itemStyle={{ color: "#fff" }}
+                  formatter={(value) => [
+                    `${Number(value).toFixed(1)} ${weightUnit}`,
+                    "Weight",
+                  ]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="weight"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{
+                    fill: "#fff",
+                    stroke: "#3b82f6",
+                    strokeWidth: 2,
+                    r: 4,
+                  }}
+                  activeDot={{
+                    fill: "#3b82f6",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                    r: 6,
+                  }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* History */}
       <div className={styles.historySection}>
-        <h2 className={styles.historyTitle}>History</h2>
+        <h2 className={styles.sectionTitle}>History</h2>
 
         {isLoading ? (
           <div className={styles.loadingState}>
@@ -205,7 +258,7 @@ const Weight = () => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Weight
+export default Weight;

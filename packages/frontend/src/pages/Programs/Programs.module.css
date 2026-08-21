@@ -150,27 +150,70 @@
   color: #0f0f0f;
 }
 
-.createCard {
+/* Floating Action Buttons */
+.fab,
+.fabLeft {
+  position: fixed;
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem 1.25rem;
-  background: #f5f5f5;
-  border: 1px dashed #d4d4d4;
-  border-radius: 8px;
+  color: #fff;
   text-decoration: none;
-  color: #525252;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  transition: all 0.15s ease;
-  min-height: var(--touch-target);
+  transition: all 0.2s ease;
+  z-index: 50;
 }
 
-.createCard:active {
-  background: #e5e5e5;
-  border-color: #a1a1a1;
-  color: #0f0f0f;
+.fab {
+  right: 1.5rem;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow:
+    0 4px 14px rgba(37, 99, 235, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.fabLeft {
+  left: 1.5rem;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow:
+    0 4px 14px rgba(245, 158, 11, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.fab:active,
+.fabLeft:active {
+  transform: scale(0.92);
+}
+
+.fab:active {
+  box-shadow:
+    0 2px 8px rgba(37, 99, 235, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fabLeft:active {
+  box-shadow:
+    0 2px 8px rgba(245, 158, 11, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+@media (min-width: 768px) {
+  .fab,
+  .fabLeft {
+    bottom: 2rem;
+  }
+
+  .fab {
+    right: 2rem;
+  }
+
+  .fabLeft {
+    left: 2rem;
+  }
 }
 
 /* Quick Workout Card */

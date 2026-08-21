@@ -44,11 +44,10 @@ export const phulProgram: Program = {
       name: "Lower Hypertrophy",
       exercises: [
         { name: "Front Squat", sets: 4, reps: 10, rir: 2 },
-        { name: "Romanian Deadlift", sets: 4, reps: 10, rir: 2 },
+        { name: "Romanian Deadlift", sets: 3, reps: 10, rir: 2 },
         { name: "Leg Extension", sets: 4, reps: 15, rir: 2 },
         { name: "Leg Curl", sets: 4, reps: 15, rir: 2 },
         { name: "Seated Calf Raise", sets: 4, reps: 15, rir: 2 },
-        { name: "Hip Thrust", sets: 3, reps: 12, rir: 2 },
       ],
     },
   ],
@@ -59,7 +58,7 @@ export const startingStrengthProgram: Program = {
   durationWeeks: 12,
   frequency: 3,
   dynamicRir: false,
-  startingRir: 2,
+  startingRir: 1,
   workouts: [
     {
       name: "Workout A",
@@ -219,9 +218,34 @@ export const upperLowerProgram: Program = {
 };
 
 export const presets = [
-  { id: "starting-strength", name: "Starting Strength", description: "3x5 beginner program", program: startingStrengthProgram },
-  { id: "full-body", name: "Full Body", description: "3-day full body", program: fullBody3xProgram },
-  { id: "upper-lower", name: "Upper/Lower", description: "4-day split", program: upperLowerProgram },
-  { id: "ppl", name: "PPL", description: "6-day Push Pull Legs", program: pplProgram },
-  { id: "phul", name: "PHUL", description: "4-day Power Hypertrophy", program: phulProgram },
+  {
+    id: "starting-strength",
+    name: "Starting Strength",
+    description: "3x5 beginner program",
+    program: startingStrengthProgram,
+  },
+  {
+    id: "full-body",
+    name: "Full Body",
+    description: "3-day full body",
+    program: fullBody3xProgram,
+  },
+  {
+    id: "upper-lower",
+    name: "Upper/Lower",
+    description: "4-day split",
+    program: upperLowerProgram,
+  },
+  {
+    id: "ppl",
+    name: "PPL",
+    description: "6-day Push Pull Legs",
+    program: pplProgram,
+  },
+  {
+    id: "phul",
+    name: "PHUL",
+    description: "4-day Power Hypertrophy",
+    program: phulProgram,
+  },
 ];

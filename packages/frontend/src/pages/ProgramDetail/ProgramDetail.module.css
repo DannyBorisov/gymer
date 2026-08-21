@@ -441,6 +441,27 @@
   color: #a1a1a1;
 }
 
+.addExerciseTab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f5f5f5;
+  border: 1px dashed #d4d4d4;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: #737373;
+  transition: all 0.15s ease;
+}
+
+.addExerciseTab:hover {
+  background: #e5e5e5;
+  border-color: #a1a1a1;
+  color: #525252;
+}
+
 .exerciseTabActive .exerciseTabName,
 .exerciseTabActive .exerciseTabCount {
   color: #fff;

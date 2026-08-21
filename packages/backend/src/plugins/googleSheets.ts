@@ -15,6 +15,22 @@ export interface UserInfo {
   picture: string;
 }
 
+const BASE_QUERY =
+  "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
+
+export const AppProperties = {
+  program: { key: "createdBy", value: "gymerr" },
+  quickWorkouts: { key: "gymerrQuickWorkouts", value: "true" },
+  bodyWeight: { key: "gymerrBodyWeight", value: "true" },
+} as const;
+
+export type AppPropertyType = keyof typeof AppProperties;
+
+export function buildQuery(type: AppPropertyType): string {
+  const { key, value } = AppProperties[type];
+  return `${BASE_QUERY} and appProperties has { key='${key}' and value='${value}' }`;
+}
+
 export class GoogleSheets {
   private oauth2Client;
 
@@ -68,7 +84,7 @@ export class GoogleSheets {
     return google.drive({ version: "v3", auth: this.oauth2Client });
   }
 
-  async createSpreadsheet(tokens: Tokens, title: string): Promise<string> {
+  async create(tokens: Tokens, title: string): Promise<string> {
     const sheets = this.getSheetsClient(tokens);
     const response = await sheets.spreadsheets.create({
       requestBody: {
@@ -199,17 +215,6 @@ export class GoogleSheets {
       insertDataOption: "INSERT_ROWS",
       requestBody: { values },
     });
-  }
-
-  async getSheetNames(tokens: Tokens, spreadsheetId: string): Promise<string[]> {
-    const sheets = this.getSheetsClient(tokens);
-    const response = await sheets.spreadsheets.get({
-      spreadsheetId,
-      fields: "sheets.properties.title",
-    });
-    return (
-      response.data.sheets?.map((sheet) => sheet.properties?.title || "") || []
-    );
   }
 }
 

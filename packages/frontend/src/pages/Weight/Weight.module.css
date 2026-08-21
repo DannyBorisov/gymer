@@ -4,6 +4,25 @@
   margin: 0 auto;
 }
 
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #737373;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  min-height: var(--touch-target);
+  transition: color 0.15s ease;
+}
+
+.backBtn:hover {
+  color: #0f0f0f;
+}
+
 .header {
   display: flex;
   align-items: center;
@@ -151,6 +170,28 @@
   font-weight: 600;
 }
 
+/* Section Title */
+.sectionTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a1a1a1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.75rem 0;
+}
+
+/* Chart Section */
+.chartSection {
+  margin-bottom: 1.5rem;
+}
+
+.chartCard {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1rem 0.5rem 0.5rem 0.5rem;
+}
+
 /* History Section */
 .historySection {
   padding-bottom: calc(var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 1rem);
@@ -160,15 +201,6 @@
   .historySection {
     padding-bottom: 0;
   }
-}
-
-.historyTitle {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #a1a1a1;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 0.75rem 0;
 }
 
 .historyList {

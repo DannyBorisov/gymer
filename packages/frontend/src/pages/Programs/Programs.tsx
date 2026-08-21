@@ -1,43 +1,43 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Loader2, Plus, Zap } from 'lucide-react'
-import { apiFetch } from '../../utils/api'
-import { formatDate } from '../../lib/date'
-import styles from './Programs.module.css'
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { ChevronRight, Loader2, Plus } from "lucide-react";
+import { apiFetch } from "../../utils/api";
+import { formatDate } from "../../lib/date";
+import styles from "./Programs.module.css";
 
 interface Program {
-  id: string
-  name: string
-  createdTime: string
-  url: string
+  id: string;
+  name: string;
+  createdTime: string;
+  url: string;
 }
 
 const Programs = () => {
-  const [programs, setPrograms] = useState<Program[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPrograms = async () => {
       try {
-        const response = await apiFetch('/api/programs')
-        const data = await response.json()
+        const response = await apiFetch("/api/programs");
+        const data = await response.json();
 
         if (response.ok) {
-          setPrograms(data.programs)
+          setPrograms(data.programs);
         } else {
-          setError(data.error || 'Failed to fetch programs')
+          setError(data.error || "Failed to fetch programs");
         }
       } catch (err) {
-        console.error('Programs fetch error:', err)
-        setError('Network error')
+        console.error("Programs fetch error:", err);
+        setError("Network error");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchPrograms()
-  }, [])
+    fetchPrograms();
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -56,21 +56,6 @@ const Programs = () => {
         </div>
       ) : (
         <div className={styles.programsList}>
-          <Link to="/quick-workout" className={styles.quickWorkoutCard}>
-            <div className={styles.quickWorkoutInfo}>
-              <div className={styles.quickWorkoutIcon}>
-                <Zap size={20} />
-              </div>
-              <div className={styles.quickWorkoutText}>
-                <span className={styles.quickWorkoutName}>Quick Workout</span>
-                <span className={styles.quickWorkoutDescription}>
-                  Log a spontaneous gym session
-                </span>
-              </div>
-            </div>
-            <ChevronRight size={16} className={styles.chevronIcon} />
-          </Link>
-
           {programs.map((program) => (
             <Link
               key={program.id}
@@ -86,14 +71,14 @@ const Programs = () => {
               <ChevronRight size={16} className={styles.chevronIcon} />
             </Link>
           ))}
-          <Link to="/programs/create" className={styles.createCard}>
-            <Plus size={20} />
-            <span>Create Program</span>
-          </Link>
         </div>
       )}
-    </div>
-  )
-}
 
-export default Programs
+      <Link to="/programs/create" className={styles.fab}>
+        <Plus size={28} strokeWidth={2.5} />
+      </Link>
+    </div>
+  );
+};
+
+export default Programs;

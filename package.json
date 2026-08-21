@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "if [ -z \"$VERCEL\" ]; then patch-package; fi",
     "dev:frontend": "npm run dev -w @gymerr/frontend",
     "dev:backend": "npm run dev -w @gymerr/backend",
     "build": "npm run build -w @gymerr/shared && npm run build -w @gymerr/backend && npm run build -w @gymerr/frontend",

@@ -436,6 +436,18 @@
   cursor: not-allowed;
 }
 
+/* Empty Exercises State */
+.emptyExercises {
+  padding: 1.5rem;
+  text-align: center;
+  color: #a1a1a1;
+  font-size: 0.875rem;
+}
+
+.emptyExercises p {
+  margin: 0;
+}
+
 /* Exercises Table */
 .exercisesTable {
   padding: 0.5rem;

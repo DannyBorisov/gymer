@@ -1,37 +1,43 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X, Plus } from "lucide-react";
-import { exercisesByCategory, uniqueExercises } from "../../data/exercises";
+import { Search, X, Plus, Check } from "lucide-react";
+import { uniqueExercises } from "../../data/exercises";
 import styles from "./ExerciseDrawer.module.css";
 
 interface ExerciseDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (exerciseName: string) => void;
+  onSelectMultiple?: (exerciseNames: string[]) => void;
   currentValue?: string;
+  multiSelect?: boolean;
+  excludeExercises?: string[];
 }
 
 export const ExerciseDrawer = ({
   isOpen,
   onClose,
   onSelect,
+  onSelectMultiple,
   currentValue = "",
+  multiSelect = false,
+  excludeExercises = [],
 }: ExerciseDrawerProps) => {
   const [search, setSearch] = useState("");
   const [customName, setCustomName] = useState("");
+  const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       setSearch("");
       setCustomName(currentValue);
-      // Focus search input when drawer opens
+      setSelectedExercises([]);
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
     }
   }, [isOpen, currentValue]);
 
-  // Prevent body scroll when drawer is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -44,51 +50,75 @@ export const ExerciseDrawer = ({
   }, [isOpen]);
 
   const handleSelect = (name: string) => {
-    onSelect(name);
-    onClose();
-  };
-
-  const handleAddCustom = () => {
-    if (customName.trim()) {
-      onSelect(customName.trim());
+    if (multiSelect) {
+      setSelectedExercises((prev) =>
+        prev.includes(name)
+          ? prev.filter((e) => e !== name)
+          : [...prev, name]
+      );
+    } else {
+      onSelect(name);
       onClose();
     }
   };
 
-  // Filter exercises based on search
-  const filteredExercises = search.trim()
-    ? uniqueExercises.filter((ex) =>
-        ex.toLowerCase().includes(search.toLowerCase())
-      )
-    : null;
+  const handleAddCustom = () => {
+    const name = customName.trim();
+    if (name) {
+      if (multiSelect) {
+        if (!selectedExercises.includes(name)) {
+          setSelectedExercises((prev) => [...prev, name]);
+        }
+        setSearch("");
+        setCustomName("");
+      } else {
+        onSelect(name);
+        onClose();
+      }
+    }
+  };
+
+  const handleConfirmMultiSelect = () => {
+    if (onSelectMultiple && selectedExercises.length > 0) {
+      onSelectMultiple(selectedExercises);
+      onClose();
+    }
+  };
+
+  // Filter exercises - always show flat list, filtered by search
+  const filteredExercises = uniqueExercises
+    .filter((ex) => !excludeExercises.includes(ex))
+    .filter((ex) =>
+      search.trim()
+        ? ex.toLowerCase().includes(search.toLowerCase())
+        : true
+    );
 
   const showCustomOption =
     search.trim() &&
     !uniqueExercises.some(
       (ex) => ex.toLowerCase() === search.toLowerCase()
-    );
+    ) &&
+    !selectedExercises.includes(search.trim());
 
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Backdrop */}
       <div className={styles.backdrop} onClick={onClose} />
 
-      {/* Drawer */}
       <div className={styles.drawer}>
-        {/* Handle */}
         <div className={styles.handle} />
 
-        {/* Header */}
         <div className={styles.header}>
-          <h2 className={styles.title}>Select Exercise</h2>
+          <h2 className={styles.title}>
+            {multiSelect ? "Select Exercises" : "Select Exercise"}
+          </h2>
           <button onClick={onClose} className={styles.closeBtn}>
             <X size={20} />
           </button>
         </div>
 
-        {/* Search */}
         <div className={styles.searchContainer}>
           <Search size={18} className={styles.searchIcon} />
           <input
@@ -112,60 +142,52 @@ export const ExerciseDrawer = ({
           )}
         </div>
 
-        {/* Content */}
         <div className={styles.content}>
-          {/* Show filtered results */}
-          {filteredExercises ? (
-            <div className={styles.filteredList}>
-              {/* Add custom option if no exact match */}
-              {showCustomOption && (
-                <button
-                  onClick={handleAddCustom}
-                  className={styles.addCustomBtn}
-                >
-                  <Plus size={16} />
-                  <span>Add "{search}"</span>
-                </button>
-              )}
-
-              {filteredExercises.length > 0 ? (
-                filteredExercises.map((exercise) => (
-                  <button
-                    key={exercise}
-                    onClick={() => handleSelect(exercise)}
-                    className={styles.exerciseItem}
-                  >
-                    {exercise}
-                  </button>
-                ))
-              ) : (
-                !showCustomOption && (
-                  <div className={styles.noResults}>No exercises found</div>
-                )
-              )}
-            </div>
-          ) : (
-            /* Show categories */
-            <div className={styles.categories}>
-              {Object.entries(exercisesByCategory).map(([category, exercises]) => (
-                <div key={category} className={styles.category}>
-                  <h3 className={styles.categoryTitle}>{category}</h3>
-                  <div className={styles.exerciseList}>
-                    {exercises.map((exercise) => (
-                      <button
-                        key={exercise}
-                        onClick={() => handleSelect(exercise)}
-                        className={styles.exerciseChip}
-                      >
-                        {exercise}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+          {showCustomOption && (
+            <button
+              onClick={handleAddCustom}
+              className={styles.addCustomBtn}
+            >
+              <Plus size={16} />
+              <span>Add "{search}"</span>
+            </button>
           )}
+
+          <div className={styles.exerciseList}>
+            {filteredExercises.map((exercise) => {
+              const isSelected = selectedExercises.includes(exercise);
+              return (
+                <button
+                  key={exercise}
+                  onClick={() => handleSelect(exercise)}
+                  className={`${styles.exerciseItem} ${isSelected ? styles.exerciseItemSelected : ""}`}
+                >
+                  <span className={styles.exerciseName}>{exercise}</span>
+                  {multiSelect && (
+                    <div className={`${styles.checkbox} ${isSelected ? styles.checkboxChecked : ""}`}>
+                      {isSelected && <Check size={14} />}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+
+            {filteredExercises.length === 0 && !showCustomOption && (
+              <div className={styles.noResults}>No exercises found</div>
+            )}
+          </div>
         </div>
+
+        {multiSelect && selectedExercises.length > 0 && (
+          <div className={styles.footer}>
+            <button
+              onClick={handleConfirmMultiSelect}
+              className={styles.confirmBtn}
+            >
+              Add {selectedExercises.length} exercise{selectedExercises.length > 1 ? "s" : ""}
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

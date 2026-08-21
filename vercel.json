@@ -1,0 +1,6 @@
+{
+  "outputDirectory": "packages/frontend/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
