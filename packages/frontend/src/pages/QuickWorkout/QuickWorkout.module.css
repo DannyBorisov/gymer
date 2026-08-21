@@ -258,7 +258,7 @@
 @media (max-width: 767px) {
   .formActions {
     position: fixed;
-    bottom: calc(var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px));
+    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     left: 0;
     right: 0;
     background: #fafafa;

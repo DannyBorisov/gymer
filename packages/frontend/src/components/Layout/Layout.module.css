@@ -85,6 +85,15 @@
     padding: 1.5rem;
     padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   }
+
+  .mainWorkout {
+    padding: 0;
+    /* Pull content to edges, counteracting root safe area padding */
+    margin-top: calc(-1 * env(safe-area-inset-top, 0px));
+    margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+    /* Add safe areas back to height so content fills full screen */
+    height: calc(100% + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .userSection {

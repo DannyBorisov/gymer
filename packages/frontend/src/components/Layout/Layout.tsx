@@ -194,7 +194,7 @@ const Layout = ({ children }: LayoutProps) => {
         )}
       </aside>
 
-      <main className={styles.main}>{children}</main>
+      <main className={`${styles.main} ${activeWorkout ? styles.mainWorkout : ''}`}>{children}</main>
 
       {/* Mobile Bottom Navigation - hide during active workout */}
       {isMobile && !activeWorkout && (

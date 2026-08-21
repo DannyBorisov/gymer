@@ -6,6 +6,24 @@ const DEFAULT_REMINDER_HOUR = 9;
 const DEFAULT_REMINDER_MINUTE = 0;
 
 const WEIGHT_REMINDER_ID = 1001;
+const CHANNEL_ID = 'gymerr_reminders';
+
+// Create notification channel for Android (required for heads-up notifications)
+export async function createNotificationChannel(): Promise<void> {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
+    return;
+  }
+
+  await LocalNotifications.createChannel({
+    id: CHANNEL_ID,
+    name: 'Gymerr Reminders',
+    description: 'Workout and weight reminders',
+    importance: 5, // IMPORTANCE_HIGH - shows as heads-up
+    visibility: 1, // PUBLIC
+    sound: 'default',
+    vibration: true,
+  });
+}
 
 export function isWeightReminderEnabled(): boolean {
   return localStorage.getItem('weightReminderEnabled') === 'true';
@@ -55,6 +73,9 @@ export async function scheduleWeightReminder(): Promise<boolean> {
 
   const { hour, minute } = getWeightReminderTime();
 
+  // Ensure channel exists on Android
+  await createNotificationChannel();
+
   // Schedule daily at configured time
   await LocalNotifications.schedule({
     notifications: [
@@ -70,6 +91,7 @@ export async function scheduleWeightReminder(): Promise<boolean> {
           repeats: true,
           allowWhileIdle: true,
         },
+        channelId: CHANNEL_ID,
         sound: 'default',
         smallIcon: 'ic_stat_icon_config_sample',
         largeIcon: 'ic_launcher',
@@ -103,6 +125,9 @@ export async function testNotification(delaySeconds: number = 5): Promise<void> 
     return;
   }
 
+  // Ensure channel exists on Android
+  await createNotificationChannel();
+
   await LocalNotifications.schedule({
     notifications: [
       {
@@ -112,6 +137,7 @@ export async function testNotification(delaySeconds: number = 5): Promise<void> 
         schedule: {
           at: new Date(Date.now() + delaySeconds * 1000),
         },
+        channelId: CHANNEL_ID,
         sound: 'default',
       },
     ],

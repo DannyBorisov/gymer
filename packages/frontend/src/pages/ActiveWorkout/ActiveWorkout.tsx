@@ -10,7 +10,6 @@ import {
   Copy,
   History,
   Timer,
-  X,
   Plus,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -349,37 +348,6 @@ const ActiveWorkout = () => {
           <div className={styles.workoutHeader}>
             <div className={styles.timerSection}>
               <span className={styles.timer}>{formatTime(timer)}</span>
-              {showRestSuggestion && currentSet ? (
-                <div className={styles.restTimerSuggestion}>
-                  <button
-                    onClick={() => startRestTimer(currentExerciseName)}
-                    className={styles.restTimerSuggestionBtn}
-                  >
-                    <Timer size={16} />
-                    <span>Start rest timer</span>
-                  </button>
-                  <button
-                    onClick={() => setShowRestSuggestion(false)}
-                    className={styles.restTimerDismiss}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() =>
-                    isRestTimerActive
-                      ? stopRestTimer(currentExerciseName)
-                      : startRestTimer(currentExerciseName)
-                  }
-                  className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ""}`}
-                >
-                  <Timer size={16} />
-                  <span>
-                    {isRestTimerActive ? formatRestTimer(restTimer) : "Rest"}
-                  </span>
-                </button>
-              )}
             </div>
             <div className={styles.progressSection}>
               <div className={styles.progressBar}>
@@ -666,21 +634,19 @@ const ActiveWorkout = () => {
                   {showNotes ? "Hide notes" : "Add notes"}
                 </button>
 
-                {showNotes && (
-                  <textarea
-                    value={getRow(currentSet.rowIndex)?.notes || ""}
-                    onChange={(e) =>
-                      updateExercise(
-                        currentSet.rowIndex,
-                        "notes",
-                        e.target.value,
-                      )
-                    }
-                    placeholder="How did it feel? Any adjustments needed?"
-                    className={styles.notesTextarea}
-                    rows={2}
-                  />
-                )}
+                <textarea
+                  value={getRow(currentSet.rowIndex)?.notes || ""}
+                  onChange={(e) =>
+                    updateExercise(
+                      currentSet.rowIndex,
+                      "notes",
+                      e.target.value,
+                    )
+                  }
+                  placeholder="How did it feel? Any adjustments needed?"
+                  className={`${styles.notesTextarea} ${!showNotes ? styles.notesHidden : ''}`}
+                  rows={2}
+                />
               </>
             )}
           </div>
@@ -697,21 +663,35 @@ const ActiveWorkout = () => {
 
             {!isWorkoutComplete && (
               <>
-                <button
-                  disabled={
-                    !getRow(currentSet.rowIndex)?.weight ||
-                    !getRow(currentSet.rowIndex)?.repsAchieved
-                  }
-                  onClick={() =>
-                    isLastSet
-                      ? handleCompleteWorkout(currentSet.rowIndex)
-                      : handleCompleteSet(currentSet.rowIndex)
-                  }
-                  className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
-                >
-                  <Check size={24} />
-                  {isLastSet ? "Complete workout" : "Complete set"}
-                </button>
+                <div className={styles.mainButtonsRow}>
+                  <button
+                    disabled={
+                      !getRow(currentSet.rowIndex)?.weight ||
+                      !getRow(currentSet.rowIndex)?.repsAchieved
+                    }
+                    onClick={() =>
+                      isLastSet
+                        ? handleCompleteWorkout(currentSet.rowIndex)
+                        : handleCompleteSet(currentSet.rowIndex)
+                    }
+                    className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
+                  >
+                    <Check size={24} />
+                    {isLastSet ? "Complete workout" : "Complete set"}
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      isRestTimerActive
+                        ? stopRestTimer(currentExerciseName)
+                        : startRestTimer(currentExerciseName)
+                    }
+                    className={`${styles.restTimerRoundBtn} ${isRestTimerActive ? styles.restTimerRoundBtnActive : ""}`}
+                  >
+                    <Timer size={20} />
+                    <span className={styles.restTimerValue}>{formatRestTimer(restTimer)}</span>
+                  </button>
+                </div>
 
                 <button
                   onClick={handleStopWorkout}
