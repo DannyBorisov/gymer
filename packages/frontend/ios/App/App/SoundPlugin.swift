@@ -38,7 +38,7 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
-    @objc func scheduleRestSound(_ call: CAPPluginCall) {
+    @objc func x(_ call: CAPPluginCall) {
         let duration = call.getInt("duration") ?? 60
         let mode = call.getString("mode") ?? "voice"
 

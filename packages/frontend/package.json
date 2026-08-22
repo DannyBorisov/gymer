@@ -12,6 +12,7 @@
     "cap:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor-community/text-to-speech": "^8.0.2",
     "@capacitor/android": "^8.5.0",
     "@capacitor/app": "^8.1.1",
     "@capacitor/browser": "^8.0.4",
@@ -20,6 +21,7 @@
     "@capacitor/keyboard": "^8.0.5",
     "@capacitor/local-notifications": "^8.3.0",
     "capacitor-live-activities": "^8.0.0",
+    "framer-motion": "^13.1.1",
     "lucide-react": "^1.31.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

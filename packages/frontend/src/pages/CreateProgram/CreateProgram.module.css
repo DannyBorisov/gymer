@@ -285,7 +285,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .workoutsTitle {
@@ -328,16 +328,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  padding-top: 2rem;
-  margin-top: -1.5rem;
+  padding: 0.75rem;
   background: #fff;
   border-bottom: 1px solid #e5e5e5;
   border-radius: 8px 8px 0 0;
-  position: -webkit-sticky;
-  position: sticky;
-  top: -1.5rem;
-  z-index: 8;
 }
 
 .collapseBtn {
@@ -705,15 +699,7 @@
 
 @media (max-width: 767px) {
   .formActions {
-    position: fixed;
-    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
-    left: 0;
-    right: 0;
-    flex-direction: column;
-    background: #fafafa;
-    padding: 0.75rem 1rem;
-    border-top: 1px solid #e5e5e5;
-    z-index: 10;
+    display: none;
   }
 }
 

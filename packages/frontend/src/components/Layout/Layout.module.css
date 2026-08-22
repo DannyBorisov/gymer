@@ -493,38 +493,94 @@
   transition: all 0.15s ease;
 }
 
+/* Center button wrapper to maintain nav spacing */
+.centerBtnWrapper {
+  width: 60px;
+  height: 40px;
+  position: relative;
+}
+
 /* Center Start Button - round and elevated */
 .centerBtn {
-  position: relative;
-  top: -20px;
+  position: absolute;
+  left: 50%;
+  bottom: 30%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 60px;
-  height: 60px;
+  height: 56px;
+  padding: 0;
   background: linear-gradient(135deg, #22c55e, #16a34a);
-  border-radius: 50%;
+  border: none;
+  border-radius: 28px;
   color: #fff;
-  text-decoration: none;
+  cursor: pointer;
   box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
-  transition: all 0.15s ease;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.2s ease;
 }
 
 .centerBtn svg {
-  width: 28px;
-  height: 28px;
-  margin-left: 2px;
+  flex-shrink: 0;
+  position: absolute;
+  left: 19px;
+  transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.centerBtn span {
-  display: none;
+.centerBtnText {
+  position: absolute;
+  left: 47px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
 .centerBtn:active {
-  transform: scale(0.92);
+  transform: translateX(-50%) scale(0.95) !important;
+}
+
+/* Lifted state on quick-workout page */
+.centerBtnLifted {
+  transform: translateX(-50%) translateY(-65px);
+  width: 165px;
+  padding: 0 1.25rem;
+}
+
+.centerBtnLifted svg {
+  left: 20px;
+}
+
+.centerBtnLifted .centerBtnText {
+  opacity: 1;
+}
+
+.centerBtnLifted:active {
+  transform: translateX(-50%) translateY(-35px) scale(0.95) !important;
+}
+
+/* Disabled state when no exercises */
+.centerBtnDisabled {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
 }
 
 .centerBtnActive {
   background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+  z-index: 101;
+}
+
+.floatingStartBtn:active {
+  transform: translateX(-50%) scale(0.96);
 }
 

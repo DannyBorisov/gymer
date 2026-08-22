@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   Dumbbell,
@@ -13,6 +14,13 @@ import styles from "./Landing.module.css";
 
 const Landing = () => {
   const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/programs", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
 
   return (
     <div className={styles.page}>

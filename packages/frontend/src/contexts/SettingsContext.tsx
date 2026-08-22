@@ -9,6 +9,8 @@ interface SettingsContextType {
   setShowRestSuggestion: (show: boolean) => void
   restTimerDuration: number
   setRestTimerDuration: (seconds: number) => void
+  restTimerAnnounceInterval: number
+  setRestTimerAnnounceInterval: (seconds: number) => void
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null)
@@ -23,6 +25,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const saved = localStorage.getItem('restTimerDuration')
     return saved !== null ? parseInt(saved, 10) : 90
   })
+  const [restTimerAnnounceInterval, setRestTimerAnnounceIntervalState] = useState<number>(() => {
+    const saved = localStorage.getItem('restTimerAnnounceInterval')
+    return saved !== null ? parseInt(saved, 10) : 60
+  })
 
   const setShowRestSuggestion = (show: boolean) => {
     setShowRestSuggestionState(show)
@@ -34,6 +40,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('restTimerDuration', String(seconds))
   }
 
+  const setRestTimerAnnounceInterval = (seconds: number) => {
+    setRestTimerAnnounceIntervalState(seconds)
+    localStorage.setItem('restTimerAnnounceInterval', String(seconds))
+  }
+
   return (
     <SettingsContext.Provider value={{
       weightUnit,
@@ -41,7 +52,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       showRestSuggestion,
       setShowRestSuggestion,
       restTimerDuration,
-      setRestTimerDuration
+      setRestTimerDuration,
+      restTimerAnnounceInterval,
+      setRestTimerAnnounceInterval
     }}>
       {children}
     </SettingsContext.Provider>

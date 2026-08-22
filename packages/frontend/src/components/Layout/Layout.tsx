@@ -1,18 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Dumbbell,
   LogOut,
   Scale,
   User,
-  Timer,
   BarChart3,
   Play,
   ClipboardList,
+  Volume2,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
+import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import styles from "./Layout.module.css";
 
 const getInitials = (name: string) => {
@@ -42,16 +43,18 @@ const Layout = ({ children }: LayoutProps) => {
   const {
     weightUnit,
     setWeightUnit,
-    showRestSuggestion,
-    setShowRestSuggestion,
-    restTimerDuration,
-    setRestTimerDuration,
+    restTimerAnnounceInterval,
+    setRestTimerAnnounceInterval,
   } = useSettings();
   const { activeWorkout } = useWorkout();
+  const { floatingAction } = useQuickWorkout();
   const location = useLocation();
+  const navigate = useNavigate();
   const [showPopover, setShowPopover] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const hasFloatingAction = floatingAction !== null;
 
   useEffect(() => {
     const checkMobile = () => {
@@ -156,29 +159,17 @@ const Layout = ({ children }: LayoutProps) => {
                   </div>
                   <div className={styles.settingsRow}>
                     <div className={styles.settingsLabel}>
-                      <Timer size={16} />
-                      <span>Rest timer prompts</span>
-                    </div>
-                    <button
-                      className={`${styles.toggleBtn} ${showRestSuggestion ? styles.toggleBtnActive : ""}`}
-                      onClick={() => setShowRestSuggestion(!showRestSuggestion)}
-                    >
-                      <span className={styles.toggleKnob} />
-                    </button>
-                  </div>
-                  <div className={styles.settingsRow}>
-                    <div className={styles.settingsLabel}>
-                      <Timer size={16} />
-                      <span>Vibrate after</span>
+                      <Volume2 size={16} />
+                      <span>Rest timer voice</span>
                     </div>
                     <div className={styles.durationToggle}>
-                      {[60, 90, 120].map((sec) => (
+                      {[0, 30, 60].map((sec) => (
                         <button
                           key={sec}
-                          className={`${styles.durationBtn} ${restTimerDuration === sec ? styles.durationBtnActive : ""}`}
-                          onClick={() => setRestTimerDuration(sec)}
+                          className={`${styles.durationBtn} ${restTimerAnnounceInterval === sec ? styles.durationBtnActive : ""}`}
+                          onClick={() => setRestTimerAnnounceInterval(sec)}
                         >
-                          {sec < 60 ? `${sec}s` : `${sec / 60}m`}
+                          {sec === 0 ? "Off" : `${sec}s`}
                         </button>
                       ))}
                     </div>
@@ -219,13 +210,22 @@ const Layout = ({ children }: LayoutProps) => {
             <span>Workouts</span>
           </NavLink>
 
-          {/* Center Start Workout Button - round elevated */}
-          <NavLink
-            to="/start-workout"
-            className={`${styles.centerBtn} ${isActiveRoute("/start-workout") ? styles.centerBtnActive : ""}`}
-          >
-            <Play size={28} />
-          </NavLink>
+          {/* Center Button - lifts and expands when there's a floating action */}
+          <div className={styles.centerBtnWrapper}>
+            <button
+              className={`${styles.centerBtn} ${hasFloatingAction ? styles.centerBtnLifted : ''} ${hasFloatingAction && !floatingAction?.enabled ? styles.centerBtnDisabled : ''}`}
+              onClick={() => {
+                if (hasFloatingAction && floatingAction?.enabled) {
+                  floatingAction.handler();
+                } else if (!hasFloatingAction) {
+                  navigate("/start-workout");
+                }
+              }}
+            >
+              <Play size={22} />
+              <span className={styles.centerBtnText}>{floatingAction?.label || "Start Workout"}</span>
+            </button>
+          </div>
 
           <NavLink
             to="/analytics"

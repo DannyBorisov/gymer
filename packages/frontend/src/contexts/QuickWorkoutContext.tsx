@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { apiFetch } from "../utils/api";
+import { type QuickExercise } from "./WorkoutContext";
 
 // Common preset exercises
 const PRESET_EXERCISES = [
@@ -59,6 +60,12 @@ interface QuickWorkoutState {
   startTime: number;
 }
 
+export interface FloatingAction {
+  label: string;
+  handler: () => void;
+  enabled: boolean;
+}
+
 interface QuickWorkoutContextType {
   // State
   isActive: boolean;
@@ -69,8 +76,12 @@ interface QuickWorkoutContextType {
   isSaving: boolean;
   availableExercises: string[];
   isLoadingExercises: boolean;
+  pendingExercises: QuickExercise[];
+  floatingAction: FloatingAction | null;
 
   // Actions
+  setPendingExercises: React.Dispatch<React.SetStateAction<QuickExercise[]>>;
+  setFloatingAction: (action: FloatingAction | null) => void;
   startWorkout: () => void;
   stopWorkout: () => void;
   addExercise: (name: string) => void;
@@ -120,6 +131,8 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [userExercises, setUserExercises] = useState<string[]>([]);
   const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+  const [pendingExercises, setPendingExercises] = useState<QuickExercise[]>([]);
+  const [floatingAction, setFloatingAction] = useState<FloatingAction | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -431,6 +444,10 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
         isSaving,
         availableExercises,
         isLoadingExercises,
+        pendingExercises,
+        setPendingExercises,
+        floatingAction,
+        setFloatingAction,
         startWorkout,
         stopWorkout,
         addExercise,

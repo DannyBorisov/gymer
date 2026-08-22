@@ -1,18 +1,26 @@
-import { useState } from 'react'
-import { LogOut, Timer, Bell } from 'lucide-react'
+import { useState } from "react";
+import { LogOut, Bell, Volume2 } from "lucide-react";
 
 const BodyScaleIcon = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <rect x="4" y="4" width="16" height="16" rx="3" />
     <circle cx="12" cy="12" r="4" />
     <path d="M12 9v3" />
     <circle cx="12" cy="12" r="0.5" fill="currentColor" />
   </svg>
-)
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
-import { useSettings } from '../../contexts/SettingsContext'
-import { getSoundMode, setSoundMode, previewSoundMode, type SoundMode } from '../../utils/sound'
+);
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import {
   isWeightReminderEnabled,
   setWeightReminderEnabled,
@@ -20,62 +28,64 @@ import {
   setWeightReminderTime,
   scheduleWeightReminder,
   cancelWeightReminder,
-} from '../../utils/notifications'
-import styles from './Profile.module.css'
+} from "../../utils/notifications";
+import styles from "./Profile.module.css";
 
 const getInitials = (name: string) => {
   return name
-    .split(' ')
-    .map(part => part[0])
-    .join('')
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
     .toUpperCase()
-    .slice(0, 2)
-}
+    .slice(0, 2);
+};
 
 const Profile = () => {
-  const { user, logout } = useAuth()
-  const { weightUnit, setWeightUnit, showRestSuggestion, setShowRestSuggestion, restTimerDuration, setRestTimerDuration } = useSettings()
-  const navigate = useNavigate()
-  const [soundMode, setSoundModeState] = useState<SoundMode>(getSoundMode)
+  const { user, logout } = useAuth();
+  const {
+    weightUnit,
+    setWeightUnit,
+    restTimerAnnounceInterval,
+    setRestTimerAnnounceInterval,
+  } = useSettings();
+  const navigate = useNavigate();
 
   // Weight reminder state
-  const [weightReminderOn, setWeightReminderOn] = useState(isWeightReminderEnabled)
+  const [weightReminderOn, setWeightReminderOn] = useState(
+    isWeightReminderEnabled,
+  );
   const [reminderTime, setReminderTime] = useState(() => {
-    const { hour, minute } = getWeightReminderTime()
-    return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
-  })
-
-  const handleSoundModeChange = (mode: SoundMode) => {
-    setSoundModeState(mode)
-    setSoundMode(mode)
-    previewSoundMode(mode)
-  }
+    const { hour, minute } = getWeightReminderTime();
+    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  });
 
   const handleWeightReminderToggle = async () => {
-    const newValue = !weightReminderOn
-    setWeightReminderOn(newValue)
-    setWeightReminderEnabled(newValue)
+    const newValue = !weightReminderOn;
+    setWeightReminderOn(newValue);
+    setWeightReminderEnabled(newValue);
 
     if (newValue) {
-      await scheduleWeightReminder()
+      await scheduleWeightReminder();
     } else {
-      await cancelWeightReminder()
+      await cancelWeightReminder();
     }
-  }
+  };
 
-  const handleReminderTimeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const time = e.target.value
-    setReminderTime(time)
+  const handleReminderTimeChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const time = e.target.value;
+    setReminderTime(time);
 
-    const [hour, minute] = time.split(':').map(Number)
-    setWeightReminderTime(hour, minute)
+    const [hour, minute] = time.split(":").map(Number);
+    setWeightReminderTime(hour, minute);
 
     if (weightReminderOn) {
-      await scheduleWeightReminder()
+      await scheduleWeightReminder();
     }
-  }
+  };
 
-  if (!user) return null
+  if (!user) return null;
 
   return (
     <div className={styles.container}>
@@ -83,7 +93,7 @@ const Profile = () => {
         <h1 className={styles.title}>Profile</h1>
         <button
           className={styles.weightBtn}
-          onClick={() => navigate('/weight')}
+          onClick={() => navigate("/weight")}
           aria-label="Weight tracking"
         >
           <BodyScaleIcon size={20} />
@@ -92,9 +102,7 @@ const Profile = () => {
 
       {/* User info card */}
       <div className={styles.userCard}>
-        <div className={styles.avatar}>
-          {getInitials(user.name)}
-        </div>
+        <div className={styles.avatar}>{getInitials(user.name)}</div>
         <div className={styles.userInfo}>
           <span className={styles.userName}>{user.name}</span>
           <span className={styles.userEmail}>{user.email}</span>
@@ -113,14 +121,14 @@ const Profile = () => {
             </div>
             <div className={styles.unitToggle}>
               <button
-                className={`${styles.unitBtn} ${weightUnit === 'kg' ? styles.unitBtnActive : ''}`}
-                onClick={() => setWeightUnit('kg')}
+                className={`${styles.unitBtn} ${weightUnit === "kg" ? styles.unitBtnActive : ""}`}
+                onClick={() => setWeightUnit("kg")}
               >
                 kg
               </button>
               <button
-                className={`${styles.unitBtn} ${weightUnit === 'lbs' ? styles.unitBtnActive : ''}`}
-                onClick={() => setWeightUnit('lbs')}
+                className={`${styles.unitBtn} ${weightUnit === "lbs" ? styles.unitBtnActive : ""}`}
+                onClick={() => setWeightUnit("lbs")}
               >
                 lbs
               </button>
@@ -150,7 +158,7 @@ const Profile = () => {
                 />
               )}
               <button
-                className={`${styles.toggleBtn} ${weightReminderOn ? styles.toggleBtnActive : ''}`}
+                className={`${styles.toggleBtn} ${weightReminderOn ? styles.toggleBtnActive : ""}`}
                 onClick={handleWeightReminderToggle}
               >
                 <span className={styles.toggleKnob} />
@@ -158,47 +166,30 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Rest Timer */}
+          {/* Voice Announcements for Rest Timer */}
           <div className={styles.settingsRow}>
             <div className={styles.settingsLabel}>
-              <Timer size={18} />
-              <span>Rest timer</span>
+              <Volume2 size={18} />
+              <span>Rest timer voice</span>
             </div>
-            <div className={styles.restTimerControls}>
-              {showRestSuggestion && (
-                <>
-                  <div className={styles.durationInput}>
-                    <input
-                      type="number"
-                      min={1}
-                      max={600}
-                      value={restTimerDuration}
-                      onChange={(e) => setRestTimerDuration(Number(e.target.value) || 60)}
-                      className={styles.numberInput}
-                    />
-                    <span className={styles.durationUnit}>sec</span>
-                  </div>
-                  <div className={styles.alertToggle}>
-                    <button
-                      className={`${styles.alertBtn} ${soundMode === 'beep' ? styles.alertBtnActive : ''}`}
-                      onClick={() => handleSoundModeChange('beep')}
-                    >
-                      Beep
-                    </button>
-                    <button
-                      className={`${styles.alertBtn} ${soundMode === 'voice' ? styles.alertBtnActive : ''}`}
-                      onClick={() => handleSoundModeChange('voice')}
-                    >
-                      Voice
-                    </button>
-                  </div>
-                </>
-              )}
+            <div className={styles.alertToggle}>
               <button
-                className={`${styles.toggleBtn} ${showRestSuggestion ? styles.toggleBtnActive : ''}`}
-                onClick={() => setShowRestSuggestion(!showRestSuggestion)}
+                className={`${styles.alertBtn} ${restTimerAnnounceInterval === 0 ? styles.alertBtnActive : ""}`}
+                onClick={() => setRestTimerAnnounceInterval(0)}
               >
-                <span className={styles.toggleKnob} />
+                Off
+              </button>
+              <button
+                className={`${styles.alertBtn} ${restTimerAnnounceInterval === 30 ? styles.alertBtnActive : ""}`}
+                onClick={() => setRestTimerAnnounceInterval(30)}
+              >
+                30s
+              </button>
+              <button
+                className={`${styles.alertBtn} ${restTimerAnnounceInterval === 60 ? styles.alertBtnActive : ""}`}
+                onClick={() => setRestTimerAnnounceInterval(60)}
+              >
+                1m
               </button>
             </div>
           </div>
@@ -211,7 +202,7 @@ const Profile = () => {
         <span>Sign out</span>
       </button>
     </div>
-  )
-}
+  );
+};
 
-export default Profile
+export default Profile;

@@ -11,6 +11,7 @@ import {
   History,
   Timer,
   Plus,
+  MoreVertical,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
@@ -28,6 +29,7 @@ import {
   scheduleRestTimerNotification,
   cancelRestTimerNotification,
 } from "../../utils/sound";
+import { announceTime } from "../../utils/speech";
 import styles from "../ProgramDetail/ProgramDetail.module.css";
 
 const ActiveWorkout = () => {
@@ -36,6 +38,7 @@ const ActiveWorkout = () => {
     weightUnit,
     showRestSuggestion: restSuggestionEnabled,
     restTimerDuration,
+    restTimerAnnounceInterval,
   } = useSettings();
   const {
     activeWorkout,
@@ -59,6 +62,8 @@ const ActiveWorkout = () => {
   const [showNotes, setShowNotes] = useState(false);
   const [showSetComplete, setShowSetComplete] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Rest timer state
   const [restTimer, setRestTimer] = useState(0);
@@ -185,6 +190,18 @@ const ActiveWorkout = () => {
     }
   }, [restTimer, restTimerDuration, isRestTimerActive, hasVibrated]);
 
+  // Voice announcement at intervals during rest timer
+  useEffect(() => {
+    if (
+      isRestTimerActive &&
+      restTimerAnnounceInterval > 0 &&
+      restTimer > 0 &&
+      restTimer % restTimerAnnounceInterval === 0
+    ) {
+      announceTime(restTimer);
+    }
+  }, [restTimer, isRestTimerActive, restTimerAnnounceInterval]);
+
   // Reset suggestion state when set changes
   useEffect(() => {
     setShowRestSuggestion(false);
@@ -219,6 +236,17 @@ const ActiveWorkout = () => {
         clearTimeout(suggestionTimeoutRef.current);
       }
     };
+  }, []);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Update Live Activity when exercise changes
@@ -348,6 +376,30 @@ const ActiveWorkout = () => {
           <div className={styles.workoutHeader}>
             <div className={styles.timerSection}>
               <span className={styles.timer}>{formatTime(timer)}</span>
+              {/* More options menu */}
+              <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
+                <button
+                  className={styles.moreBtn}
+                  onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  aria-label="More options"
+                >
+                  <MoreVertical size={20} />
+                </button>
+                {showMoreMenu && (
+                  <div className={styles.moreMenu}>
+                    <button
+                      className={styles.moreMenuItem}
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        handleStopWorkout();
+                      }}
+                    >
+                      <Square size={16} />
+                      <span>End workout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className={styles.progressSection}>
               <div className={styles.progressBar}>
@@ -662,45 +714,35 @@ const ActiveWorkout = () => {
             )}
 
             {!isWorkoutComplete && (
-              <>
-                <div className={styles.mainButtonsRow}>
-                  <button
-                    disabled={
-                      !getRow(currentSet.rowIndex)?.weight ||
-                      !getRow(currentSet.rowIndex)?.repsAchieved
-                    }
-                    onClick={() =>
-                      isLastSet
-                        ? handleCompleteWorkout(currentSet.rowIndex)
-                        : handleCompleteSet(currentSet.rowIndex)
-                    }
-                    className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
-                  >
-                    <Check size={24} />
-                    {isLastSet ? "Complete workout" : "Complete set"}
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      isRestTimerActive
-                        ? stopRestTimer(currentExerciseName)
-                        : startRestTimer(currentExerciseName)
-                    }
-                    className={`${styles.restTimerRoundBtn} ${isRestTimerActive ? styles.restTimerRoundBtnActive : ""}`}
-                  >
-                    <Timer size={20} />
-                    <span className={styles.restTimerValue}>{formatRestTimer(restTimer)}</span>
-                  </button>
-                </div>
+              <div className={styles.mainButtonsRow}>
+                <button
+                  disabled={
+                    !getRow(currentSet.rowIndex)?.weight ||
+                    !getRow(currentSet.rowIndex)?.repsAchieved
+                  }
+                  onClick={() =>
+                    isLastSet
+                      ? handleCompleteWorkout(currentSet.rowIndex)
+                      : handleCompleteSet(currentSet.rowIndex)
+                  }
+                  className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
+                >
+                  <Check size={24} />
+                  {isLastSet ? "Complete workout" : "Complete set"}
+                </button>
 
                 <button
-                  onClick={handleStopWorkout}
-                  className={styles.endWorkoutBtn}
+                  onClick={() =>
+                    isRestTimerActive
+                      ? stopRestTimer(currentExerciseName)
+                      : startRestTimer(currentExerciseName)
+                  }
+                  className={`${styles.restTimerRoundBtn} ${isRestTimerActive ? styles.restTimerRoundBtnActive : ""}`}
                 >
-                  <Square size={16} />
-                  <span>End workout</span>
+                  <Timer size={20} />
+                  <span className={styles.restTimerValue}>{formatRestTimer(restTimer)}</span>
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>

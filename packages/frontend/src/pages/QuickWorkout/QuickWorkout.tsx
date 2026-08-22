@@ -1,23 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, ChevronLeft, Play } from "lucide-react";
+import { Plus, Trash2, ChevronLeft } from "lucide-react";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
+import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import styles from "./QuickWorkout.module.css";
 
-interface QuickExercise {
-  name: string;
-  sets: number;
-  reps: number;
-  rir: number;
-}
-
 const QuickWorkout = () => {
   const navigate = useNavigate();
+  const { pendingExercises: exercises, setPendingExercises: setExercises, setFloatingAction } = useQuickWorkout();
   const { startQuickWorkout } = useWorkout();
-  const [exercises, setExercises] = useState<QuickExercise[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  // Use ref to avoid stale closure in handler
+  const exercisesRef = useRef(exercises);
+  exercisesRef.current = exercises;
+
+  // Set up floating action for the nav button
+  useEffect(() => {
+    setFloatingAction({
+      label: "Start Workout",
+      enabled: exercisesRef.current.length > 0,
+      handler: () => {
+        if (exercisesRef.current.length > 0) {
+          startQuickWorkout(exercisesRef.current);
+          setExercises([]);
+          navigate("/workout");
+        }
+      },
+    });
+
+    return () => {
+      setFloatingAction(null);
+    };
+  }, [setFloatingAction, startQuickWorkout, setExercises, navigate]);
+
+  // Update enabled state when exercises change
+  useEffect(() => {
+    setFloatingAction({
+      label: "Start Workout",
+      enabled: exercises.length > 0,
+      handler: () => {
+        if (exercisesRef.current.length > 0) {
+          startQuickWorkout(exercisesRef.current);
+          setExercises([]);
+          navigate("/workout");
+        }
+      },
+    });
+  }, [exercises.length, setFloatingAction, startQuickWorkout, setExercises, navigate]);
 
   const handleAddExercises = (names: string[]) => {
     const newExercises = names.map((name) => ({
@@ -50,12 +82,6 @@ const QuickWorkout = () => {
     setExercises((prev) =>
       prev.map((ex, i) => (i === index ? { ...ex, [field]: value } : ex))
     );
-  };
-
-  const handleStartWorkout = () => {
-    if (exercises.length === 0) return;
-    startQuickWorkout(exercises);
-    navigate("/workout");
   };
 
   const openAddDrawer = () => {
@@ -167,16 +193,6 @@ const QuickWorkout = () => {
               </div>
             ))}
           </div>
-        )}
-      </div>
-
-      {/* Start Workout Button */}
-      <div className={styles.formActions}>
-        {exercises.length > 0 && (
-          <button onClick={handleStartWorkout} className={styles.startBtn}>
-            <Play size={18} />
-            Start Workout
-          </button>
         )}
       </div>
 

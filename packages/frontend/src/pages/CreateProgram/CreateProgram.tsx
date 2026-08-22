@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -12,6 +12,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
+import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import { presets } from "../../data/presets";
 import { apiFetch } from "../../utils/api";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
@@ -46,11 +47,7 @@ const ExerciseRow = ({
           placeholder="Exercise name"
           readOnly
         />
-        <button
-          type="button"
-          onClick={onRemove}
-          className={styles.removeBtn}
-        >
+        <button type="button" onClick={onRemove} className={styles.removeBtn}>
           <Trash2 size={14} />
         </button>
       </div>
@@ -220,6 +217,7 @@ const CreateProgram = () => {
     loadProgram,
     resetProgram,
   } = useCreateProgram();
+  const { setFloatingAction } = useQuickWorkout();
 
   const [mode, setMode] = useState<"templates" | "edit">("templates");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -229,11 +227,38 @@ const CreateProgram = () => {
     error?: string;
   } | null>(null);
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const isSubmittingRef = useRef(isSubmitting);
+  isSubmittingRef.current = isSubmitting;
+
+  // Set up floating action when in edit mode
+  useEffect(() => {
+    if (mode === "edit" && !result?.success) {
+      setFloatingAction({
+        label: "Create Program",
+        enabled: !isSubmitting && program.name.trim() !== "",
+        handler: () => {
+          if (!isSubmittingRef.current && formRef.current) {
+            formRef.current.requestSubmit();
+          }
+        },
+      });
+    } else {
+      setFloatingAction(null);
+    }
+
+    return () => {
+      setFloatingAction(null);
+    };
+  }, [mode, isSubmitting, program.name, result?.success, setFloatingAction]);
+
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<"add" | "edit">("add");
   const [activeWorkoutIndex, setActiveWorkoutIndex] = useState<number>(0);
-  const [activeExerciseIndex, setActiveExerciseIndex] = useState<number | null>(null);
+  const [activeExerciseIndex, setActiveExerciseIndex] = useState<number | null>(
+    null,
+  );
 
   const handleOpenAddDrawer = (workoutIndex: number) => {
     setActiveWorkoutIndex(workoutIndex);
@@ -242,7 +267,10 @@ const CreateProgram = () => {
     setDrawerOpen(true);
   };
 
-  const handleOpenEditDrawer = (workoutIndex: number, exerciseIndex: number) => {
+  const handleOpenEditDrawer = (
+    workoutIndex: number,
+    exerciseIndex: number,
+  ) => {
     setActiveWorkoutIndex(workoutIndex);
     setActiveExerciseIndex(exerciseIndex);
     setDrawerMode("edit");
@@ -390,7 +418,7 @@ const CreateProgram = () => {
         <h1 className={styles.title}>Customize Program</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
+      <form ref={formRef} onSubmit={handleSubmit} className={styles.form}>
         <input
           type="text"
           value={program.name}
@@ -451,7 +479,7 @@ const CreateProgram = () => {
               </a>
               <button
                 type="button"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/programs")}
                 className={styles.goBackBtn}
               >
                 Go to Programs
@@ -481,7 +509,6 @@ const CreateProgram = () => {
         </div>
       </form>
 
-      {/* Exercise Drawer */}
       <ExerciseDrawer
         isOpen={drawerOpen}
         onClose={() => {
@@ -493,7 +520,9 @@ const CreateProgram = () => {
         multiSelect={drawerMode === "add"}
         currentValue={
           activeExerciseIndex !== null
-            ? program.workouts[activeWorkoutIndex]?.exercises[activeExerciseIndex]?.name
+            ? program.workouts[activeWorkoutIndex]?.exercises[
+                activeExerciseIndex
+              ]?.name
             : ""
         }
         excludeExercises={drawerMode === "add" ? existingExerciseNames : []}
