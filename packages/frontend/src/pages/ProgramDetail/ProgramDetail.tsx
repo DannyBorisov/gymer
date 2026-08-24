@@ -1,21 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import {
-  Loader2,
-  ChevronLeft,
-  Play,
-  CheckCircle2,
-  Circle,
-} from "lucide-react";
-import { useWorkout, type Week, type Workout } from "../../contexts/WorkoutContext";
+import { Loader2, ChevronLeft } from "lucide-react";
+import { useWorkout, type Week } from "../../contexts/WorkoutContext";
+import { WeeksList } from "../../components/WeeksList/WeeksList";
 import { apiFetch } from "../../utils/api";
-import { formatDateWithDay } from "../../lib/date";
 import styles from "./ProgramDetail.module.css";
 
 const ProgramDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { activeWorkout, startWorkout } = useWorkout();
+  const { activeWorkout } = useWorkout();
 
   const [program, setProgram] = useState<Week[]>([]);
   const [programName, setProgramName] = useState<string>("");
@@ -41,12 +35,6 @@ const ProgramDetail = () => {
     };
     fetchProgram();
   }, [id]);
-
-  const handleStartWorkout = (week: number, workout: Workout) => {
-    if (!id) return;
-    startWorkout(id, week, workout, program, programName);
-    navigate("/workout");
-  };
 
   // Check if there's an active workout for a different program
   const isWorkoutActiveForDifferentProgram = !!(
@@ -105,43 +93,12 @@ const ProgramDetail = () => {
         </div>
       )}
 
-      <div className={styles.weeksList}>
-        {program.map((week) => (
-          <div key={week.week} className={styles.weekCard}>
-            <div className={styles.weekHeader}>
-              <span className={styles.weekTitle}>Week {week.week}</span>
-            </div>
-            <div className={styles.workoutsList}>
-              {week.workouts.map((workout) => (
-                <button
-                  key={workout.name}
-                  onClick={() => handleStartWorkout(week.week, workout)}
-                  className={styles.workoutCard}
-                  disabled={isWorkoutActiveForDifferentProgram}
-                >
-                  <div className={styles.workoutCardInfo}>
-                    {workout.isComplete ? (
-                      <CheckCircle2 size={18} className={styles.completeIcon} />
-                    ) : (
-                      <Circle size={18} className={styles.incompleteIcon} />
-                    )}
-                    <div className={styles.workoutCardText}>
-                      <span className={styles.workoutName}>{workout.name}</span>
-                      {workout.completedDate && (
-                        <span className={styles.workoutDate}>
-                          {formatDateWithDay(workout.completedDate)}
-                          {workout.duration && ` • ${workout.duration}`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Play size={16} className={styles.playIcon} />
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <WeeksList
+        programId={id!}
+        programName={programName}
+        weeks={program}
+        disabled={isWorkoutActiveForDifferentProgram}
+      />
     </div>
   );
 };

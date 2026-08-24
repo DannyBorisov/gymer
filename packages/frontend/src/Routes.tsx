@@ -15,29 +15,31 @@ import StartWorkout from "./pages/StartWorkout/StartWorkout";
 import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
 import Profile from "./pages/Profile/Profile";
 
-const pageVariants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-};
+const PageWrapper = ({ children }: { children: React.ReactNode }) => {
+  const pageVariants = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    exit: { opacity: 0 },
+  };
 
-const pageTransition = {
-  duration: 0.08,
-  ease: "easeOut" as const,
-};
+  const pageTransition = {
+    duration: 0.08,
+    ease: "easeOut" as const,
+  };
 
-const PageWrapper = ({ children }: { children: React.ReactNode }) => (
-  <motion.div
-    variants={pageVariants}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    transition={pageTransition}
-    style={{ height: "100%" }}
-  >
-    {children}
-  </motion.div>
-);
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={pageTransition}
+      style={{ height: "100%" }}
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 const ProtectedRoutes = () => {
   const location = useLocation();

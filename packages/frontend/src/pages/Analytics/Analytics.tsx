@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Loader2, Plus, X } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -8,8 +8,10 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Tooltip,
+  Legend,
 } from "recharts";
 import { apiFetch } from "../../utils/api";
+import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 
 import styles from "./Analytics.module.css";
 
@@ -25,11 +27,14 @@ interface ExerciseProgression {
   entries: ExerciseProgressionEntry[];
 }
 
+const LINE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"];
+const MAX_EXERCISES = 4;
+
 const Analytics = () => {
   const [exercises, setExercises] = useState<ExerciseProgression[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedExercise, setSelectedExercise] =
-    useState<ExerciseProgression | null>(null);
+  const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   useEffect(() => {
     const fetchProgression = async () => {
@@ -39,7 +44,7 @@ const Analytics = () => {
         if (response.ok && data.exercises) {
           setExercises(data.exercises);
           if (data.exercises.length > 0) {
-            setSelectedExercise(data.exercises[0]);
+            setSelectedExercises([data.exercises[0].exercise]);
           }
         }
       } catch (err) {
@@ -51,17 +56,61 @@ const Analytics = () => {
     fetchProgression();
   }, []);
 
-  const formatChartData = (entries: ExerciseProgressionEntry[]) => {
-    return entries.map((entry) => {
-      const [day, month] = entry.date.split("/");
-      return {
-        date: `${day}/${month}`,
-        weight: entry.weight,
-        reps: entry.reps,
-        sets: entry.sets,
-      };
+  const availableExercises = useMemo(() =>
+    exercises.map(ex => ex.exercise),
+    [exercises]
+  );
+
+  const selectedData = useMemo(() =>
+    exercises.filter(ex => selectedExercises.includes(ex.exercise)),
+    [exercises, selectedExercises]
+  );
+
+  // Merge all dates and create chart data with all exercises
+  const chartData = useMemo(() => {
+    if (selectedData.length === 0) return [];
+
+    // Get all unique dates across selected exercises
+    const allDates = new Set<string>();
+    selectedData.forEach(ex => {
+      ex.entries.forEach(entry => allDates.add(entry.date));
     });
+
+    // Sort dates chronologically
+    const sortedDates = Array.from(allDates).sort((a, b) => {
+      const [dayA, monthA, yearA] = a.split("/").map(Number);
+      const [dayB, monthB, yearB] = b.split("/").map(Number);
+      const dateA = new Date(yearA || 2024, monthA - 1, dayA);
+      const dateB = new Date(yearB || 2024, monthB - 1, dayB);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    // Build chart data
+    return sortedDates.map(date => {
+      const [day, month] = date.split("/");
+      const point: Record<string, string | number | null> = { date: `${day}/${month}` };
+
+      selectedData.forEach(ex => {
+        const entry = ex.entries.find(e => e.date === date);
+        point[ex.exercise] = entry ? entry.weight : null;
+      });
+
+      return point;
+    });
+  }, [selectedData]);
+
+  const handleSelectExercises = (names: string[]) => {
+    // Only add exercises that have data and respect max limit
+    const validNames = names.filter(n => availableExercises.includes(n));
+    const newSelection = [...new Set([...selectedExercises, ...validNames])].slice(0, MAX_EXERCISES);
+    setSelectedExercises(newSelection);
   };
+
+  const handleRemoveExercise = (name: string) => {
+    setSelectedExercises(prev => prev.filter(e => e !== name));
+  };
+
+  const hasEnoughData = chartData.length >= 2;
 
   if (isLoading) {
     return (
@@ -92,31 +141,50 @@ const Analytics = () => {
 
       {/* Exercise selector */}
       <div className={styles.selectorSection}>
-        <label className={styles.selectorLabel}>Select Exercise</label>
-        <select
-          className={styles.selector}
-          value={selectedExercise?.exercise || ""}
-          onChange={(e) => {
-            const exercise = exercises.find((ex) => ex.exercise === e.target.value);
-            setSelectedExercise(exercise || null);
-          }}
-        >
-          {exercises.map((ex) => (
-            <option key={ex.exercise} value={ex.exercise}>
-              {ex.exercise}
-            </option>
+        <label className={styles.selectorLabel}>Compare Exercises (max {MAX_EXERCISES})</label>
+
+        {/* Selected exercise chips */}
+        <div className={styles.chipContainer}>
+          {selectedExercises.map((name, idx) => (
+            <div
+              key={name}
+              className={styles.chip}
+              style={{ borderColor: LINE_COLORS[idx] }}
+            >
+              <span
+                className={styles.chipDot}
+                style={{ backgroundColor: LINE_COLORS[idx] }}
+              />
+              <span className={styles.chipText}>{name}</span>
+              <button
+                className={styles.chipRemove}
+                onClick={() => handleRemoveExercise(name)}
+              >
+                <X size={14} />
+              </button>
+            </div>
           ))}
-        </select>
+
+          {selectedExercises.length < MAX_EXERCISES && (
+            <button
+              className={styles.addChipBtn}
+              onClick={() => setIsDrawerOpen(true)}
+            >
+              <Plus size={16} />
+              <span>Add</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Chart */}
-      {selectedExercise && selectedExercise.entries.length >= 2 && (
+      {selectedExercises.length > 0 && hasEnoughData && (
         <div className={styles.chartSection}>
           <h2 className={styles.sectionTitle}>Weight Progression</h2>
           <div className={styles.chartCard}>
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart
-                data={formatChartData(selectedExercise.entries)}
+                data={chartData}
                 margin={{ top: 10, right: 15, left: -10, bottom: 5 }}
               >
                 <CartesianGrid
@@ -150,90 +218,65 @@ const Analytics = () => {
                   }}
                   labelStyle={{ color: "#a1a1a1", marginBottom: "4px" }}
                   itemStyle={{ color: "#fff" }}
-                  formatter={(value, name) => {
-                    if (name === "weight") return [`${value} kg`, "Weight"];
-                    return [value, name];
-                  }}
+                  formatter={(value) =>
+                    value != null ? [`${value} kg`, ""] : ["-", ""]
+                  }
                 />
-                <Line
-                  type="monotone"
-                  dataKey="weight"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={{
-                    fill: "#fff",
-                    stroke: "#3b82f6",
-                    strokeWidth: 2,
-                    r: 4,
-                  }}
-                  activeDot={{
-                    fill: "#3b82f6",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                    r: 6,
-                  }}
+                <Legend
+                  wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
+                  iconType="circle"
+                  iconSize={8}
                 />
+                {selectedExercises.map((name, idx) => (
+                  <Line
+                    key={name}
+                    type="monotone"
+                    dataKey={name}
+                    name={name}
+                    stroke={LINE_COLORS[idx]}
+                    strokeWidth={2}
+                    dot={{
+                      fill: "#fff",
+                      stroke: LINE_COLORS[idx],
+                      strokeWidth: 2,
+                      r: 3,
+                    }}
+                    activeDot={{
+                      fill: LINE_COLORS[idx],
+                      stroke: "#fff",
+                      strokeWidth: 2,
+                      r: 5,
+                    }}
+                    connectNulls={false}
+                  />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
       )}
 
-      {selectedExercise && selectedExercise.entries.length < 2 && (
+      {selectedExercises.length > 0 && !hasEnoughData && (
         <p className={styles.notEnoughData}>
           Need at least 2 data points to show a chart
         </p>
       )}
 
-      {/* Stats */}
-      {selectedExercise && selectedExercise.entries.length > 0 && (
-        <div className={styles.statsSection}>
-          <h2 className={styles.sectionTitle}>Stats</h2>
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {selectedExercise.entries[selectedExercise.entries.length - 1].weight} kg
-              </span>
-              <span className={styles.statLabel}>Latest Weight</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {Math.max(...selectedExercise.entries.map((e) => e.weight))} kg
-              </span>
-              <span className={styles.statLabel}>Max Weight</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {selectedExercise.entries.length}
-              </span>
-              <span className={styles.statLabel}>Sessions</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>
-                {selectedExercise.entries.reduce((acc, e) => acc + e.sets, 0)}
-              </span>
-              <span className={styles.statLabel}>Total Sets</span>
-            </div>
-          </div>
-        </div>
+      {selectedExercises.length === 0 && (
+        <p className={styles.notEnoughData}>
+          Select exercises to compare
+        </p>
       )}
 
-      {/* History */}
-      {selectedExercise && selectedExercise.entries.length > 0 && (
-        <div className={styles.historySection}>
-          <h2 className={styles.sectionTitle}>History</h2>
-          <div className={styles.historyList}>
-            {[...selectedExercise.entries].reverse().map((entry, idx) => (
-              <div key={`${entry.date}-${idx}`} className={styles.historyItem}>
-                <span className={styles.historyDate}>{entry.date}</span>
-                <span className={styles.historyDetails}>
-                  {entry.weight} kg · {entry.sets} sets · {entry.reps} reps
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <ExerciseDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onSelect={() => {}}
+        onSelectMultiple={handleSelectExercises}
+        multiSelect={true}
+        excludeExercises={selectedExercises}
+        includeOnly={availableExercises}
+      />
     </div>
   );
 };

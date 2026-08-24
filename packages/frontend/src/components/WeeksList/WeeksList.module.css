@@ -1,0 +1,103 @@
+.weeksList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: calc(
+    var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 1rem
+  );
+}
+
+@media (min-width: 768px) {
+  .weeksList {
+    padding-bottom: 0;
+  }
+}
+
+.weekCard {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.weekHeader {
+  padding: 0.875rem 1rem;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.weekTitle {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #0f0f0f;
+}
+
+.workoutsList {
+  display: flex;
+  flex-direction: column;
+}
+
+.workoutCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.workoutCard:last-child {
+  border-bottom: none;
+}
+
+.workoutCard:active {
+  background: #f5f5f5;
+}
+
+.workoutCard:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.workoutCardInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.completeIcon {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.incompleteIcon {
+  color: #a1a1a1;
+  flex-shrink: 0;
+}
+
+.workoutCardText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.workoutName {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #0f0f0f;
+}
+
+.workoutDate {
+  font-size: 0.75rem;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.playIcon {
+  color: #a1a1a1;
+  flex-shrink: 0;
+}

@@ -54,11 +54,20 @@ export async function apiFetch(path: string, options: RequestInit = {}): Promise
   if (Capacitor.isNativePlatform()) {
     console.log(`[API Native] ${method} ${url}`);
 
+    // Pass body as-is (string) to avoid Content-Length issues
+    const bodyString = options.body as string | undefined;
+
+    // Set Content-Type if we have a JSON body
+    const nativeHeaders = { ...headers };
+    if (bodyString && !nativeHeaders['Content-Type'] && !nativeHeaders['content-type']) {
+      nativeHeaders['Content-Type'] = 'application/json; charset=utf-8';
+    }
+
     const response = await CapacitorHttp.request({
       url,
       method,
-      headers,
-      data: options.body ? JSON.parse(options.body as string) : undefined,
+      headers: nativeHeaders,
+      data: bodyString,
     });
 
     // Convert CapacitorHttp response to fetch-like Response

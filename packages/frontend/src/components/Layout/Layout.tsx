@@ -9,11 +9,13 @@ import {
   Play,
   ClipboardList,
   Volume2,
+  Pause,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
+import { formatTime } from "../../lib/time";
 import styles from "./Layout.module.css";
 
 const getInitials = (name: string) => {
@@ -46,7 +48,7 @@ const Layout = ({ children }: LayoutProps) => {
     restTimerAnnounceInterval,
     setRestTimerAnnounceInterval,
   } = useSettings();
-  const { activeWorkout } = useWorkout();
+  const { activeWorkout, timer } = useWorkout();
   const { floatingAction } = useQuickWorkout();
   const location = useLocation();
   const navigate = useNavigate();
@@ -55,6 +57,8 @@ const Layout = ({ children }: LayoutProps) => {
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const hasFloatingAction = floatingAction !== null;
+  const isOnWorkoutPage = location.pathname === "/workout";
+  const hasMinimizedWorkout = activeWorkout && !isOnWorkoutPage;
 
   useEffect(() => {
     const checkMobile = () => {
@@ -187,8 +191,8 @@ const Layout = ({ children }: LayoutProps) => {
 
       <main className={`${styles.main} ${activeWorkout ? styles.mainWorkout : ''}`}>{children}</main>
 
-      {/* Mobile Bottom Navigation - hide during active workout */}
-      {isMobile && !activeWorkout && (
+      {/* Mobile Bottom Navigation - hide when on workout page */}
+      {isMobile && !isOnWorkoutPage && (
         <nav className={styles.bottomNav}>
           <NavLink
             to="/programs"
@@ -210,20 +214,24 @@ const Layout = ({ children }: LayoutProps) => {
             <span>Workouts</span>
           </NavLink>
 
-          {/* Center Button - lifts and expands when there's a floating action */}
+          {/* Center Button - shows timer when workout is minimized */}
           <div className={styles.centerBtnWrapper}>
             <button
-              className={`${styles.centerBtn} ${hasFloatingAction ? styles.centerBtnLifted : ''} ${hasFloatingAction && !floatingAction?.enabled ? styles.centerBtnDisabled : ''}`}
+              className={`${styles.centerBtn} ${hasMinimizedWorkout ? styles.centerBtnActive : ''} ${hasFloatingAction ? styles.centerBtnLifted : ''} ${hasFloatingAction && !floatingAction?.enabled ? styles.centerBtnDisabled : ''}`}
               onClick={() => {
-                if (hasFloatingAction && floatingAction?.enabled) {
+                if (hasMinimizedWorkout) {
+                  navigate("/workout");
+                } else if (hasFloatingAction && floatingAction?.enabled) {
                   floatingAction.handler();
                 } else if (!hasFloatingAction) {
                   navigate("/start-workout");
                 }
               }}
             >
-              <Play size={22} />
-              <span className={styles.centerBtnText}>{floatingAction?.label || "Start Workout"}</span>
+              {hasMinimizedWorkout ? <Pause size={22} /> : <Play size={22} />}
+              <span className={styles.centerBtnText}>
+                {hasMinimizedWorkout ? formatTime(timer) : (floatingAction?.label || "Start Workout")}
+              </span>
             </button>
           </div>
 

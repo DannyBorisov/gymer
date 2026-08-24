@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { ChevronRight, Loader2, Plus } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ChevronRight, Loader2, Plus, Check } from "lucide-react";
+import { useSettings } from "../../contexts/SettingsContext";
 import { apiFetch } from "../../utils/api";
 import { formatDate } from "../../lib/date";
 import styles from "./Programs.module.css";
@@ -13,6 +14,8 @@ interface Program {
 }
 
 const Programs = () => {
+  const navigate = useNavigate();
+  const { activeProgram, setActiveProgram } = useSettings();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +42,11 @@ const Programs = () => {
     fetchPrograms();
   }, []);
 
+  const handleProgramClick = (program: Program) => {
+    setActiveProgram({ id: program.id, name: program.name });
+    navigate("/start-workout");
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -56,21 +64,30 @@ const Programs = () => {
         </div>
       ) : (
         <div className={styles.programsList}>
-          {programs.map((program) => (
-            <Link
-              key={program.id}
-              to={`/programs/${program.id}`}
-              className={styles.programCard}
-            >
-              <div className={styles.programInfo}>
-                <span className={styles.programName}>{program.name}</span>
-                <span className={styles.programDate}>
-                  Created {formatDate(program.createdTime)}
-                </span>
-              </div>
-              <ChevronRight size={16} className={styles.chevronIcon} />
-            </Link>
-          ))}
+          {programs.map((program) => {
+            const isActive = activeProgram?.id === program.id;
+            return (
+              <button
+                key={program.id}
+                onClick={() => handleProgramClick(program)}
+                className={`${styles.programCard} ${isActive ? styles.programCardActive : ""}`}
+              >
+                <div className={styles.programInfo}>
+                  <span className={styles.programName}>{program.name}</span>
+                  <span className={styles.programDate}>
+                    Created {formatDate(program.createdTime)}
+                  </span>
+                </div>
+                {isActive ? (
+                  <div className={styles.activeIndicator}>
+                    <Check size={16} />
+                  </div>
+                ) : (
+                  <ChevronRight size={16} className={styles.chevronIcon} />
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 

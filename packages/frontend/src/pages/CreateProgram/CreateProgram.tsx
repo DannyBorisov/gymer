@@ -208,6 +208,8 @@ const CreateProgram = () => {
   const {
     program,
     updateProgramName,
+    updateDuration,
+    updateFrequency,
     addWorkout,
     removeWorkout,
     updateWorkoutName,
@@ -426,6 +428,46 @@ const CreateProgram = () => {
           className={styles.programNameInput}
           placeholder="Program name"
         />
+
+        <div className={styles.programSettings}>
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>
+              <Calendar size={14} />
+              Weeks
+            </label>
+            <input
+              type="number"
+              value={program.durationWeeks}
+              onChange={(e) => updateDuration(Number(e.target.value))}
+              className={styles.settingInput}
+              min={1}
+              max={52}
+              inputMode="numeric"
+            />
+          </div>
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>
+              <Clock size={14} />
+              Times/week
+            </label>
+            <select
+              value={program.frequency}
+              onChange={(e) => {
+                const val = e.target.value;
+                updateFrequency(val === "every-other-day" ? val : Number(val) as 1 | 2 | 3 | 4 | 5 | 6);
+              }}
+              className={styles.settingSelect}
+            >
+              <option value={1}>1x</option>
+              <option value={2}>2x</option>
+              <option value={3}>3x</option>
+              <option value={4}>4x</option>
+              <option value={5}>5x</option>
+              <option value={6}>6x</option>
+              <option value="every-other-day">Every other day</option>
+            </select>
+          </div>
+        </div>
 
         <div className={styles.workoutsContainer}>
           <div className={styles.workoutsHeader}>

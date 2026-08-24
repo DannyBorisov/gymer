@@ -78,7 +78,11 @@ export const getExerciseProgression: RouteHandler = async function (
 
                 const dateMap = exerciseMap.get(exercise)!;
                 if (!dateMap.has(currentWorkoutDate)) {
-                  dateMap.set(currentWorkoutDate, { totalWeight: 0, totalReps: 0, sets: 0 });
+                  dateMap.set(currentWorkoutDate, {
+                    totalWeight: 0,
+                    totalReps: 0,
+                    sets: 0,
+                  });
                 }
 
                 const entry = dateMap.get(currentWorkoutDate)!;

@@ -11,6 +11,7 @@ interface ExerciseDrawerProps {
   currentValue?: string;
   multiSelect?: boolean;
   excludeExercises?: string[];
+  includeOnly?: string[]; // If provided, only show these exercises
 }
 
 export const ExerciseDrawer = ({
@@ -21,6 +22,7 @@ export const ExerciseDrawer = ({
   currentValue = "",
   multiSelect = false,
   excludeExercises = [],
+  includeOnly,
 }: ExerciseDrawerProps) => {
   const [search, setSearch] = useState("");
   const [customName, setCustomName] = useState("");
@@ -86,7 +88,8 @@ export const ExerciseDrawer = ({
   };
 
   // Filter exercises - always show flat list, filtered by search
-  const filteredExercises = uniqueExercises
+  const baseExercises = includeOnly ? includeOnly : uniqueExercises;
+  const filteredExercises = baseExercises
     .filter((ex) => !excludeExercises.includes(ex))
     .filter((ex) =>
       search.trim()
@@ -96,6 +99,7 @@ export const ExerciseDrawer = ({
 
   const showCustomOption =
     search.trim() &&
+    !includeOnly && // Don't allow custom exercises when filtering to specific list
     !uniqueExercises.some(
       (ex) => ex.toLowerCase() === search.toLowerCase()
     ) &&

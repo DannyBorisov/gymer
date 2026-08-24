@@ -2,6 +2,11 @@ import { createContext, useContext, useState, type ReactNode } from 'react'
 
 type WeightUnit = 'kg' | 'lbs'
 
+interface ActiveProgram {
+  id: string
+  name: string
+}
+
 interface SettingsContextType {
   weightUnit: WeightUnit
   setWeightUnit: (unit: WeightUnit) => void
@@ -11,6 +16,8 @@ interface SettingsContextType {
   setRestTimerDuration: (seconds: number) => void
   restTimerAnnounceInterval: number
   setRestTimerAnnounceInterval: (seconds: number) => void
+  activeProgram: ActiveProgram | null
+  setActiveProgram: (program: ActiveProgram | null) => void
 }
 
 const SettingsContext = createContext<SettingsContextType | null>(null)
@@ -30,6 +37,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     return saved !== null ? parseInt(saved, 10) : 60
   })
 
+  const [activeProgram, setActiveProgramState] = useState<ActiveProgram | null>(() => {
+    const saved = localStorage.getItem('activeProgram')
+    return saved ? JSON.parse(saved) : null
+  })
+
   const setShowRestSuggestion = (show: boolean) => {
     setShowRestSuggestionState(show)
     localStorage.setItem('showRestSuggestion', String(show))
@@ -45,6 +57,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('restTimerAnnounceInterval', String(seconds))
   }
 
+  const setActiveProgram = (program: ActiveProgram | null) => {
+    setActiveProgramState(program)
+    if (program) {
+      localStorage.setItem('activeProgram', JSON.stringify(program))
+    } else {
+      localStorage.removeItem('activeProgram')
+    }
+  }
+
   return (
     <SettingsContext.Provider value={{
       weightUnit,
@@ -54,7 +75,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       restTimerDuration,
       setRestTimerDuration,
       restTimerAnnounceInterval,
-      setRestTimerAnnounceInterval
+      setRestTimerAnnounceInterval,
+      activeProgram,
+      setActiveProgram
     }}>
       {children}
     </SettingsContext.Provider>

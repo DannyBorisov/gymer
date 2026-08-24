@@ -265,6 +265,9 @@ export const getWorkoutHistory: RouteHandler = async function (request, reply) {
       );
     }
 
+    // Helper to detect duration format (H:MM:SS or HH:MM:SS)
+    const isDurationFormat = (str: string) => /^\d{1,2}:\d{2}:\d{2}$/.test(str);
+
     // Program workouts - fetch all in parallel
     for (const file of programFiles) {
       fetchPromises.push(
@@ -272,20 +275,32 @@ export const getWorkoutHistory: RouteHandler = async function (request, reply) {
           .get(tokens, file.id, "Sheet1!A:D") // Only fetch columns we need
           .then((data) => {
             if (data && data.length > 1) {
-              const completedWorkouts = new Map<string, string>();
+              const completedWorkouts = new Map<string, { date: string; duration: string }>();
               const workoutExercises = new Map<string, Set<string>>();
 
               for (let i = 1; i < data.length; i++) {
                 const row = data[i];
-                const date = String(row[0] || "");
+                const dateOrDuration = String(row[0] || "");
                 const week = String(row[1] || "");
                 const workoutName = String(row[2] || "");
                 const exercise = String(row[3] || "");
 
                 const key = `${week}|${workoutName}`;
 
-                if (date && week && workoutName && !completedWorkouts.has(key)) {
-                  completedWorkouts.set(key, date);
+                // Check if this is a date row or duration row
+                const isDate = dateOrDuration && !isDurationFormat(dateOrDuration) && dateOrDuration.includes("/");
+                const isDuration = isDurationFormat(dateOrDuration);
+
+                if (isDate && week && workoutName && !completedWorkouts.has(key)) {
+                  completedWorkouts.set(key, { date: dateOrDuration, duration: "" });
+                }
+
+                // Check if next row has duration (same week/workout, duration format in date column)
+                if (isDuration && completedWorkouts.has(key)) {
+                  const workout = completedWorkouts.get(key)!;
+                  if (!workout.duration) {
+                    workout.duration = dateOrDuration;
+                  }
                 }
 
                 if (completedWorkouts.has(key) && exercise) {
@@ -296,15 +311,16 @@ export const getWorkoutHistory: RouteHandler = async function (request, reply) {
                 }
               }
 
-              for (const [key, date] of completedWorkouts) {
+              for (const [key, data] of completedWorkouts) {
                 const [week, workoutName] = key.split("|");
                 const exercises = workoutExercises.get(key) || new Set();
 
                 workouts.push({
-                  id: `${file.id}-${date}-${week}-${workoutName}`,
-                  date,
+                  id: `${file.id}-${data.date}-${week}-${workoutName}`,
+                  date: data.date,
                   name: workoutName,
                   type: "program",
+                  duration: data.duration || undefined,
                   exerciseCount: exercises.size,
                   programId: file.id,
                   programName: file.name,

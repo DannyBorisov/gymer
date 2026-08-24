@@ -4,8 +4,10 @@ import {
   type DynamicIslandLayout,
 } from "capacitor-live-activities";
 import { Capacitor } from "@capacitor/core";
+import { Dialog } from "@capacitor/dialog";
 
 let currentActivityId: string | null = null;
+let hasPromptedForPermission = false;
 let workoutStartTime: number = 0;
 let restStartTime: number | null = null;
 
@@ -238,17 +240,37 @@ const createDynamicIslandLayoutWithRest = (workoutStart: number, restStart: numb
   },
 });
 
+const promptEnableLiveActivities = async (): Promise<void> => {
+  if (hasPromptedForPermission) return;
+  hasPromptedForPermission = true;
+
+  await Dialog.alert({
+    title: "Enable Live Activities",
+    message:
+      "To see your workout timer on the Lock Screen and Dynamic Island, go to Settings → Gymerr → enable Live Activities.",
+    buttonTitle: "OK",
+  });
+};
+
 export const startWorkoutLiveActivity = async (
   workoutName: string,
   exerciseName: string = "",
 ): Promise<void> => {
+  console.log("Live Activity: Attempting to start", {
+    workoutName,
+    isNative: Capacitor.isNativePlatform(),
+    platform: Capacitor.getPlatform()
+  });
+
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") {
+    console.log("Live Activity: Skipping - not iOS native");
     return;
   }
 
   try {
     workoutStartTime = Date.now();
     restStartTime = null;
+    console.log("Live Activity: Calling startActivity...");
 
     const result = await LiveActivities.startActivity({
       layout: createLayout(workoutStartTime),
@@ -263,8 +285,14 @@ export const startWorkoutLiveActivity = async (
     });
     currentActivityId = result.activityId;
     console.log("Live Activity: Started with ID", currentActivityId);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Live Activity: Failed to start", error);
+
+    // Check if the error is because Live Activities are not enabled
+    const errorObj = error as { errorMessage?: string };
+    if (errorObj?.errorMessage?.includes("not enabled")) {
+      promptEnableLiveActivities();
+    }
   }
 };
 
@@ -272,6 +300,7 @@ export const updateRestTimer = async (
   isActive: boolean,
   workoutName: string,
   exerciseName: string = "",
+  startTime?: number,
 ): Promise<void> => {
   if (!currentActivityId || !Capacitor.isNativePlatform()) {
     return;
@@ -285,7 +314,8 @@ export const updateRestTimer = async (
     });
 
     if (isActive) {
-      restStartTime = Date.now();
+      // Use provided start time or current time
+      restStartTime = startTime || Date.now();
       const result = await LiveActivities.startActivity({
         layout: createLayoutWithRest(workoutStartTime, restStartTime),
         dynamicIslandLayout: createDynamicIslandLayoutWithRest(workoutStartTime, restStartTime),

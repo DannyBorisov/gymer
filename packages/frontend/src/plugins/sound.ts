@@ -15,6 +15,7 @@ export interface SpeakOptions {
 export interface ScheduleOptions {
   duration: number; // seconds
   mode: SoundMode;
+  announceInterval?: number; // seconds between announcements
 }
 
 export interface SoundPlugin {

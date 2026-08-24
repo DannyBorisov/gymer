@@ -15,26 +15,35 @@ export function setSoundMode(mode: SoundMode) {
 }
 
 function formatDurationForSpeech(seconds: number): string {
-  if (seconds < 60) {
-    return `${seconds} seconds`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+
+  if (mins === 0) {
+    return `${secs} seconds`;
+  } else if (secs === 0) {
+    if (mins === 1) {
+      return "1 minute";
+    }
+    return `${mins} minutes`;
+  } else {
+    if (mins === 1) {
+      return `1 minute ${secs}`;
+    }
+    return `${mins} minutes ${secs}`;
   }
-  const minutes = seconds / 60;
-  if (minutes === 1) {
-    return "1 minute";
-  }
-  if (minutes === 1.5) {
-    return "1 and a half minutes";
-  }
-  return `${minutes} minutes`;
 }
 
 // Schedule native background sound for when rest timer completes
-export async function scheduleRestTimerNotification(durationSeconds: number) {
+export async function scheduleRestTimerNotification(durationSeconds: number, announceInterval?: number) {
   if (!Capacitor.isNativePlatform()) return;
 
   try {
     const mode = getSoundMode();
-    await Sound.scheduleRestSound({ duration: durationSeconds, mode });
+    await Sound.scheduleRestSound({
+      duration: durationSeconds,
+      mode,
+      announceInterval: announceInterval || 30
+    });
   } catch (e) {
     console.error("Failed to schedule rest sound:", e);
   }

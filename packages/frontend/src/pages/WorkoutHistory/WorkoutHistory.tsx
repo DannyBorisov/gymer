@@ -58,10 +58,23 @@ const WorkoutHistory = () => {
   }
 
   const formatDuration = (duration: string) => {
+    // Handle H:MM:SS or HH:MM:SS format
+    if (duration.includes(':')) {
+      const parts = duration.split(':')
+      if (parts.length === 3) {
+        const hours = parseInt(parts[0], 10)
+        const mins = parseInt(parts[1], 10)
+        if (hours > 0) {
+          return `${hours}h ${mins}m`
+        }
+        return `${mins} min`
+      }
+    }
+    // Handle seconds as number
     const seconds = parseInt(duration, 10)
     if (isNaN(seconds)) return duration
     const mins = Math.floor(seconds / 60)
-    return `${mins}m`
+    return `${mins} min`
   }
 
   const handleWorkoutClick = (workout: Workout) => {

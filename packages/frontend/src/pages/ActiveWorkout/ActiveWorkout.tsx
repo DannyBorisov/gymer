@@ -8,7 +8,6 @@ import {
   Check,
   MessageSquare,
   Copy,
-  History,
   Timer,
   Plus,
   MoreVertical,
@@ -81,7 +80,10 @@ const ActiveWorkout = () => {
   const exerciseTabsRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+  const touchEndY = useRef<number>(0);
   const minSwipeDistance = 50;
+  const minSwipeDownDistance = 100;
 
   // Redirect if no active workout
   useEffect(() => {
@@ -112,19 +114,20 @@ const ActiveWorkout = () => {
 
   // Start rest timer
   const startRestTimer = (exerciseName: string) => {
+    const startTime = Date.now();
     setRestTimer(0);
-    setRestTimerStartTime(Date.now());
+    setRestTimerStartTime(startTime);
     setIsRestTimerActive(true);
     setShowRestSuggestion(false);
     setHasVibrated(false);
     unlockAudio(); // Unlock audio on iOS for notification sound
-    scheduleRestTimerNotification(restTimerDuration); // Schedule background notification
+    scheduleRestTimerNotification(restTimerDuration, restTimerAnnounceInterval); // Schedule background notification with announcements
     if (suggestionTimeoutRef.current) {
       clearTimeout(suggestionTimeoutRef.current);
     }
-    // Update Live Activity to show rest timer
+    // Update Live Activity to show rest timer with same start time
     if (activeWorkout) {
-      updateRestTimer(true, activeWorkout.workout.name, exerciseName);
+      updateRestTimer(true, activeWorkout.workout.name, exerciseName, startTime);
     }
   };
 
@@ -143,7 +146,7 @@ const ActiveWorkout = () => {
     }
   };
 
-  // Swipe gesture handlers
+  // Swipe gesture handlers for set navigation
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchEndX.current = e.touches[0].clientX;
@@ -161,6 +164,29 @@ const ActiveWorkout = () => {
       } else if (swipeDistance < 0 && currentIdx > 0) {
         setCurrentSetIndex(currentIdx - 1);
       }
+    }
+  };
+
+  // Swipe down to minimize workout
+  const handleSwipeDownStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchEndY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleSwipeDownMove = (e: React.TouchEvent) => {
+    touchEndY.current = e.touches[0].clientY;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleSwipeDownEnd = () => {
+    const verticalDistance = touchEndY.current - touchStartY.current;
+    const horizontalDistance = Math.abs(touchEndX.current - touchStartX.current);
+    // Only trigger if it's a downward swipe and more vertical than horizontal
+    if (verticalDistance > minSwipeDownDistance && verticalDistance > horizontalDistance) {
+      // Minimize workout - navigate to start workout
+      navigate("/start-workout");
     }
   };
 
@@ -190,8 +216,13 @@ const ActiveWorkout = () => {
     }
   }, [restTimer, restTimerDuration, isRestTimerActive, hasVibrated]);
 
-  // Voice announcement at intervals during rest timer
+  // Voice announcement at intervals during rest timer (web only - native handles its own)
   useEffect(() => {
+    // Native plugin handles announcements on iOS/Android
+    const isNative = typeof (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform === 'function'
+      && (window as unknown as { Capacitor: { isNativePlatform: () => boolean } }).Capacitor.isNativePlatform();
+    if (isNative) return;
+
     if (
       isRestTimerActive &&
       restTimerAnnounceInterval > 0 &&
@@ -370,9 +401,14 @@ const ActiveWorkout = () => {
 
   return (
     <div className={styles.workoutContainer}>
-      {/* Sticky header with timer */}
+      {/* Sticky header with timer - swipe down to minimize */}
       {!isWorkoutComplete && (
-        <div className={styles.stickyHeader}>
+        <div
+          className={styles.stickyHeader}
+          onTouchStart={handleSwipeDownStart}
+          onTouchMove={handleSwipeDownMove}
+          onTouchEnd={handleSwipeDownEnd}
+        >
           <div className={styles.workoutHeader}>
             <div className={styles.timerSection}>
               <span className={styles.timer}>{formatTime(timer)}</span>
@@ -451,9 +487,6 @@ const ActiveWorkout = () => {
                 className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
               >
                 <span className={styles.exerciseTabName}>{name}</span>
-                <span className={styles.exerciseTabCount}>
-                  {completedInExercise}/{sets.length}
-                </span>
               </button>
             );
           })}
@@ -529,12 +562,15 @@ const ActiveWorkout = () => {
               >
                 <ChevronLeft size={20} />
               </button>
-              <span className={styles.setLabel}>
-                Set {currentSet.set}/{currentExerciseSets.length}
-                {isSetCompleted && (
-                  <Check size={14} className={styles.setDoneIcon} />
-                )}
-              </span>
+              <div className={styles.setLabel}>
+                <span className={styles.setExerciseName}>{currentExerciseName}</span>
+                <span className={styles.setCount}>
+                  Set {currentSet.set}/{currentExerciseSets.length}
+                  {isSetCompleted && (
+                    <Check size={14} className={styles.setDoneIcon} />
+                  )}
+                </span>
+              </div>
               <button
                 className={styles.setNavBtn}
                 onClick={() =>
@@ -553,47 +589,6 @@ const ActiveWorkout = () => {
 
             {/* Quick fill options */}
             <div className={styles.quickFillContainer}>
-              {prevStats && prevStats.sets[currentSetIndex] && (
-                <button
-                  className={styles.prevStats}
-                  onClick={() => {
-                    const stats = prevStats.sets[currentSetIndex];
-                    if (stats.weight) {
-                      updateExercise(
-                        currentSet.rowIndex,
-                        "weight",
-                        stats.weight,
-                      );
-                    }
-                    if (stats.reps) {
-                      updateExercise(
-                        currentSet.rowIndex,
-                        "repsAchieved",
-                        stats.reps,
-                      );
-                    }
-                    if (stats.rir) {
-                      updateExercise(
-                        currentSet.rowIndex,
-                        "rirAchieved",
-                        stats.rir,
-                      );
-                    }
-                  }}
-                >
-                  <div className={styles.prevStatsHeader}>
-                    <History size={14} />
-                    <span>
-                      Week {prevStats.week}:{" "}
-                      {prevStats.sets[currentSetIndex].weight}
-                      {weightUnit} × {prevStats.sets[currentSetIndex].reps}
-                      {prevStats.sets[currentSetIndex].rir &&
-                        ` @ ${prevStats.sets[currentSetIndex].rir}`}
-                    </span>
-                  </div>
-                </button>
-              )}
-
               {!isWorkoutComplete &&
                 previousSet &&
                 getRow(previousSet.rowIndex)?.weight && (
@@ -630,6 +625,7 @@ const ActiveWorkout = () => {
                 inputMode="decimal"
                 placeholder="0"
                 onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
+                hint={prevStats?.sets[currentSetIndex]?.weight}
               />
               <ScrollableInput
                 label="Reps"
@@ -643,6 +639,7 @@ const ActiveWorkout = () => {
                 step={1}
                 placeholder={currentSet.targetReps.toString()}
                 onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
+                hint={prevStats?.sets[currentSetIndex]?.reps}
               />
               <ScrollableInput
                 label="RIR"
@@ -656,6 +653,7 @@ const ActiveWorkout = () => {
                 step={1}
                 placeholder={currentSet.rir}
                 max={10}
+                hint={prevStats?.sets[currentSetIndex]?.rir}
               />
             </div>
 

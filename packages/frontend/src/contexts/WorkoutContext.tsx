@@ -131,6 +131,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const timerStartRef = useRef<number>(0);
   const hasUnsavedChangesRef = useRef(false);
+  const workoutDataRef = useRef<ExerciseRow[]>([]);
 
   // Wake Lock - keep screen on during workout
   useEffect(() => {
@@ -193,6 +194,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [isTimerRunning]);
 
+  // Keep workoutDataRef in sync with state
+  useEffect(() => {
+    workoutDataRef.current = workoutData;
+  }, [workoutData]);
+
   // Live Activity timer auto-updates natively - no need to send updates from app
 
   const saveWorkout = async (includeDate = false) => {
@@ -243,41 +249,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const saveQuickWorkout = async () => {
-    if (!activeWorkout || workoutData.length === 0) return;
-
-    const validSets = workoutData.filter((s) => s.weight || s.repsAchieved);
-    if (validSets.length === 0) return;
-
-    setIsSaving(true);
-    try {
-      const response = await apiFetch("/api/quick-workouts/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workoutId: `quick-${Date.now()}`,
-          duration: formatDuration(timer),
-          sets: validSets.map((s) => ({
-            exercise: s.exercise,
-            set: s.set,
-            weight: s.weight,
-            reps: s.repsAchieved,
-            rir: s.rirAchieved,
-            notes: s.notes,
-          })),
-        }),
-      });
-
-      if (!response.ok) {
-        console.error("Failed to save quick workout");
-      }
-    } catch (error) {
-      console.error("Failed to save quick workout:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   // Auto-save every 5 seconds during active workout
   useEffect(() => {
     if (!activeWorkout) return;
@@ -299,6 +270,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     name: string
   ) => {
     const exercises = workout.exercises.map((ex) => ({ ...ex }));
+    workoutDataRef.current = exercises;
     setWorkoutData(exercises);
     setActiveWorkout({ programId, week, workout });
     setProgram(programData);
@@ -393,6 +365,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       isComplete: false,
     };
 
+    workoutDataRef.current = exerciseRows;
     setWorkoutData(exerciseRows);
     setActiveWorkout({ programId: "quick", week: 1, workout: quickWorkout });
     setProgram([]);
@@ -437,7 +410,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    setWorkoutData(prev => [...prev, ...newRows]);
+    workoutDataRef.current = [...workoutDataRef.current, ...newRows];
+    setWorkoutData(workoutDataRef.current);
   };
 
   const stopWorkout = async () => {
@@ -456,6 +430,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       await saveWorkout(false);
     }
     setActiveWorkout(null);
+    workoutDataRef.current = [];
     setWorkoutData([]);
     setTimer(0);
     setDuration(null);
@@ -473,11 +448,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     field: "weight" | "repsAchieved" | "rirAchieved" | "notes",
     value: string,
   ) => {
-    setWorkoutData((prev) =>
-      prev.map((row) =>
-        row.rowIndex === rowIndex ? { ...row, [field]: value } : row
-      )
+    // Update ref immediately to avoid race conditions
+    workoutDataRef.current = workoutDataRef.current.map((row) =>
+      row.rowIndex === rowIndex ? { ...row, [field]: value } : row
     );
+    setWorkoutData(workoutDataRef.current);
     setHasUnsavedChanges(true);
     hasUnsavedChangesRef.current = true;
   };
@@ -487,36 +462,59 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     field: "weight" | "repsAchieved" | "rirAchieved",
     delta: number,
   ) => {
-    setWorkoutData((prev) =>
-      prev.map((row) => {
-        if (row.rowIndex !== rowIndex) return row;
-        const currentValue = parseFloat(row[field]) || 0;
-        const newValue = Math.max(0, currentValue + delta);
-        return { ...row, [field]: newValue.toString() };
-      })
-    );
+    // Update ref immediately to avoid race conditions
+    workoutDataRef.current = workoutDataRef.current.map((row) => {
+      if (row.rowIndex !== rowIndex) return row;
+      const currentValue = parseFloat(row[field]) || 0;
+      const newValue = Math.max(0, currentValue + delta);
+      return { ...row, [field]: newValue.toString() };
+    });
+    setWorkoutData(workoutDataRef.current);
     setHasUnsavedChanges(true);
     hasUnsavedChangesRef.current = true;
   };
 
   const completeSet = (rowIndex: number) => {
-    // Build updated data synchronously first
-    const newData = workoutData.map((row) =>
+    // Build updated data from ref (always has latest data, avoids race conditions)
+    const newData = workoutDataRef.current.map((row) =>
       row.rowIndex === rowIndex && !row.repsAchieved
         ? { ...row, repsAchieved: row.targetReps.toString() }
         : row
     );
 
-    // Update state
+    // Update both ref and state
+    workoutDataRef.current = newData;
     setWorkoutData(newData);
     setCompletedSets((prev) => new Set([...prev, rowIndex]));
 
-    // Save data immediately (without date) - only for program workouts
-    if (!isQuickWorkout) {
-      const doSave = async () => {
-        if (!activeWorkout) return;
-        setIsSaving(true);
-        try {
+    // Save data immediately
+    const doSave = async () => {
+      if (!activeWorkout) return;
+      setIsSaving(true);
+      try {
+        if (isQuickWorkout) {
+          // Save quick workout
+          const validSets = newData.filter((s) => s.weight || s.repsAchieved);
+          if (validSets.length > 0) {
+            await apiFetch("/api/quick-workouts/save", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                workoutId: `quick-${Date.now()}`,
+                duration: formatDuration(timer),
+                sets: validSets.map((s) => ({
+                  exercise: s.exercise,
+                  set: s.set,
+                  weight: s.weight,
+                  reps: s.repsAchieved,
+                  rir: s.rirAchieved,
+                  notes: s.notes,
+                })),
+              }),
+            });
+          }
+        } else {
+          // Save program workout
           const updates = newData.map((r) => ({
             rowIndex: r.rowIndex,
             weight: r.weight,
@@ -530,17 +528,17 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ updates }),
           });
-
-          setHasUnsavedChanges(false);
-          hasUnsavedChangesRef.current = false;
-        } catch (error) {
-          console.error("Failed to save:", error);
-        } finally {
-          setIsSaving(false);
         }
-      };
-      doSave();
-    }
+
+        setHasUnsavedChanges(false);
+        hasUnsavedChangesRef.current = false;
+      } catch (error) {
+        console.error("Failed to save:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+    doSave();
 
     // Auto-advance to next set
     const groupedByExercise = Object.values(
@@ -564,14 +562,15 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const completeWorkout = async (rowIndex: number) => {
-    // Build updated data synchronously first
-    const newData = workoutData.map((row) =>
+    // Build updated data from ref (always has latest data, avoids race conditions)
+    const newData = workoutDataRef.current.map((row) =>
       row.rowIndex === rowIndex && !row.repsAchieved
         ? { ...row, repsAchieved: row.targetReps.toString() }
         : row
     );
 
-    // Update state
+    // Update both ref and state
+    workoutDataRef.current = newData;
     setWorkoutData(newData);
     setCompletedSets((prev) => new Set([...prev, rowIndex]));
     setDuration(timer);
@@ -579,21 +578,46 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     if (!activeWorkout) return;
 
+    const updates = newData.map((r) => ({
+      rowIndex: r.rowIndex,
+      weight: r.weight,
+      repsAchieved: r.repsAchieved,
+      rirAchieved: r.rirAchieved,
+      notes: r.notes,
+    }));
+
     if (isQuickWorkout) {
       // Save quick workout
-      await saveQuickWorkout();
+      const validSets = newData.filter((s) => s.weight || s.repsAchieved);
+      if (validSets.length > 0) {
+        setIsSaving(true);
+        try {
+          await apiFetch("/api/quick-workouts/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workoutId: `quick-${Date.now()}`,
+              duration: formatDuration(timer),
+              sets: validSets.map((s) => ({
+                exercise: s.exercise,
+                set: s.set,
+                weight: s.weight,
+                reps: s.repsAchieved,
+                rir: s.rirAchieved,
+                notes: s.notes,
+              })),
+            }),
+          });
+        } catch (error) {
+          console.error("Failed to save quick workout:", error);
+        } finally {
+          setIsSaving(false);
+        }
+      }
     } else {
-      // Save program workout with date
+      // Save program workout with data, date, and duration in a single call
       setIsSaving(true);
       try {
-        const updates = newData.map((r) => ({
-          rowIndex: r.rowIndex,
-          weight: r.weight,
-          repsAchieved: r.repsAchieved,
-          rirAchieved: r.rirAchieved,
-          notes: r.notes,
-        }));
-
         const firstRowIndex = Math.min(...newData.map((r) => r.rowIndex));
         const completedDate = formatTodayDDMMYYYY();
         const durationStr = formatDuration(timer);
@@ -601,13 +625,18 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ updates, completedDate, dateRowIndex: firstRowIndex, duration: durationStr }),
+          body: JSON.stringify({
+            updates,
+            completedDate,
+            dateRowIndex: firstRowIndex,
+            duration: durationStr
+          }),
         });
 
         setHasUnsavedChanges(false);
         hasUnsavedChangesRef.current = false;
       } catch (error) {
-        console.error("Failed to save:", error);
+        console.error("[completeWorkout] Failed to save:", error);
       } finally {
         setIsSaving(false);
       }
