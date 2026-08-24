@@ -15,6 +15,8 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     ]
 
     private let synthesizer = AVSpeechSynthesizer()
+    private var audioEngine: AVAudioEngine?
+    private var playerNode: AVAudioPlayerNode?
     private var timer: Timer?
     private var elapsedSeconds: Int = 0
     private var announceInterval: Int = 30
@@ -43,14 +45,44 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         // Preload voice
         _ = AVSpeechSynthesisVoice(language: "en-US")
 
-        // Warm up speech synthesizer with silent utterance
-        let silentUtterance = AVSpeechUtterance(string: " ")
-        silentUtterance.volume = 0
-        silentUtterance.rate = AVSpeechUtteranceMaximumSpeechRate
-        synthesizer.speak(silentUtterance)
+        // Setup audio engine for background support
+        let engine = AVAudioEngine()
+        let player = AVAudioPlayerNode()
 
-        DispatchQueue.main.async {
-            self.isAudioReady = true
+        engine.attach(player)
+
+        let sampleRate: Double = 44100
+        let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 2)!
+        let frameCount = AVAudioFrameCount(sampleRate) // 1 second buffer
+
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount) else { return }
+        buffer.frameLength = frameCount
+
+        // Fill with silence
+        if let channelData = buffer.floatChannelData {
+            for channel in 0..<Int(format.channelCount) {
+                memset(channelData[channel], 0, Int(frameCount) * MemoryLayout<Float>.size)
+            }
+        }
+
+        engine.connect(player, to: engine.mainMixerNode, format: format)
+        engine.mainMixerNode.outputVolume = 0.001
+
+        do {
+            try engine.start()
+            player.scheduleBuffer(buffer, at: nil, options: .loops)
+            player.play()
+
+            DispatchQueue.main.async {
+                self.audioEngine = engine
+                self.playerNode = player
+                self.isAudioReady = true
+            }
+        } catch {
+            print("Audio engine error: \(error)")
+            DispatchQueue.main.async {
+                self.isAudioReady = true
+            }
         }
     }
 
@@ -127,6 +159,14 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     private func stopEverything() {
         stopTimer()
         isRunning = false
+        // Keep audio engine running for next use
+    }
+
+    private func stopAudioEngine() {
+        playerNode?.stop()
+        audioEngine?.stop()
+        playerNode = nil
+        audioEngine = nil
     }
 
     private func tick() {
@@ -164,11 +204,11 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
 
     // AVSpeechSynthesizerDelegate
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        isSpeaking = false
+        // Speech finished
     }
 
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        isSpeaking = false
+        // Speech cancelled
     }
 
     private func formatDuration(_ totalSeconds: Int) -> String {
