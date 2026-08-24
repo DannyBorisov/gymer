@@ -11,6 +11,8 @@ import {
   Timer,
   Plus,
   MoreVertical,
+  SkipForward,
+  History,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
@@ -355,6 +357,18 @@ const ActiveWorkout = () => {
     }
   };
 
+  const copyFromLastWeek = (rowIndex: number, stats: { weight?: string | number; reps?: string | number; rir?: string | number }) => {
+    if (stats.weight) {
+      updateExercise(rowIndex, "weight", String(stats.weight));
+    }
+    if (stats.reps) {
+      updateExercise(rowIndex, "repsAchieved", String(stats.reps));
+    }
+    if (stats.rir) {
+      updateExercise(rowIndex, "rirAchieved", String(stats.rir));
+    }
+  };
+
   if (!activeWorkout) {
     return null;
   }
@@ -400,16 +414,22 @@ const ActiveWorkout = () => {
     );
 
   return (
-    <div className={styles.workoutContainer}>
-      {/* Sticky header with timer - swipe down to minimize */}
-      {!isWorkoutComplete && (
-        <div
-          className={styles.stickyHeader}
-          onTouchStart={handleSwipeDownStart}
-          onTouchMove={handleSwipeDownMove}
-          onTouchEnd={handleSwipeDownEnd}
-        >
-          <div className={styles.workoutHeader}>
+    <div className={styles.workoutDrawer}>
+      {/* Drawer handle */}
+      <div
+        className={styles.drawerHandle}
+        onTouchStart={handleSwipeDownStart}
+        onTouchMove={handleSwipeDownMove}
+        onTouchEnd={handleSwipeDownEnd}
+      >
+        <div className={styles.drawerHandleBar} />
+      </div>
+
+      <div className={styles.workoutContainer}>
+        {/* Sticky header with timer */}
+        {!isWorkoutComplete && (
+          <div className={styles.stickyHeader}>
+            <div className={styles.workoutHeader}>
             <div className={styles.timerSection}>
               <span className={styles.timer}>{formatTime(timer)}</span>
               {/* More options menu */}
@@ -423,6 +443,18 @@ const ActiveWorkout = () => {
                 </button>
                 {showMoreMenu && (
                   <div className={styles.moreMenu}>
+                    {currentSetIndex < currentExerciseSets.length - 1 && (
+                      <button
+                        className={styles.moreMenuItemNeutral}
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          setCurrentSetIndex(currentSetIndex + 1);
+                        }}
+                      >
+                        <SkipForward size={16} />
+                        <span>Skip set</span>
+                      </button>
+                    )}
                     <button
                       className={styles.moreMenuItem}
                       onClick={() => {
@@ -450,9 +482,9 @@ const ActiveWorkout = () => {
             </div>
           </div>
         </div>
-      )}
+        )}
 
-      {/* Workout complete banner */}
+        {/* Workout complete banner */}
       {isWorkoutComplete && (
         <div className={styles.workoutCompleteBanner}>
           <Check size={24} />
@@ -590,6 +622,18 @@ const ActiveWorkout = () => {
             {/* Quick fill options */}
             <div className={styles.quickFillContainer}>
               {!isWorkoutComplete &&
+                prevStats?.sets[currentSetIndex] && (
+                  <button
+                    onClick={() =>
+                      copyFromLastWeek(currentSet.rowIndex, prevStats.sets[currentSetIndex])
+                    }
+                    className={styles.lastWeekBtn}
+                  >
+                    <History size={14} />
+                    Last: {prevStats.sets[currentSetIndex].weight}{weightUnit} × {prevStats.sets[currentSetIndex].reps}
+                  </button>
+                )}
+              {!isWorkoutComplete &&
                 previousSet &&
                 getRow(previousSet.rowIndex)?.weight && (
                   <button
@@ -625,7 +669,6 @@ const ActiveWorkout = () => {
                 inputMode="decimal"
                 placeholder="0"
                 onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
-                hint={prevStats?.sets[currentSetIndex]?.weight}
               />
               <ScrollableInput
                 label="Reps"
@@ -639,7 +682,7 @@ const ActiveWorkout = () => {
                 step={1}
                 placeholder={currentSet.targetReps.toString()}
                 onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
-                hint={prevStats?.sets[currentSetIndex]?.reps}
+                target={currentSet.targetReps}
               />
               <ScrollableInput
                 label="RIR"
@@ -653,7 +696,7 @@ const ActiveWorkout = () => {
                 step={1}
                 placeholder={currentSet.rir}
                 max={10}
-                hint={prevStats?.sets[currentSetIndex]?.rir}
+                target={currentSet.rir}
               />
             </div>
 
@@ -699,6 +742,7 @@ const ActiveWorkout = () => {
                 />
               </>
             )}
+
           </div>
 
           <div className={styles.buttonsContainer}>
@@ -744,15 +788,16 @@ const ActiveWorkout = () => {
             )}
           </div>
         </div>
-      )}
+        )}
 
-      {/* Add Exercise Drawer */}
-      <ExerciseDrawer
-        isOpen={showAddExercise}
-        onClose={() => setShowAddExercise(false)}
-        onSelect={handleAddExercise}
-        excludeExercises={groupedByExercise.map(([name]) => name)}
-      />
+        {/* Add Exercise Drawer */}
+        <ExerciseDrawer
+          isOpen={showAddExercise}
+          onClose={() => setShowAddExercise(false)}
+          onSelect={handleAddExercise}
+          excludeExercises={groupedByExercise.map(([name]) => name)}
+        />
+      </div>
     </div>
   );
 };

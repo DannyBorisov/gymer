@@ -1,6 +1,6 @@
 import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
-import { AppProperties, buildQuery } from "../plugins/googleSheets.js";
+import { buildQuery } from "../plugins/googleSheets.js";
 
 export interface ExerciseProgressionEntry {
   date: string;

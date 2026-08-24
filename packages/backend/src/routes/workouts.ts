@@ -5,6 +5,7 @@ import {
   getExercises,
   saveQuickWorkout,
   getWorkoutHistory,
+  getWorkoutDetail,
 } from "../handlers/workouts.js";
 import type { SaveQuickWorkoutRequest } from "../types.js";
 
@@ -22,6 +23,7 @@ const quickWorkoutRoutes: FastifyPluginAsync = async (server) => {
 
 const workoutRoutes: FastifyPluginAsync = async (server) => {
   server.get("/history", { preHandler: requireAuth }, getWorkoutHistory);
+  server.get("/:id", { preHandler: requireAuth }, getWorkoutDetail);
 };
 
 export { quickWorkoutRoutes, workoutRoutes };

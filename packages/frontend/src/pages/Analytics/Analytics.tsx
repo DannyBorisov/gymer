@@ -66,37 +66,38 @@ const Analytics = () => {
     [exercises, selectedExercises]
   );
 
-  // Merge all dates and create chart data with all exercises
+  // Build chart data by entry index (progression order, not dates)
   const chartData = useMemo(() => {
     if (selectedData.length === 0) return [];
 
-    // Get all unique dates across selected exercises
-    const allDates = new Set<string>();
-    selectedData.forEach(ex => {
-      ex.entries.forEach(entry => allDates.add(entry.date));
-    });
+    // Find the max number of entries across all exercises
+    const maxEntries = Math.max(...selectedData.map(ex => ex.entries.length));
 
-    // Sort dates chronologically
-    const sortedDates = Array.from(allDates).sort((a, b) => {
-      const [dayA, monthA, yearA] = a.split("/").map(Number);
-      const [dayB, monthB, yearB] = b.split("/").map(Number);
-      const dateA = new Date(yearA || 2024, monthA - 1, dayA);
-      const dateB = new Date(yearB || 2024, monthB - 1, dayB);
-      return dateA.getTime() - dateB.getTime();
-    });
+    // Build chart data by entry index
+    const data: Record<string, string | number | null>[] = [];
 
-    // Build chart data
-    return sortedDates.map(date => {
-      const [day, month] = date.split("/");
-      const point: Record<string, string | number | null> = { date: `${day}/${month}` };
+    for (let i = 0; i < maxEntries; i++) {
+      const point: Record<string, string | number | null> = {
+        entry: `#${i + 1}`
+      };
 
       selectedData.forEach(ex => {
-        const entry = ex.entries.find(e => e.date === date);
-        point[ex.exercise] = entry ? entry.weight : null;
+        // Sort entries by date to ensure chronological order
+        const sortedEntries = [...ex.entries].sort((a, b) => {
+          const [dayA, monthA, yearA] = a.date.split("/").map(Number);
+          const [dayB, monthB, yearB] = b.date.split("/").map(Number);
+          const dateA = new Date(yearA || 2024, monthA - 1, dayA);
+          const dateB = new Date(yearB || 2024, monthB - 1, dayB);
+          return dateA.getTime() - dateB.getTime();
+        });
+
+        point[ex.exercise] = sortedEntries[i]?.weight ?? null;
       });
 
-      return point;
-    });
+      data.push(point);
+    }
+
+    return data;
   }, [selectedData]);
 
   const handleSelectExercises = (names: string[]) => {
@@ -193,7 +194,7 @@ const Analytics = () => {
                   vertical={false}
                 />
                 <XAxis
-                  dataKey="date"
+                  dataKey="entry"
                   axisLine={{ stroke: "#e5e5e5" }}
                   tickLine={false}
                   tick={{ fontSize: 10, fill: "#a1a1a1" }}
@@ -229,7 +230,7 @@ const Analytics = () => {
                 />
                 {selectedExercises.map((name, idx) => (
                   <Line
-                    key={name}
+                    key={`${name}-${idx}`}
                     type="monotone"
                     dataKey={name}
                     name={name}
@@ -247,7 +248,7 @@ const Analytics = () => {
                       strokeWidth: 2,
                       r: 5,
                     }}
-                    connectNulls={false}
+                    connectNulls={true}
                   />
                 ))}
               </LineChart>

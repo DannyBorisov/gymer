@@ -16,24 +16,12 @@ import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
 import Profile from "./pages/Profile/Profile";
 
 const PageWrapper = ({ children }: { children: React.ReactNode }) => {
-  const pageVariants = {
-    initial: { opacity: 0 },
-    animate: { opacity: 1 },
-    exit: { opacity: 0 },
-  };
-
-  const pageTransition = {
-    duration: 0.08,
-    ease: "easeOut" as const,
-  };
-
   return (
     <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      transition={pageTransition}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.08, ease: "easeOut" }}
       style={{ height: "100%" }}
     >
       {children}
@@ -41,26 +29,62 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const ProtectedRoutes = () => {
+const WorkoutDrawerOverlay = () => {
   const location = useLocation();
+  const isWorkoutRoute = location.pathname === "/workout";
 
   return (
-    <AnimatePresence mode="wait">
-      <PageWrapper key={location.pathname}>
-        <Routes location={location}>
-          <Route path="/programs" element={<Programs />} />
-          <Route path="/programs/create" element={<CreateProgram />} />
-          <Route path="/programs/:id" element={<ProgramDetail />} />
-          <Route path="/workout" element={<ActiveWorkout />} />
-          <Route path="/quick-workout" element={<QuickWorkout />} />
-          <Route path="/weight" element={<Weight />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/workouts" element={<WorkoutHistory />} />
-          <Route path="/start-workout" element={<StartWorkout />} />
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
-      </PageWrapper>
+    <AnimatePresence>
+      {isWorkoutRoute && (
+        <motion.div
+          key="workout-drawer"
+          initial={{ y: "100%" }}
+          animate={{ y: 0 }}
+          exit={{ y: "100%" }}
+          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            overflow: "hidden",
+          }}
+        >
+          <ActiveWorkout />
+        </motion.div>
+      )}
     </AnimatePresence>
+  );
+};
+
+const ProtectedRoutes = () => {
+  const location = useLocation();
+  const isWorkoutRoute = location.pathname === "/workout";
+
+  // Filter out workout route from normal page transitions
+  const displayLocation = isWorkoutRoute
+    ? { ...location, pathname: "/start-workout" } // Show start-workout behind drawer
+    : location;
+
+  return (
+    <>
+      <AnimatePresence mode="wait">
+        <PageWrapper key={displayLocation.pathname}>
+          <Routes location={displayLocation}>
+            <Route path="/programs" element={<Programs />} />
+            <Route path="/programs/create" element={<CreateProgram />} />
+            <Route path="/programs/:id" element={<ProgramDetail />} />
+            <Route path="/workout" element={<StartWorkout />} />
+            <Route path="/quick-workout" element={<QuickWorkout />} />
+            <Route path="/weight" element={<Weight />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/workouts" element={<WorkoutHistory />} />
+            <Route path="/start-workout" element={<StartWorkout />} />
+            <Route path="/profile" element={<Profile />} />
+          </Routes>
+        </PageWrapper>
+      </AnimatePresence>
+      <WorkoutDrawerOverlay />
+    </>
   );
 };
 

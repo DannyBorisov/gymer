@@ -12,21 +12,53 @@
   }
 }
 
+/* Workout Drawer */
+.workoutDrawer {
+  height: 100%;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .workoutDrawer {
+    border-radius: 16px 16px 0 0;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Drawer Handle */
+.drawerHandle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0 6px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.drawerHandle:active {
+  cursor: grabbing;
+}
+
+.drawerHandleBar {
+  width: 36px;
+  height: 5px;
+  background: #d4d4d4;
+  border-radius: 3px;
+}
+
 /* Workout mode container - non-scrollable */
 .workoutContainer {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-}
-
-@media (max-width: 767px) {
-  .workoutContainer {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
-    padding-top: calc(80px + env(safe-area-inset-top, 0px));
-  }
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (min-width: 768px) {
@@ -233,17 +265,7 @@
   flex-shrink: 0;
   background: #fafafa;
   z-index: 10;
-  padding: 1rem;
-}
-
-@media (max-width: 767px) {
-  .stickyHeader {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding-top: calc(1rem + env(safe-area-inset-top, 0px));
-  }
+  padding: 0.5rem 1rem 1rem;
 }
 
 @media (min-width: 768px) {
@@ -803,6 +825,27 @@
   background: #dcfce7;
 }
 
+/* Last Week Stats Button */
+.lastWeekBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: #f5f5f5;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #525252;
+  cursor: pointer;
+  text-align: center;
+}
+
+.lastWeekBtn:active {
+  background: #e5e5e5;
+}
+
 /* ==================== */
 /* Input Section */
 /* ==================== */
@@ -1300,7 +1343,8 @@
   }
 }
 
-.moreMenuItem {
+.moreMenuItem,
+.moreMenuItemNeutral {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -1310,15 +1354,30 @@
   border: none;
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #dc2626;
   cursor: pointer;
   text-align: left;
+}
+
+.moreMenuItem {
+  color: #dc2626;
 }
 
 .moreMenuItem:active {
   background: #fef2f2;
 }
 
-.moreMenuItem + .moreMenuItem {
+.moreMenuItemNeutral {
+  color: #525252;
+}
+
+.moreMenuItemNeutral:active {
+  background: #f5f5f5;
+}
+
+.moreMenuItem + .moreMenuItem,
+.moreMenuItemNeutral + .moreMenuItem,
+.moreMenuItem + .moreMenuItemNeutral,
+.moreMenuItemNeutral + .moreMenuItemNeutral {
   border-top: 1px solid #f0f0f0;
 }
+

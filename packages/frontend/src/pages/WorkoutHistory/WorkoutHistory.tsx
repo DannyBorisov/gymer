@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Loader2, Dumbbell, Zap } from 'lucide-react'
+import { Loader2, Dumbbell, Zap, X, Clock } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
+import { useSettings } from '../../contexts/SettingsContext'
+import { SwipeableDrawer } from '../../components/SwipeableDrawer'
 import styles from './WorkoutHistory.module.css'
 
 interface Workout {
@@ -15,10 +16,31 @@ interface Workout {
   programName?: string
 }
 
+interface WorkoutSet {
+  exercise: string
+  set: number
+  weight: string
+  reps: string
+  rir: string
+  notes: string
+}
+
+interface WorkoutDetail {
+  date: string
+  duration: string
+  exercises: {
+    name: string
+    sets: WorkoutSet[]
+  }[]
+}
+
 const WorkoutHistory = () => {
-  const navigate = useNavigate()
+  const { weightUnit } = useSettings()
   const [workouts, setWorkouts] = useState<Workout[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null)
+  const [workoutDetail, setWorkoutDetail] = useState<WorkoutDetail | null>(null)
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
 
   useEffect(() => {
     const fetchWorkouts = async () => {
@@ -77,10 +99,40 @@ const WorkoutHistory = () => {
     return `${mins} min`
   }
 
-  const handleWorkoutClick = (workout: Workout) => {
-    if (workout.type === 'program' && workout.programId) {
-      navigate(`/programs/${workout.programId}`)
+  const handleWorkoutClick = async (workout: Workout) => {
+    setSelectedWorkout(workout)
+    setWorkoutDetail(null)
+    setIsDetailLoading(true)
+
+    try {
+      let url = `/api/workouts/${encodeURIComponent(workout.id)}?type=${workout.type}`
+
+      if (workout.type === 'program' && workout.programId) {
+        // Parse the workout id to get week and workout name
+        // ID format: programId|date|week|workoutName
+        const parts = workout.id.split('|')
+        const date = parts[1]
+        const week = parts[2]
+        const workoutName = parts[3]
+        url += `&programId=${workout.programId}&date=${encodeURIComponent(date)}&week=${encodeURIComponent(week)}&workout=${encodeURIComponent(workoutName)}`
+      }
+
+      const response = await apiFetch(url)
+      const data = await response.json()
+
+      if (response.ok) {
+        setWorkoutDetail(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch workout details:', err)
+    } finally {
+      setIsDetailLoading(false)
     }
+  }
+
+  const closeDetail = () => {
+    setSelectedWorkout(null)
+    setWorkoutDetail(null)
   }
 
   // Group workouts by date
@@ -127,7 +179,6 @@ const WorkoutHistory = () => {
                     key={workout.id}
                     className={styles.workoutCard}
                     onClick={() => handleWorkoutClick(workout)}
-                    disabled={workout.type === 'quick'}
                   >
                     <div className={styles.workoutIcon}>
                       {workout.type === 'quick' ? (
@@ -156,6 +207,64 @@ const WorkoutHistory = () => {
           ))}
         </div>
       )}
+
+      {/* Workout Detail Drawer */}
+      <SwipeableDrawer isOpen={!!selectedWorkout} onClose={closeDetail} maxHeight="85vh">
+        {selectedWorkout && (
+          <>
+            <div className={styles.drawerHeader}>
+              <div className={styles.drawerHeaderInfo}>
+                <h2 className={styles.drawerTitle}>{selectedWorkout.name}</h2>
+                <div className={styles.drawerMeta}>
+                  <span>{formatDate(selectedWorkout.date)}</span>
+                  {workoutDetail?.duration && (
+                    <>
+                      <span className={styles.metaDot}>·</span>
+                      <Clock size={14} />
+                      <span>{formatDuration(workoutDetail.duration)}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <button className={styles.closeBtn} onClick={closeDetail}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className={styles.drawerContent}>
+              {isDetailLoading ? (
+                <div className={styles.loadingState}>
+                  <Loader2 size={20} className={styles.spinner} />
+                  <span>Loading...</span>
+                </div>
+              ) : workoutDetail ? (
+                <div className={styles.exerciseList}>
+                  {workoutDetail.exercises.map((exercise) => (
+                    <div key={exercise.name} className={styles.exerciseCard}>
+                      <h3 className={styles.exerciseName}>{exercise.name}</h3>
+                      <div className={styles.setsList}>
+                        {exercise.sets.map((set, idx) => (
+                          <div key={idx} className={styles.setRow}>
+                            <span className={styles.setNumber}>{set.set}</span>
+                            <span className={styles.setData}>
+                              {set.weight}{weightUnit} × {set.reps}
+                              {set.rir && <span className={styles.setRir}> @ {set.rir} RIR</span>}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.emptyState}>
+                  <p>Could not load workout details</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </SwipeableDrawer>
     </div>
   )
 }

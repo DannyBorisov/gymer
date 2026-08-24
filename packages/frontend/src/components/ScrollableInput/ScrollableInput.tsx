@@ -15,6 +15,7 @@ interface ScrollableInputProps {
   onInputActivity?: () => void;
   hint?: string | number;
   hintLabel?: string;
+  target?: string | number;
 }
 
 export function ScrollableInput({
@@ -30,6 +31,7 @@ export function ScrollableInput({
   onInputActivity,
   hint,
   hintLabel = "last",
+  target,
 }: ScrollableInputProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -217,6 +219,9 @@ export function ScrollableInput({
           <Minus size={18} />
         </button>
       </div>
+      {target !== undefined && (
+        <span className={styles.target}>target: {target}</span>
+      )}
       {hint !== undefined && (
         <button type="button" className={styles.hint} onClick={handleHintClick}>
           {hintLabel}: {hint}

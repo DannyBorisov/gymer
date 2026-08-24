@@ -23,8 +23,10 @@ class SoundPlugin : Plugin() {
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
     private var restTimer: Timer? = null
-    private var scheduledDuration: Int = 0
-    private var scheduledMode: String = "voice"
+    private var elapsedSeconds: Int = 0
+    private var announceInterval: Int = 30
+    private var isVoiceMode: Boolean = true
+    private var isRunning: Boolean = false
     private val handler = Handler(Looper.getMainLooper())
 
     override fun load() {
@@ -77,25 +79,29 @@ class SoundPlugin : Plugin() {
 
     @PluginMethod
     fun scheduleRestSound(call: PluginCall) {
-        val duration = call.getInt("duration") ?: 60
         val mode = call.getString("mode") ?: "voice"
+        var interval = call.getInt("announceInterval") ?: 30
+        if (interval <= 0) interval = 30
 
         handler.post {
             // Cancel any existing timer
             restTimer?.cancel()
+            restTimer = null
 
-            scheduledDuration = duration
-            scheduledMode = mode
+            announceInterval = interval
+            isVoiceMode = mode == "voice"
+            elapsedSeconds = 0
+            isRunning = true
 
-            // Schedule timer
+            // Start timer that ticks every second
             restTimer = Timer()
-            restTimer?.schedule(object : TimerTask() {
+            restTimer?.scheduleAtFixedRate(object : TimerTask() {
                 override fun run() {
                     handler.post {
-                        playScheduledSound()
+                        tick()
                     }
                 }
-            }, duration * 1000L)
+            }, 1000L, 1000L)
 
             call.resolve()
         }
@@ -106,39 +112,54 @@ class SoundPlugin : Plugin() {
         handler.post {
             restTimer?.cancel()
             restTimer = null
+            isRunning = false
+            tts?.stop()
             call.resolve()
         }
     }
 
-    private fun playScheduledSound() {
-        if (scheduledMode == "voice") {
-            val text = formatDuration(scheduledDuration)
-            requestAudioFocus {
-                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
-                    override fun onDone(utteranceId: String?) {
-                        releaseAudioFocusDelayed(500)
-                    }
-                    override fun onError(utteranceId: String?) {
-                        releaseAudioFocusDelayed(500)
-                    }
-                })
-                tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rest_timer_scheduled")
-            }
-        } else {
-            requestAudioFocus {
-                playBeep()
-                releaseAudioFocusDelayed(1000)
-            }
+    private fun tick() {
+        if (!isRunning) return
+
+        elapsedSeconds += 1
+
+        // Announce at intervals
+        val shouldAnnounce = elapsedSeconds > 0 &&
+                            announceInterval > 0 &&
+                            (elapsedSeconds % announceInterval) == 0 &&
+                            isVoiceMode
+
+        if (shouldAnnounce) {
+            val text = formatDuration(elapsedSeconds)
+            speakText(text)
         }
     }
 
-    private fun formatDuration(seconds: Int): String {
+    private fun speakText(text: String) {
+        requestAudioFocus {
+            tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {}
+                override fun onDone(utteranceId: String?) {
+                    releaseAudioFocusDelayed(500)
+                }
+                override fun onError(utteranceId: String?) {
+                    releaseAudioFocusDelayed(500)
+                }
+            })
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rest_timer_announce")
+        }
+    }
+
+    private fun formatDuration(totalSeconds: Int): String {
+        val mins = totalSeconds / 60
+        val secs = totalSeconds % 60
+
         return when {
-            seconds < 60 -> "$seconds seconds"
-            seconds == 60 -> "1 minute"
-            seconds == 90 -> "1 and a half minutes"
-            else -> "${seconds / 60} minutes"
+            mins == 0 -> "$secs seconds"
+            secs == 0 && mins == 1 -> "1 minute"
+            secs == 0 -> "$mins minutes"
+            mins == 1 -> "1 minute $secs"
+            else -> "$mins minutes $secs"
         }
     }
 
@@ -198,9 +219,11 @@ class SoundPlugin : Plugin() {
     }
 
     override fun handleOnDestroy() {
+        isRunning = false
         tts?.stop()
         tts?.shutdown()
         restTimer?.cancel()
+        restTimer = null
         super.handleOnDestroy()
     }
 }

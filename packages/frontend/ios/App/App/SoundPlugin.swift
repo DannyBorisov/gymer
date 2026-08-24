@@ -23,6 +23,8 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     private var isVoiceMode: Bool = true
     private var isRunning: Bool = false
     private var isAudioReady: Bool = false
+    private var isSpeaking: Bool = false
+    private var lastAnnouncedSecond: Int = 0
 
     public override func load() {
         synthesizer.delegate = self
@@ -132,6 +134,8 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
             self.isVoiceMode = mode == "voice"
             self.elapsedSeconds = 0
             self.isRunning = true
+            self.isSpeaking = false
+            self.lastAnnouncedSecond = 0
 
             // Start timer immediately on main run loop
             self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -154,6 +158,7 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         timer?.invalidate()
         timer = nil
         synthesizer.stopSpeaking(at: .immediate)
+        isSpeaking = false
     }
 
     private func stopEverything() {
@@ -170,22 +175,31 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     }
 
     private func tick() {
+        guard isRunning else { return }
+
         elapsedSeconds += 1
 
         // Announce at intervals (both foreground and background)
         let shouldAnnounce = elapsedSeconds > 0 &&
                             announceInterval > 0 &&
                             (elapsedSeconds % announceInterval) == 0 &&
-                            isVoiceMode
+                            isVoiceMode &&
+                            !isSpeaking &&
+                            elapsedSeconds != lastAnnouncedSecond
 
         if shouldAnnounce {
-            let seconds = elapsedSeconds
-            let text = formatDuration(seconds)
+            lastAnnouncedSecond = elapsedSeconds
+            let text = formatDuration(elapsedSeconds)
             speakText(text: text, rate: 0.52)
         }
     }
 
     private func speakText(text: String, rate: Float) {
+        // Don't overlap speech
+        guard !isSpeaking else { return }
+
+        isSpeaking = true
+
         // Stop any current speech first
         if synthesizer.isSpeaking {
             synthesizer.stopSpeaking(at: .immediate)
@@ -200,15 +214,24 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         utterance.volume = 1.0
 
         synthesizer.speak(utterance)
+
+        // Safety timeout - reset isSpeaking after 5 seconds max
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+            self?.isSpeaking = false
+        }
     }
 
     // AVSpeechSynthesizerDelegate
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        // Speech finished
+        DispatchQueue.main.async {
+            self.isSpeaking = false
+        }
     }
 
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        // Speech cancelled
+        DispatchQueue.main.async {
+            self.isSpeaking = false
+        }
     }
 
     private func formatDuration(_ totalSeconds: Int) -> String {
