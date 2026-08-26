@@ -2,8 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import {
-  ChevronLeft,
-  ChevronRight,
   Square,
   Check,
   MessageSquare,
@@ -82,10 +80,7 @@ const ActiveWorkout = () => {
   const exerciseTabsRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
-  const touchEndY = useRef<number>(0);
   const minSwipeDistance = 50;
-  const minSwipeDownDistance = 100;
 
   // Redirect if no active workout
   useEffect(() => {
@@ -129,7 +124,12 @@ const ActiveWorkout = () => {
     }
     // Update Live Activity to show rest timer with same start time
     if (activeWorkout) {
-      updateRestTimer(true, activeWorkout.workout.name, exerciseName, startTime);
+      updateRestTimer(
+        true,
+        activeWorkout.workout.name,
+        exerciseName,
+        startTime,
+      );
     }
   };
 
@@ -169,29 +169,6 @@ const ActiveWorkout = () => {
     }
   };
 
-  // Swipe down to minimize workout
-  const handleSwipeDownStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchEndY.current = e.touches[0].clientY;
-    touchStartX.current = e.touches[0].clientX;
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleSwipeDownMove = (e: React.TouchEvent) => {
-    touchEndY.current = e.touches[0].clientY;
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleSwipeDownEnd = () => {
-    const verticalDistance = touchEndY.current - touchStartY.current;
-    const horizontalDistance = Math.abs(touchEndX.current - touchStartX.current);
-    // Only trigger if it's a downward swipe and more vertical than horizontal
-    if (verticalDistance > minSwipeDownDistance && verticalDistance > horizontalDistance) {
-      // Minimize workout - navigate to start workout
-      navigate("/start-workout");
-    }
-  };
-
   // Rest timer count up effect
   useEffect(() => {
     if (isRestTimerActive && restTimerStartTime) {
@@ -221,8 +198,15 @@ const ActiveWorkout = () => {
   // Voice announcement at intervals during rest timer (web only - native handles its own)
   useEffect(() => {
     // Native plugin handles announcements on iOS/Android
-    const isNative = typeof (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform === 'function'
-      && (window as unknown as { Capacitor: { isNativePlatform: () => boolean } }).Capacitor.isNativePlatform();
+    const isNative =
+      typeof (
+        window as unknown as {
+          Capacitor?: { isNativePlatform?: () => boolean };
+        }
+      ).Capacitor?.isNativePlatform === "function" &&
+      (
+        window as unknown as { Capacitor: { isNativePlatform: () => boolean } }
+      ).Capacitor.isNativePlatform();
     if (isNative) return;
 
     if (
@@ -274,7 +258,10 @@ const ActiveWorkout = () => {
   // Close more menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+      if (
+        moreMenuRef.current &&
+        !moreMenuRef.current.contains(event.target as Node)
+      ) {
         setShowMoreMenu(false);
       }
     };
@@ -357,7 +344,14 @@ const ActiveWorkout = () => {
     }
   };
 
-  const copyFromLastWeek = (rowIndex: number, stats: { weight?: string | number; reps?: string | number; rir?: string | number }) => {
+  const copyFromLastWeek = (
+    rowIndex: number,
+    stats: {
+      weight?: string | number;
+      reps?: string | number;
+      rir?: string | number;
+    },
+  ) => {
     if (stats.weight) {
       updateExercise(rowIndex, "weight", String(stats.weight));
     }
@@ -414,380 +408,347 @@ const ActiveWorkout = () => {
     );
 
   return (
-    <div className={styles.workoutDrawer}>
-      {/* Drawer handle */}
-      <div
-        className={styles.drawerHandle}
-        onTouchStart={handleSwipeDownStart}
-        onTouchMove={handleSwipeDownMove}
-        onTouchEnd={handleSwipeDownEnd}
-      >
-        <div className={styles.drawerHandleBar} />
-      </div>
-
-      <div className={styles.workoutContainer}>
+    <div className={styles.workoutContainer}>
         {/* Sticky header with timer */}
         {!isWorkoutComplete && (
           <div className={styles.stickyHeader}>
             <div className={styles.workoutHeader}>
-            <div className={styles.timerSection}>
-              <span className={styles.timer}>{formatTime(timer)}</span>
-              {/* More options menu */}
-              <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
-                <button
-                  className={styles.moreBtn}
-                  onClick={() => setShowMoreMenu(!showMoreMenu)}
-                  aria-label="More options"
-                >
-                  <MoreVertical size={20} />
-                </button>
-                {showMoreMenu && (
-                  <div className={styles.moreMenu}>
-                    {currentSetIndex < currentExerciseSets.length - 1 && (
+              <div className={styles.timerSection}>
+                <span className={styles.timer}>{formatTime(timer)}</span>
+                {/* More options menu */}
+                <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
+                  <button
+                    className={styles.moreBtn}
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    aria-label="More options"
+                  >
+                    <MoreVertical size={20} />
+                  </button>
+                  {showMoreMenu && (
+                    <div className={styles.moreMenu}>
+                      {currentSetIndex < currentExerciseSets.length - 1 && (
+                        <button
+                          className={styles.moreMenuItemNeutral}
+                          onClick={() => {
+                            setShowMoreMenu(false);
+                            setCurrentSetIndex(currentSetIndex + 1);
+                          }}
+                        >
+                          <SkipForward size={16} />
+                          <span>Skip set</span>
+                        </button>
+                      )}
                       <button
-                        className={styles.moreMenuItemNeutral}
+                        className={styles.moreMenuItem}
                         onClick={() => {
                           setShowMoreMenu(false);
-                          setCurrentSetIndex(currentSetIndex + 1);
+                          handleStopWorkout();
                         }}
                       >
-                        <SkipForward size={16} />
-                        <span>Skip set</span>
+                        <Square size={16} />
+                        <span>End workout</span>
                       </button>
-                    )}
-                    <button
-                      className={styles.moreMenuItem}
-                      onClick={() => {
-                        setShowMoreMenu(false);
-                        handleStopWorkout();
-                      }}
-                    >
-                      <Square size={16} />
-                      <span>End workout</span>
-                    </button>
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className={styles.progressSection}>
-              <div className={styles.progressBar}>
-                <div
-                  className={styles.progressFill}
-                  style={{ width: `${(completedCount / totalSets) * 100}%` }}
-                />
+              <div className={styles.progressSection}>
+                <div className={styles.progressBar}>
+                  <div
+                    className={styles.progressFill}
+                    style={{ width: `${(completedCount / totalSets) * 100}%` }}
+                  />
+                </div>
+                <span className={styles.progressText}>
+                  {completedCount}/{totalSets}
+                </span>
               </div>
-              <span className={styles.progressText}>
-                {completedCount}/{totalSets}
-              </span>
             </div>
           </div>
-        </div>
         )}
 
         {/* Workout complete banner */}
-      {isWorkoutComplete && (
-        <div className={styles.workoutCompleteBanner}>
-          <Check size={24} />
-          <div>
-            <span className={styles.completeTitle}>Workout Complete!</span>
-            <span className={styles.completeSubtitle}>
-              All {totalSets} sets finished
-              {duration !== null && ` • ${formatTime(duration)}`}
-            </span>
+        {isWorkoutComplete && (
+          <div className={styles.workoutCompleteBanner}>
+            <Check size={24} />
+            <div>
+              <span className={styles.completeTitle}>Workout Complete!</span>
+              <span className={styles.completeSubtitle}>
+                All {totalSets} sets finished
+                {duration !== null && ` • ${formatTime(duration)}`}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Exercise tabs */}
+        <div className={styles.exerciseTabsWrapper}>
+          <div className={styles.exerciseTabs} ref={exerciseTabsRef}>
+            {groupedByExercise.map(([name, sets], idx) => {
+              const completedInExercise = sets.filter((s) => {
+                const data = getRow(s.rowIndex);
+                return data?.weight && data?.repsAchieved;
+              }).length;
+              const isComplete = completedInExercise === sets.length;
+              const isCurrent = idx === currentExerciseIndex;
+              return (
+                <button
+                  key={name}
+                  onClick={() => {
+                    setCurrentExerciseIndex(idx);
+                    setCurrentSetIndex(0);
+                    setShowNotes(false);
+                  }}
+                  className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
+                >
+                  <span className={styles.exerciseTabName}>{name}</span>
+                </button>
+              );
+            })}
+            {!isWorkoutComplete && (
+              <button
+                onClick={() => setShowAddExercise(true)}
+                className={styles.addExerciseTab}
+              >
+                <Plus size={16} />
+              </button>
+            )}
           </div>
         </div>
-      )}
 
-      {/* Exercise tabs */}
-      <div className={styles.exerciseTabsWrapper}>
-        <div className={styles.exerciseTabs} ref={exerciseTabsRef}>
-          {groupedByExercise.map(([name, sets], idx) => {
-            const completedInExercise = sets.filter((s) => {
-              const data = getRow(s.rowIndex);
-              return data?.weight && data?.repsAchieved;
-            }).length;
-            const isComplete = completedInExercise === sets.length;
-            const isCurrent = idx === currentExerciseIndex;
-            return (
-              <button
-                key={name}
-                onClick={() => {
-                  setCurrentExerciseIndex(idx);
-                  setCurrentSetIndex(0);
-                  setShowNotes(false);
-                }}
-                className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
-              >
-                <span className={styles.exerciseTabName}>{name}</span>
-              </button>
-            );
-          })}
-          {!isWorkoutComplete && (
-            <button
-              onClick={() => setShowAddExercise(true)}
-              className={styles.addExerciseTab}
-            >
-              <Plus size={16} />
-            </button>
-          )}
+        {/* Current exercise info */}
+        <div className={styles.currentExerciseInfo}>
+          <span className={styles.currentExerciseName}>
+            {currentExerciseName}
+          </span>
+          <span className={styles.currentExerciseMeta}>
+            {currentSet?.targetReps} reps @ {currentSet?.rir} RIR
+          </span>
         </div>
-      </div>
 
-      {/* Current exercise info */}
-      <div className={styles.currentExerciseInfo}>
-        <span className={styles.currentExerciseName}>
-          {currentExerciseName}
-        </span>
-        <span className={styles.currentExerciseMeta}>
-          {currentSet?.targetReps} reps @ {currentSet?.rir}
-        </span>
-      </div>
-
-      {/* Set indicators */}
-      <div className={styles.setIndicators}>
-        {currentExerciseSets.map((set, idx) => {
-          const setData = getRow(set.rowIndex);
-          const setIsDone = setData?.weight && setData?.repsAchieved;
-          return (
-            <button
-              key={set.rowIndex}
-              onClick={() => {
-                setCurrentSetIndex(idx);
-                setShowNotes(false);
-              }}
-              className={`${styles.setIndicator} ${
-                idx === currentSetIndex ? styles.setIndicatorActive : ""
-              } ${setIsDone ? styles.setIndicatorDone : ""}`}
-            >
-              {setIsDone ? <Check size={14} /> : set.set}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Current set input */}
-      {currentSet && (
-        <div
-          className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ""}`}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={() =>
-            handleTouchEnd(currentExerciseSets.length, currentSetIndex)
-          }
-        >
-          {/* Set complete animation overlay */}
-          {showSetComplete && (
-            <div className={styles.setCompleteOverlay}>
-              <div className={styles.setCompleteIcon}>
-                <Check size={48} strokeWidth={3} />
+        {/* Current set input */}
+        {currentSet && (
+          <div
+            className={`${styles.focusCard} ${isSetCompleted ? styles.focusCardDone : ""}`}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={() =>
+              handleTouchEnd(currentExerciseSets.length, currentSetIndex)
+            }
+          >
+            {/* Set complete animation overlay */}
+            {showSetComplete && (
+              <div className={styles.setCompleteOverlay}>
+                <div className={styles.setCompleteIcon}>
+                  <Check size={48} strokeWidth={3} />
+                </div>
               </div>
-            </div>
-          )}
-          <div className={styles.inputsCenter}>
-            <div className={styles.setHeader}>
-              <button
-                className={styles.setNavBtn}
-                onClick={() =>
-                  setCurrentSetIndex(Math.max(0, currentSetIndex - 1))
-                }
-                disabled={currentSetIndex === 0}
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <div className={styles.setLabel}>
-                <span className={styles.setExerciseName}>{currentExerciseName}</span>
-                <span className={styles.setCount}>
-                  Set {currentSet.set}/{currentExerciseSets.length}
-                  {isSetCompleted && (
-                    <Check size={14} className={styles.setDoneIcon} />
-                  )}
-                </span>
+            )}
+            <div className={styles.inputsCenter}>
+              {/* Set dots */}
+              <div className={styles.setDots}>
+                {currentExerciseSets.map((set, idx) => {
+                  const setData = getRow(set.rowIndex);
+                  const setIsDone = setData?.weight && setData?.repsAchieved;
+                  return (
+                    <button
+                      key={set.rowIndex}
+                      onClick={() => {
+                        setCurrentSetIndex(idx);
+                        setShowNotes(false);
+                      }}
+                      className={`${styles.setDot} ${
+                        idx === currentSetIndex ? styles.setDotActive : ""
+                      } ${setIsDone ? styles.setDotDone : ""}`}
+                      aria-label={`Set ${set.set}`}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
               </div>
-              <button
-                className={styles.setNavBtn}
-                onClick={() =>
-                  setCurrentSetIndex(
-                    Math.min(
-                      currentExerciseSets.length - 1,
-                      currentSetIndex + 1,
-                    ),
-                  )
-                }
-                disabled={currentSetIndex === currentExerciseSets.length - 1}
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
 
-            {/* Quick fill options */}
-            <div className={styles.quickFillContainer}>
-              {!isWorkoutComplete &&
-                prevStats?.sets[currentSetIndex] && (
+              {/* Quick fill options */}
+              <div className={styles.quickFillContainer}>
+                {!isWorkoutComplete && prevStats?.sets[currentSetIndex] && (
                   <button
                     onClick={() =>
-                      copyFromLastWeek(currentSet.rowIndex, prevStats.sets[currentSetIndex])
+                      copyFromLastWeek(
+                        currentSet.rowIndex,
+                        prevStats.sets[currentSetIndex],
+                      )
                     }
                     className={styles.lastWeekBtn}
                   >
                     <History size={14} />
-                    Last: {prevStats.sets[currentSetIndex].weight}{weightUnit} × {prevStats.sets[currentSetIndex].reps}
+                    Last: {prevStats.sets[currentSetIndex].weight}
+                    {weightUnit} × {prevStats.sets[currentSetIndex].reps}
                   </button>
                 )}
-              {!isWorkoutComplete &&
-                previousSet &&
-                getRow(previousSet.rowIndex)?.weight && (
-                  <button
-                    onClick={() =>
-                      copyFromPreviousSet(
-                        currentSet,
-                        getRow(previousSet.rowIndex)!,
+                {!isWorkoutComplete &&
+                  previousSet &&
+                  getRow(previousSet.rowIndex)?.weight && (
+                    <button
+                      onClick={() =>
+                        copyFromPreviousSet(
+                          currentSet,
+                          getRow(previousSet.rowIndex)!,
+                        )
+                      }
+                      className={styles.copyBtn}
+                    >
+                      <Copy size={14} />
+                      Set {previousSet.set}:{" "}
+                      {getRow(previousSet.rowIndex)?.weight}
+                      {weightUnit} ×{" "}
+                      {getRow(previousSet.rowIndex)?.repsAchieved ||
+                        previousSet.targetReps}
+                    </button>
+                  )}
+              </div>
+
+              <div className={styles.inputSection}>
+                <ScrollableInput
+                  label={weightUnit}
+                  value={getRow(currentSet.rowIndex)?.weight || ""}
+                  onChange={(val) =>
+                    updateExercise(currentSet.rowIndex, "weight", val)
+                  }
+                  onAdjust={(delta) =>
+                    adjustValue(currentSet.rowIndex, "weight", delta)
+                  }
+                  step={0.25}
+                  inputMode="decimal"
+                  placeholder="0"
+                  onInputActivity={() =>
+                    handleInputActivity(currentSet.rowIndex)
+                  }
+                />
+                <ScrollableInput
+                  label="Reps"
+                  value={getRow(currentSet.rowIndex)?.repsAchieved || ""}
+                  onChange={(val) =>
+                    updateExercise(currentSet.rowIndex, "repsAchieved", val)
+                  }
+                  onAdjust={(delta) =>
+                    adjustValue(currentSet.rowIndex, "repsAchieved", delta)
+                  }
+                  step={1}
+                  placeholder={currentSet.targetReps.toString()}
+                  onInputActivity={() =>
+                    handleInputActivity(currentSet.rowIndex)
+                  }
+                  target={currentSet.targetReps}
+                />
+                <ScrollableInput
+                  label="RIR"
+                  value={getRow(currentSet.rowIndex)?.rirAchieved || ""}
+                  onChange={(val) =>
+                    updateExercise(currentSet.rowIndex, "rirAchieved", val)
+                  }
+                  onAdjust={(delta) =>
+                    adjustValue(currentSet.rowIndex, "rirAchieved", delta)
+                  }
+                  step={1}
+                  placeholder={currentSet.rir}
+                  max={10}
+                  target={currentSet.rir}
+                />
+              </div>
+
+              {/* Notes */}
+              {isWorkoutComplete ? (
+                <div className={styles.notesSection}>
+                  <div className={styles.notesLabel}>
+                    <MessageSquare size={16} />
+                    <span>Notes</span>
+                  </div>
+                  <textarea
+                    value={getRow(currentSet.rowIndex)?.notes || ""}
+                    onChange={(e) =>
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "notes",
+                        e.target.value,
                       )
                     }
-                    className={styles.copyBtn}
-                  >
-                    <Copy size={14} />
-                    Set {previousSet.set}:{" "}
-                    {getRow(previousSet.rowIndex)?.weight}
-                    {weightUnit} ×{" "}
-                    {getRow(previousSet.rowIndex)?.repsAchieved ||
-                      previousSet.targetReps}
-                  </button>
-                )}
-            </div>
-
-            <div className={styles.inputSection}>
-              <ScrollableInput
-                label={weightUnit}
-                value={getRow(currentSet.rowIndex)?.weight || ""}
-                onChange={(val) =>
-                  updateExercise(currentSet.rowIndex, "weight", val)
-                }
-                onAdjust={(delta) =>
-                  adjustValue(currentSet.rowIndex, "weight", delta)
-                }
-                step={0.25}
-                inputMode="decimal"
-                placeholder="0"
-                onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
-              />
-              <ScrollableInput
-                label="Reps"
-                value={getRow(currentSet.rowIndex)?.repsAchieved || ""}
-                onChange={(val) =>
-                  updateExercise(currentSet.rowIndex, "repsAchieved", val)
-                }
-                onAdjust={(delta) =>
-                  adjustValue(currentSet.rowIndex, "repsAchieved", delta)
-                }
-                step={1}
-                placeholder={currentSet.targetReps.toString()}
-                onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
-                target={currentSet.targetReps}
-              />
-              <ScrollableInput
-                label="RIR"
-                value={getRow(currentSet.rowIndex)?.rirAchieved || ""}
-                onChange={(val) =>
-                  updateExercise(currentSet.rowIndex, "rirAchieved", val)
-                }
-                onAdjust={(delta) =>
-                  adjustValue(currentSet.rowIndex, "rirAchieved", delta)
-                }
-                step={1}
-                placeholder={currentSet.rir}
-                max={10}
-                target={currentSet.rir}
-              />
-            </div>
-
-            {/* Notes */}
-            {isWorkoutComplete ? (
-              <div className={styles.notesSection}>
-                <div className={styles.notesLabel}>
-                  <MessageSquare size={16} />
-                  <span>Notes</span>
+                    placeholder="How did it feel? Any adjustments needed?"
+                    className={styles.notesTextarea}
+                    rows={2}
+                  />
                 </div>
-                <textarea
-                  value={getRow(currentSet.rowIndex)?.notes || ""}
-                  onChange={(e) =>
-                    updateExercise(currentSet.rowIndex, "notes", e.target.value)
-                  }
-                  placeholder="How did it feel? Any adjustments needed?"
-                  className={styles.notesTextarea}
-                  rows={2}
-                />
-              </div>
-            ) : (
-              <>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowNotes(!showNotes)}
+                    className={styles.notesToggle}
+                  >
+                    <MessageSquare size={16} />
+                    {showNotes ? "Hide notes" : "Add notes"}
+                  </button>
+
+                  <textarea
+                    value={getRow(currentSet.rowIndex)?.notes || ""}
+                    onChange={(e) =>
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "notes",
+                        e.target.value,
+                      )
+                    }
+                    placeholder="How did it feel? Any adjustments needed?"
+                    className={`${styles.notesTextarea} ${!showNotes ? styles.notesHidden : ""}`}
+                    rows={2}
+                  />
+                </>
+              )}
+            </div>
+
+            <div className={styles.buttonsContainer}>
+              {isWorkoutComplete && (
                 <button
-                  onClick={() => setShowNotes(!showNotes)}
-                  className={styles.notesToggle}
+                  onClick={handleStopWorkout}
+                  className={styles.backToProgram}
                 >
-                  <MessageSquare size={16} />
-                  {showNotes ? "Hide notes" : "Add notes"}
+                  Back to Program
                 </button>
+              )}
 
-                <textarea
-                  value={getRow(currentSet.rowIndex)?.notes || ""}
-                  onChange={(e) =>
-                    updateExercise(
-                      currentSet.rowIndex,
-                      "notes",
-                      e.target.value,
-                    )
-                  }
-                  placeholder="How did it feel? Any adjustments needed?"
-                  className={`${styles.notesTextarea} ${!showNotes ? styles.notesHidden : ''}`}
-                  rows={2}
-                />
-              </>
-            )}
+              {!isWorkoutComplete && (
+                <div className={styles.mainButtonsRow}>
+                  <button
+                    disabled={
+                      !getRow(currentSet.rowIndex)?.weight ||
+                      !getRow(currentSet.rowIndex)?.repsAchieved
+                    }
+                    onClick={() =>
+                      isLastSet
+                        ? handleCompleteWorkout(currentSet.rowIndex)
+                        : handleCompleteSet(currentSet.rowIndex)
+                    }
+                    className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
+                  >
+                    <Check size={24} />
+                    {isLastSet ? "Complete workout" : "Complete set"}
+                  </button>
 
+                  <button
+                    onClick={() =>
+                      isRestTimerActive
+                        ? stopRestTimer(currentExerciseName)
+                        : startRestTimer(currentExerciseName)
+                    }
+                    className={`${styles.restTimerRoundBtn} ${isRestTimerActive ? styles.restTimerRoundBtnActive : ""}`}
+                  >
+                    <Timer size={20} />
+                    <span className={styles.restTimerValue}>
+                      {formatRestTimer(restTimer)}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-
-          <div className={styles.buttonsContainer}>
-            {isWorkoutComplete && (
-              <button
-                onClick={handleStopWorkout}
-                className={styles.backToProgram}
-              >
-                Back to Program
-              </button>
-            )}
-
-            {!isWorkoutComplete && (
-              <div className={styles.mainButtonsRow}>
-                <button
-                  disabled={
-                    !getRow(currentSet.rowIndex)?.weight ||
-                    !getRow(currentSet.rowIndex)?.repsAchieved
-                  }
-                  onClick={() =>
-                    isLastSet
-                      ? handleCompleteWorkout(currentSet.rowIndex)
-                      : handleCompleteSet(currentSet.rowIndex)
-                  }
-                  className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
-                >
-                  <Check size={24} />
-                  {isLastSet ? "Complete workout" : "Complete set"}
-                </button>
-
-                <button
-                  onClick={() =>
-                    isRestTimerActive
-                      ? stopRestTimer(currentExerciseName)
-                      : startRestTimer(currentExerciseName)
-                  }
-                  className={`${styles.restTimerRoundBtn} ${isRestTimerActive ? styles.restTimerRoundBtnActive : ""}`}
-                >
-                  <Timer size={20} />
-                  <span className={styles.restTimerValue}>{formatRestTimer(restTimer)}</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
         )}
 
         {/* Add Exercise Drawer */}
@@ -798,7 +759,6 @@ const ActiveWorkout = () => {
           excludeExercises={groupedByExercise.map(([name]) => name)}
         />
       </div>
-    </div>
   );
 };
 

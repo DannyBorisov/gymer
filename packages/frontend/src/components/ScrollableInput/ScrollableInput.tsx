@@ -46,10 +46,9 @@ export function ScrollableInput({
   // Generate fixed list of values based on step (reversed - higher values at top)
   const values = useMemo(() => {
     const result: number[] = [];
-    // Limit the range to reasonable values
     const effectiveMax = Math.min(max, step < 1 ? 500 : 200);
     for (let v = effectiveMax; v >= min; v -= step) {
-      result.push(Math.round(v * 1000) / 1000); // Avoid floating point issues
+      result.push(Math.round(v * 1000) / 1000);
     }
     return result;
   }, [min, max, step]);
@@ -110,7 +109,6 @@ export function ScrollableInput({
         onInputActivity?.();
       }
 
-      // Snap to position
       scrollRef.current.scrollTop = clampedIndex * itemHeight;
       isScrolling.current = false;
     }, 80);

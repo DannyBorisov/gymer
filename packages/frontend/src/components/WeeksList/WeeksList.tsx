@@ -61,7 +61,7 @@ export const WeeksList = ({
           <div className={styles.weekHeader}>
             <span className={styles.weekTitle}>Week {week.week}</span>
             <div className={styles.activitySquares}>
-              {DAYS.map((day, idx) => (
+              {DAYS.map((_, idx) => (
                 <div
                   key={idx}
                   className={`${styles.activitySquare} ${weekActivityDays[week.week]?.[idx] ? styles.activitySquareFilled : ""}`}

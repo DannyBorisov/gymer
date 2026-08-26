@@ -10,6 +10,7 @@ import {
   Dumbbell,
   Calendar,
   Clock,
+  Gauge,
 } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
@@ -25,6 +26,7 @@ interface ExerciseRowProps {
   onUpdate: (field: keyof Exercise, value: string | number) => void;
   onRemove: () => void;
   onOpenDrawer: () => void;
+  showRir: boolean;
 }
 
 const ExerciseRow = ({
@@ -33,6 +35,7 @@ const ExerciseRow = ({
   onUpdate,
   onRemove,
   onOpenDrawer,
+  showRir,
 }: ExerciseRowProps) => {
   return (
     <div className={styles.exerciseRow}>
@@ -76,19 +79,21 @@ const ExerciseRow = ({
             inputMode="numeric"
           />
         </div>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>RIR</label>
-          <input
-            type="number"
-            value={exercise.rir || ""}
-            onChange={(e) => onUpdate("rir", Number(e.target.value))}
-            className={styles.numberInput}
-            placeholder="0"
-            min={0}
-            max={10}
-            inputMode="numeric"
-          />
-        </div>
+        {showRir && (
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>RIR</label>
+            <input
+              type="number"
+              value={exercise.rir || ""}
+              onChange={(e) => onUpdate("rir", Number(e.target.value))}
+              className={styles.numberInput}
+              placeholder="0"
+              min={0}
+              max={10}
+              inputMode="numeric"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -108,6 +113,7 @@ interface WorkoutSectionProps {
   ) => void;
   canRemove: boolean;
   onOpenEditDrawer: (exerciseIndex: number) => void;
+  showRir: boolean;
 }
 
 const WorkoutSection = ({
@@ -120,6 +126,7 @@ const WorkoutSection = ({
   onUpdateExercise,
   canRemove,
   onOpenEditDrawer,
+  showRir,
 }: WorkoutSectionProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -167,7 +174,7 @@ const WorkoutSection = ({
                 <span className={styles.colExercise}>Exercise</span>
                 <span className={styles.colSets}>Sets</span>
                 <span className={styles.colReps}>Reps</span>
-                <span className={styles.colRir}>RIR</span>
+                {showRir && <span className={styles.colRir}>RIR</span>}
                 <span className={styles.colAction}></span>
               </div>
               {workout.exercises.map((exercise, exerciseIndex) => (
@@ -180,6 +187,7 @@ const WorkoutSection = ({
                   }
                   onRemove={() => onRemoveExercise(exerciseIndex)}
                   onOpenDrawer={() => onOpenEditDrawer(exerciseIndex)}
+                  showRir={showRir}
                 />
               ))}
             </>
@@ -210,6 +218,8 @@ const CreateProgram = () => {
     updateProgramName,
     updateDuration,
     updateFrequency,
+    updateDynamicRir,
+    updateStartingRir,
     addWorkout,
     removeWorkout,
     updateWorkoutName,
@@ -467,6 +477,30 @@ const CreateProgram = () => {
               <option value="every-other-day">Every other day</option>
             </select>
           </div>
+          <div className={styles.settingGroup}>
+            <label className={styles.settingLabel}>
+              <Gauge size={14} />
+              RIR
+            </label>
+            <select
+              value={program.dynamicRir ? `dynamic-${program.startingRir}` : "manual"}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "manual") {
+                  updateDynamicRir(false);
+                } else {
+                  updateDynamicRir(true);
+                  updateStartingRir(Number(val.split("-")[1]));
+                }
+              }}
+              className={styles.settingSelect}
+            >
+              <option value="manual">Manual</option>
+              <option value="dynamic-4">4 → 1</option>
+              <option value="dynamic-3">3 → 0</option>
+              <option value="dynamic-2">2 → 0</option>
+            </select>
+          </div>
         </div>
 
         <div className={styles.workoutsContainer}>
@@ -501,6 +535,7 @@ const CreateProgram = () => {
                 onOpenEditDrawer={(exerciseIndex) =>
                   handleOpenEditDrawer(workoutIndex, exerciseIndex)
                 }
+                showRir={!program.dynamicRir}
               />
             ))}
           </div>

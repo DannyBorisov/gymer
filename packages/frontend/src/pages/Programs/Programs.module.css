@@ -126,16 +126,22 @@
   background: #f0fdf4;
 }
 
-.activeIndicator {
+.programActions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: #22c55e;
-  border-radius: 50%;
-  color: #fff;
+  gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.activeBadge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .programInfo {

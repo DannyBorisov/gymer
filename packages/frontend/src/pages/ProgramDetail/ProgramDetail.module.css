@@ -15,7 +15,7 @@
 /* Workout Drawer */
 .workoutDrawer {
   height: 100%;
-  background: #fafafa;
+  background: #fff;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -23,7 +23,7 @@
 
 @media (max-width: 767px) {
   .workoutDrawer {
-    border-radius: 16px 16px 0 0;
+    border-radius: 12px 12px 0 0;
     padding-top: env(safe-area-inset-top, 0px);
   }
 }
@@ -45,20 +45,22 @@
 
 .drawerHandleBar {
   width: 36px;
-  height: 5px;
-  background: #d4d4d4;
-  border-radius: 3px;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
 }
 
-/* Workout mode container - non-scrollable */
+/* Workout mode container */
 .workoutContainer {
   width: 100%;
+  height: 100%;
   min-width: 0;
   box-sizing: border-box;
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: #f9fafb;
 }
 
 @media (min-width: 768px) {
@@ -77,7 +79,7 @@
   justify-content: center;
   gap: 0.75rem;
   padding: 3rem 1rem;
-  color: #737373;
+  color: #6b7280;
   font-size: 0.875rem;
 }
 
@@ -86,18 +88,14 @@
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .errorState {
   background: #fef2f2;
   padding: 1.5rem;
-  border-radius: 12px;
+  border-radius: 8px;
   text-align: center;
   color: #dc2626;
   font-size: 0.875rem;
@@ -107,7 +105,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  color: #737373;
+  color: #6b7280;
   text-decoration: none;
   font-size: 0.875rem;
   padding: 0.5rem 0;
@@ -122,8 +120,7 @@
   padding: 0.875rem 1rem;
   margin-bottom: 1rem;
   background: #fef3c7;
-  border: 1px solid #fcd34d;
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
   color: #92400e;
@@ -152,7 +149,7 @@
 .title {
   font-size: 1.375rem;
   font-weight: 600;
-  color: #0f0f0f;
+  color: #111827;
   margin: 0;
 }
 
@@ -162,7 +159,7 @@
 .weeksList {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   padding-bottom: calc(
     var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 1rem
   );
@@ -176,21 +173,19 @@
 
 .weekCard {
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .weekHeader {
-  padding: 0.875rem 1rem;
-  background: #f5f5f5;
-  border-bottom: 1px solid #e5e5e5;
+  padding: 0.75rem 1rem;
+  background: #f3f4f6;
 }
 
 .weekTitle {
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  color: #0f0f0f;
+  color: #111827;
 }
 
 .workoutsList {
@@ -202,10 +197,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
+  padding: 0.875rem 1rem;
   background: none;
   border: none;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f3f4f6;
   cursor: pointer;
   text-align: left;
   width: 100%;
@@ -216,7 +211,7 @@
 }
 
 .workoutCard:active {
-  background: #f5f5f5;
+  background: #f9fafb;
 }
 
 .workoutCardInfo {
@@ -226,12 +221,12 @@
 }
 
 .completeIcon {
-  color: #22c55e;
+  color: #10b981;
   flex-shrink: 0;
 }
 
 .incompleteIcon {
-  color: #a1a1a1;
+  color: #d1d5db;
   flex-shrink: 0;
 }
 
@@ -242,50 +237,47 @@
 }
 
 .workoutName {
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 500;
-  color: #0f0f0f;
+  color: #111827;
 }
 
 .workoutDate {
   font-size: 0.75rem;
-  color: #22c55e;
+  color: #10b981;
   font-weight: 500;
 }
 
 .playIcon {
-  color: #a1a1a1;
+  color: #9ca3af;
   flex-shrink: 0;
 }
 
 /* ==================== */
-/* Sticky Header (Timer + Exercise) */
+/* Sticky Header */
 /* ==================== */
 .stickyHeader {
   flex-shrink: 0;
-  background: #fafafa;
+  background: #111827;
   z-index: 10;
-  padding: 0.5rem 1rem 1rem;
+  padding: 1rem 1rem 1.25rem;
 }
 
 @media (min-width: 768px) {
   .stickyHeader {
     position: sticky;
     top: 0;
-    background: #fafafa;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e5e5;
+    padding: 1.25rem 1rem;
   }
 }
 
 /* ==================== */
-/* Workout Header (Timer Row) */
+/* Workout Header */
 /* ==================== */
 .workoutHeader {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.5rem;
 }
 
 .workoutInfo {
@@ -295,14 +287,14 @@
 .workoutWeek {
   font-size: 0.625rem;
   font-weight: 700;
-  color: #737373;
+  color: #6b7280;
   text-transform: uppercase;
 }
 
 .workoutTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: #0f0f0f;
+  color: #111827;
   margin: 0;
 }
 
@@ -314,16 +306,16 @@
 }
 
 .timer {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 2.5rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #0f0f0f;
-  letter-spacing: 0.02em;
+  color: #fff;
+  letter-spacing: -0.02em;
 }
 
 @media (min-width: 768px) {
   .timer {
-    font-size: 2.5rem;
+    font-size: 3rem;
   }
 }
 
@@ -340,14 +332,14 @@
   height: 44px;
   background: transparent;
   border: none;
-  border-radius: 50%;
-  color: #525252;
+  border-radius: 8px;
+  color: #6b7280;
   cursor: pointer;
 }
 
 .timerBtn:active {
-  background: #f0f0f0;
-  color: #0f0f0f;
+  background: #f3f4f6;
+  color: #111827;
 }
 
 /* ==================== */
@@ -362,22 +354,22 @@
 .progressBar {
   flex: 1;
   height: 4px;
-  background: #e5e5e5;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: #22c55e;
+  background: #10b981;
   border-radius: 2px;
   transition: width 0.3s ease;
 }
 
 .progressText {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #a1a1a1;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
 }
 
@@ -394,6 +386,7 @@
 .exerciseTabsWrapper {
   position: relative;
   flex-shrink: 0;
+  background: #fff;
 }
 
 .exerciseTabsWrapper::after {
@@ -405,14 +398,14 @@
   width: 24px;
   pointer-events: none;
   z-index: 1;
-  background: linear-gradient(to left, rgba(250, 250, 250, 0.9), transparent);
+  background: linear-gradient(to left, #fff, transparent);
 }
 
 .exerciseTabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 0;
   overflow-x: auto;
-  padding: 0.5rem 0.5rem;
+  padding: 0;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
@@ -424,85 +417,80 @@
 .exerciseTab {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.25rem;
   padding: 0.5rem 0.75rem;
   background: transparent;
   border: none;
-  border-radius: 20px;
+  border-radius: 8px;
   cursor: pointer;
   flex-shrink: 0;
+  margin: 0.5rem 0.25rem;
 }
 
 .exerciseTab:active {
-  background: #f0f0f0;
+  background: #f3f4f6;
 }
 
 .exerciseTabActive {
-  background: #0f0f0f;
+  background: #2563eb;
+  padding: 0.75rem 1.25rem;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
-.exerciseTabActive .exerciseTabName,
-.exerciseTabActive .exerciseTabCount {
+.exerciseTabActive .exerciseTabName {
   color: #fff;
+  font-size: 1.125rem;
+  font-weight: 700;
 }
 
 .exerciseTabDone .exerciseTabName {
-  color: #22c55e;
-}
-
-.exerciseTabDone .exerciseTabCount {
-  color: #22c55e;
+  color: #10b981;
 }
 
 .exerciseTabActive.exerciseTabDone {
-  background: #22c55e;
+  background: #10b981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
-.exerciseTabActive.exerciseTabDone .exerciseTabName,
-.exerciseTabActive.exerciseTabDone .exerciseTabCount {
+.exerciseTabActive.exerciseTabDone .exerciseTabName {
   color: #fff;
 }
 
 .exerciseTabName {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  color: #525252;
+  color: #6b7280;
 }
 
 .exerciseTabCount {
   font-size: 0.75rem;
-  font-weight: 700;
-  color: #a1a1a1;
+  font-weight: 600;
+  color: #9ca3af;
 }
 
 .addExerciseTab {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: #f5f5f5;
-  border: 1px dashed #d4d4d4;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  margin: 0.25rem;
+  background: transparent;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
   cursor: pointer;
   flex-shrink: 0;
-  color: #737373;
-  transition: all 0.15s ease;
+  color: #9ca3af;
 }
 
-.addExerciseTab:hover {
-  background: #e5e5e5;
-  border-color: #a1a1a1;
-  color: #525252;
-}
-
-.exerciseTabActive .exerciseTabName,
-.exerciseTabActive .exerciseTabCount {
-  color: #fff;
+.addExerciseTab:active {
+  background: #f3f4f6;
+  border-color: #9ca3af;
 }
 
 /* ==================== */
-/* Current Exercise Info - hidden on mobile (redundant with tabs) */
+/* Current Exercise Info */
 /* ==================== */
 .currentExerciseInfo {
   display: none;
@@ -519,64 +507,61 @@
 .currentExerciseName {
   display: block;
   font-size: 1.25rem;
-  font-weight: 700;
-  color: #0f0f0f;
+  font-weight: 600;
+  color: #111827;
 }
 
 .currentExerciseMeta {
   display: block;
   font-size: 0.875rem;
-  color: #737373;
+  color: #6b7280;
   margin-top: 0.25rem;
 }
 
 /* ==================== */
-/* Set Indicators */
+/* Set Dots */
 /* ==================== */
-.setIndicators {
-  display: none;
+.setDots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
-@media (min-width: 768px) {
-  .setIndicators {
-    display: flex;
-    justify-content: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-    flex-wrap: wrap;
-  }
-}
-
-.setIndicator {
+.setDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #9ca3af;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  background: #fff;
-  border: 2px solid #e5e5e5;
-  border-radius: 50%;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #737373;
-  cursor: pointer;
-  padding: 0;
 }
 
-.setIndicator:active {
+.setDot:active {
   transform: scale(0.95);
 }
 
-.setIndicatorActive {
-  border-color: #0f0f0f;
-  background: #0f0f0f;
+.setDotActive {
+  background: #2563eb;
+  color: #fff;
+  transform: scale(1.15);
+}
+
+.setDotDone {
+  background: #10b981;
   color: #fff;
 }
 
-.setIndicatorDone {
-  border-color: #22c55e;
-  background: #22c55e;
-  color: #fff;
+.setDotActive.setDotDone {
+  background: #10b981;
 }
 
 /* ==================== */
@@ -587,34 +572,33 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: transparent;
+  background: #fff;
   border: none;
-  padding: 0 0.5rem;
+  padding: 0 1rem;
+  margin: 0;
   box-sizing: border-box;
   overflow: hidden;
 }
 
 .focusCardDone {
-  /* no visual change for done state on the card itself */
+  background: #f0fdf4;
 }
 
 @media (min-width: 768px) {
   .focusCard {
-    background: #fff;
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
     padding: 1.5rem;
     flex: none;
-    margin-bottom: 1.5rem;
+    margin: 0 1rem 1.5rem;
   }
 
   .focusCardDone {
-    border-color: #22c55e;
-    background: #f0fdf4;
+    border-color: #10b981;
   }
 }
 
-/* Wrapper for inputs - center vertically in available space */
+/* Wrapper for inputs */
 .inputsCenter {
   flex: 1;
   display: flex;
@@ -628,7 +612,6 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  margin-bottom: 0.75rem;
   flex-shrink: 0;
 }
 
@@ -640,19 +623,19 @@
   height: 40px;
   background: transparent;
   border: none;
-  border-radius: 50%;
-  color: #737373;
+  border-radius: 8px;
+  color: #6b7280;
   cursor: pointer;
 }
 
 .setNavBtn:disabled {
-  opacity: 0.2;
+  opacity: 0.3;
   cursor: default;
 }
 
 .setNavBtn:active:not(:disabled) {
-  background: #f0f0f0;
-  color: #0f0f0f;
+  background: #f3f4f6;
+  color: #111827;
 }
 
 .setLabel {
@@ -664,8 +647,8 @@
 
 .setExerciseName {
   font-size: 1.25rem;
-  font-weight: 700;
-  color: #0f0f0f;
+  font-weight: 600;
+  color: #111827;
 }
 
 .setCount {
@@ -673,23 +656,23 @@
   align-items: center;
   gap: 0.375rem;
   font-size: 1rem;
-  font-weight: 600;
-  color: #525252;
+  font-weight: 500;
+  color: #6b7280;
 }
 
 .setDoneIcon {
-  color: #22c55e;
+  color: #10b981;
 }
 
 .completedBadge {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.375rem 0.625rem;
-  background: #22c55e;
-  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  background: #10b981;
+  border-radius: 4px;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #fff;
 }
 
@@ -700,18 +683,17 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.25rem;
-  margin-top: 0.5rem;
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  border-radius: 12px;
+  padding: 1rem;
+  margin: 0.5rem 1rem 1rem;
+  background: #10b981;
+  border-radius: 8px;
   color: #fff;
 }
 
 .completeTitle {
   display: block;
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .completeSubtitle {
@@ -727,21 +709,9 @@
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #0f0f0f;
+  color: #111827;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
-}
-
-.completedBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.625rem;
-  background: #dcfce7;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #166534;
 }
 
 /* ==================== */
@@ -761,33 +731,32 @@
   display: none;
 }
 
-/* Previous stats - subtle neutral chip */
+/* Previous stats chip */
 .prevStatsChip {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem 0.75rem;
-  background: #f5f5f5;
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.15s ease;
 }
 
 .prevStatsChip:active {
-  background: #e5e5e5;
+  background: #e5e7eb;
 }
 
 .prevStatsLabel {
   font-size: 0.75rem;
   font-weight: 500;
-  color: #737373;
+  color: #6b7280;
 }
 
 .prevStatsValues {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #262626;
+  color: #111827;
 }
 
 .prevStatsIcon {
@@ -796,7 +765,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  background: #0f0f0f;
+  background: #111827;
   border-radius: 50%;
   color: #fff;
   margin-left: 0.25rem;
@@ -809,20 +778,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  background: #f0fdf4;
-  border: 1px solid #86efac;
-  border-radius: 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #166534;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: #ecfdf5;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #059669;
   cursor: pointer;
-  text-align: center;
 }
 
 .copyBtn:active {
-  background: #dcfce7;
+  background: #d1fae5;
 }
 
 /* Last Week Stats Button */
@@ -830,20 +798,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  background: #f5f5f5;
-  border: 1px solid #e5e5e5;
-  border-radius: 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #525252;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
   cursor: pointer;
-  text-align: center;
 }
 
 .lastWeekBtn:active {
-  background: #e5e5e5;
+  background: #e5e7eb;
 }
 
 /* ==================== */
@@ -867,7 +834,7 @@
   display: block;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #a1a1a1;
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
@@ -879,7 +846,7 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 0.25rem;
+  gap: 2px;
 }
 
 .stepperBtn {
@@ -887,29 +854,28 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 36px;
-  background: #f5f5f5;
+  height: 32px;
+  background: #f3f4f6;
   border: none;
-  border-radius: 8px;
-  color: #525252;
+  border-radius: 6px;
+  color: #374151;
   cursor: pointer;
 }
 
 .stepperBtn:active {
-  background: #e5e5e5;
-  color: #0f0f0f;
+  background: #e5e7eb;
 }
 
 .focusInput {
   width: 100%;
-  padding: 0.75rem 0.25rem;
+  padding: 0.5rem 0.25rem;
   border: none;
   border-radius: 0;
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
   background: transparent;
-  color: #0f0f0f;
+  color: #111827;
 }
 
 .focusInput:focus {
@@ -917,8 +883,7 @@
 }
 
 .focusInput::placeholder {
-  color: #d4d4d4;
-  font-weight: 500;
+  color: #d1d5db;
 }
 
 /* ==================== */
@@ -935,7 +900,7 @@
   gap: 0.375rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #737373;
+  color: #6b7280;
   margin-bottom: 0.5rem;
 }
 
@@ -948,17 +913,15 @@
   margin: 0 auto;
   background: none;
   border: none;
-  border-radius: 16px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #a1a1a1;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #9ca3af;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .notesToggle:active {
-  background: #f5f5f5;
-  color: #525252;
+  color: #6b7280;
 }
 
 .notesTextarea {
@@ -966,12 +929,12 @@
   width: 100%;
   padding: 0.75rem;
   margin-top: 0.5rem;
-  border: none;
-  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   font-size: 0.875rem;
   font-family: inherit;
-  background: #f5f5f5;
-  color: #0f0f0f;
+  background: #fff;
+  color: #111827;
   resize: none;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -979,28 +942,30 @@
 
 .notesTextarea:focus {
   outline: none;
-  background: #f0f0f0;
+  border-color: #2563eb;
 }
 
 .notesHidden {
-  visibility: hidden;
-  pointer-events: none;
+  display: none;
 }
 
 /* ==================== */
 /* Buttons Container */
 /* ==================== */
 .buttonsContainer {
+  margin-top: auto;
+  padding: 1rem;
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
   flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
 }
 
-/* Main buttons row - rest timer + complete */
+/* Main buttons row */
 .mainButtonsRow {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0 0.5rem;
 }
 
 /* ==================== */
@@ -1010,46 +975,42 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 56px;
-  height: 56px;
-  padding: 0 18px;
+  min-width: 52px;
+  height: 52px;
+  padding: 0 16px;
   background: #f97316;
   border: none;
-  border-radius: 28px;
+  border-radius: 8px;
   color: #fff;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   overflow: hidden;
 }
 
 .restTimerRoundBtn:active {
-  transform: scale(0.95);
   background: #ea580c;
 }
 
 .restTimerRoundBtnActive {
-  padding: 0 20px;
+  padding: 0 16px;
 }
 
 .restTimerValue {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.9375rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   max-width: 0;
   opacity: 0;
   overflow: hidden;
-  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
 }
 
 .restTimerRoundBtnActive .restTimerValue {
   max-width: 80px;
   opacity: 1;
-  margin-left: 8px;
+  margin-left: 6px;
 }
 
 /* ==================== */
@@ -1061,29 +1022,29 @@
   justify-content: center;
   gap: 0.5rem;
   flex: 1;
-  height: 56px;
+  height: 52px;
   padding: 0 1.5rem;
-  background: #22c55e;
+  background: #10b981;
   border: none;
-  border-radius: 28px;
+  border-radius: 8px;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #fff;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 
 .completeBtn:disabled {
-  background: #e5e5e5;
-  color: #a1a1a1;
-  box-shadow: none;
+  background: #e5e7eb;
+  color: #9ca3af;
   cursor: not-allowed;
 }
 
 .completeBtn:active:not(:disabled) {
-  background: #16a34a;
-  transform: scale(0.98);
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  background: #059669;
+}
+
+.completeBtnDone {
+  background: #059669;
 }
 
 .endWorkoutBtn {
@@ -1091,21 +1052,19 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  width: 75%;
-  max-width: 210px;
-  margin: 0.75rem auto 0;
-  padding: 0.875rem 1rem;
-  background: rgba(239, 68, 68, 0.15);
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
   border: none;
-  border-radius: 50px;
   font-size: 0.875rem;
-  font-weight: 600;
-  color: #dc2626;
+  font-weight: 500;
+  color: #ef4444;
   cursor: pointer;
 }
 
 .endWorkoutBtn:active {
-  background: rgba(239, 68, 68, 0.25);
+  color: #dc2626;
 }
 
 .backToProgram {
@@ -1113,20 +1072,18 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 280px;
-  margin: 1rem auto 0;
-  padding: 1rem 1.5rem;
-  background: #0f0f0f;
+  padding: 0.875rem 1.5rem;
+  background: #111827;
   border: none;
-  border-radius: 50px;
+  border-radius: 8px;
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   color: #fff;
   cursor: pointer;
 }
 
 .backToProgram:active {
-  background: #262626;
+  background: #1f2937;
 }
 
 /* ==================== */
@@ -1138,83 +1095,62 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(34, 197, 94, 0.15);
-  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.1);
   z-index: 10;
   animation: subtlePulse 0.4s ease-out;
   pointer-events: none;
 }
 
 @keyframes subtlePulse {
-  0% {
-    opacity: 0;
-    background: rgba(34, 197, 94, 0.3);
-  }
-  50% {
-    opacity: 1;
-    background: rgba(34, 197, 94, 0.2);
-  }
-  100% {
-    opacity: 0;
-    background: rgba(34, 197, 94, 0.1);
-  }
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .setCompleteIcon {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #22c55e;
+  color: #10b981;
   animation: checkFade 0.4s ease-out;
 }
 
 @keyframes checkFade {
-  0% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1);
-  }
+  0% { opacity: 0; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
 }
 
 /* ==================== */
-/* Rest Timer Button (in header) */
+/* Rest Timer Button */
 /* ==================== */
-
 .restTimerBtn {
   position: absolute;
   right: 0;
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.5rem 0.875rem;
-  background: #f0f0f0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.15);
   border: none;
-  border-radius: 50px;
+  border-radius: 6px;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #737373;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .restTimerBtn:active {
-  background: #e5e5e5;
-  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .restTimerBtnActive {
-  background: #0f0f0f;
+  background: #10b981;
+  color: #fff;
 }
 
 .restTimerBtnActive svg {
-  color: #22c55e;
+  color: #fff;
 }
 
 .restTimerBtnActive span {
@@ -1223,52 +1159,44 @@
 }
 
 .restTimerBtnActive:active {
-  background: #262626;
+  background: #059669;
 }
 
-/* Rest Timer Suggestion (expanded state) */
+/* Rest Timer Suggestion */
 .restTimerSuggestion {
   position: absolute;
   right: 0;
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  animation: expandIn 0.2s ease-out;
+  animation: fadeIn 0.15s ease-out;
 }
 
-@keyframes expandIn {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .restTimerSuggestionBtn {
   display: flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.5rem 0.875rem;
-  background: #0f0f0f;
+  padding: 0.5rem 0.75rem;
+  background: #10b981;
   border: none;
-  border-radius: 50px;
+  border-radius: 6px;
   font-size: 0.8125rem;
   font-weight: 600;
   color: #fff;
   cursor: pointer;
-  transition: all 0.15s ease;
 }
 
 .restTimerSuggestionBtn svg {
-  color: #22c55e;
+  color: #fff;
 }
 
 .restTimerSuggestionBtn:active {
-  background: #262626;
-  transform: scale(0.97);
+  background: #059669;
 }
 
 .restTimerDismiss {
@@ -1277,16 +1205,15 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: #f0f0f0;
+  background: rgba(255, 255, 255, 0.15);
   border: none;
-  border-radius: 50%;
-  color: #a1a1a1;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
 }
 
 .restTimerDismiss:active {
-  background: #e5e5e5;
-  color: #525252;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 /* ==================== */
@@ -1303,18 +1230,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: transparent;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.15);
   border: none;
-  border-radius: 50%;
-  color: #737373;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
 }
 
 .moreBtn:active {
-  background: #f0f0f0;
-  color: #0f0f0f;
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .moreMenu {
@@ -1323,24 +1249,11 @@
   right: 0;
   margin-top: 0.25rem;
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   z-index: 100;
   min-width: 160px;
-  animation: menuFadeIn 0.15s ease-out;
-}
-
-@keyframes menuFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .moreMenuItem,
@@ -1349,7 +1262,7 @@
   align-items: center;
   gap: 0.75rem;
   width: 100%;
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
   background: none;
   border: none;
   font-size: 0.9375rem;
@@ -1359,7 +1272,7 @@
 }
 
 .moreMenuItem {
-  color: #dc2626;
+  color: #ef4444;
 }
 
 .moreMenuItem:active {
@@ -1367,17 +1280,16 @@
 }
 
 .moreMenuItemNeutral {
-  color: #525252;
+  color: #374151;
 }
 
 .moreMenuItemNeutral:active {
-  background: #f5f5f5;
+  background: #f3f4f6;
 }
 
 .moreMenuItem + .moreMenuItem,
 .moreMenuItemNeutral + .moreMenuItem,
 .moreMenuItem + .moreMenuItemNeutral,
 .moreMenuItemNeutral + .moreMenuItemNeutral {
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid #e5e7eb;
 }
-

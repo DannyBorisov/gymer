@@ -112,9 +112,6 @@ export const ExerciseDrawer = ({
         <h2 className={styles.title}>
           {multiSelect ? "Select Exercises" : "Select Exercise"}
         </h2>
-        <button onClick={onClose} className={styles.closeBtn}>
-          <X size={20} />
-        </button>
       </div>
 
       <div className={styles.searchContainer}>

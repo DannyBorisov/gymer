@@ -1,7 +1,8 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
+import { SwipeableDrawer } from "./components/SwipeableDrawer";
 import Landing from "./pages/Landing/Landing";
 import Login from "./pages/Login/Login";
 import Programs from "./pages/Programs/Programs";
@@ -31,28 +32,17 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => {
 
 const WorkoutDrawerOverlay = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isWorkoutRoute = location.pathname === "/workout";
 
+  const handleClose = () => {
+    navigate("/start-workout");
+  };
+
   return (
-    <AnimatePresence>
-      {isWorkoutRoute && (
-        <motion.div
-          key="workout-drawer"
-          initial={{ y: "100%" }}
-          animate={{ y: 0 }}
-          exit={{ y: "100%" }}
-          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 100,
-            overflow: "hidden",
-          }}
-        >
-          <ActiveWorkout />
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <SwipeableDrawer isOpen={isWorkoutRoute} onClose={handleClose} maxHeight="100vh">
+      <ActiveWorkout />
+    </SwipeableDrawer>
   );
 };
 

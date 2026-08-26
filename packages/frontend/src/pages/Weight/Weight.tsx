@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
 } from "recharts";
 import { apiFetch } from "../../utils/api";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -113,6 +114,13 @@ const Weight = () => {
       .reverse();
   }, [entries]);
 
+  // Calculate average weight
+  const avgWeight = useMemo(() => {
+    if (chartData.length === 0) return 0;
+    const sum = chartData.reduce((acc, entry) => acc + entry.weight, 0);
+    return sum / chartData.length;
+  }, [chartData]);
+
   return (
     <div className={styles.container}>
       <button className={styles.backBtn} onClick={() => navigate("/profile")}>
@@ -169,7 +177,7 @@ const Weight = () => {
             <ResponsiveContainer width="100%" height={200}>
               <LineChart
                 data={chartData}
-                margin={{ top: 10, right: 15, left: -10, bottom: 5 }}
+                margin={{ top: 10, right: 50, left: -10, bottom: 5 }}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -206,6 +214,17 @@ const Weight = () => {
                     `${Number(value).toFixed(1)} ${weightUnit}`,
                     "Weight",
                   ]}
+                />
+                <ReferenceLine
+                  y={avgWeight}
+                  stroke="#a1a1a1"
+                  strokeDasharray="4 4"
+                  label={{
+                    value: `Avg: ${avgWeight.toFixed(1)}`,
+                    position: "right",
+                    fill: "#a1a1a1",
+                    fontSize: 10,
+                  }}
                 />
                 <Line
                   type="monotone"

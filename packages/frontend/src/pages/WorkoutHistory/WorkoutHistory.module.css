@@ -289,6 +289,12 @@
   flex-shrink: 0;
 }
 
+.setDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
 .setData {
   font-size: 0.875rem;
   color: #0f0f0f;
@@ -296,4 +302,10 @@
 
 .setRir {
   color: #737373;
+}
+
+.setNotes {
+  font-size: 0.75rem;
+  color: #737373;
+  font-style: italic;
 }

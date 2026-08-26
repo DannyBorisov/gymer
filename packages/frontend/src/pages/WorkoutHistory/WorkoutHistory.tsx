@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Loader2, Dumbbell, Zap, X, Clock } from 'lucide-react'
+import { Loader2, Dumbbell, Zap, Clock } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
 import { useSettings } from '../../contexts/SettingsContext'
 import { SwipeableDrawer } from '../../components/SwipeableDrawer'
@@ -226,9 +226,6 @@ const WorkoutHistory = () => {
                   )}
                 </div>
               </div>
-              <button className={styles.closeBtn} onClick={closeDetail}>
-                <X size={20} />
-              </button>
             </div>
 
             <div className={styles.drawerContent}>
@@ -246,10 +243,13 @@ const WorkoutHistory = () => {
                         {exercise.sets.map((set, idx) => (
                           <div key={idx} className={styles.setRow}>
                             <span className={styles.setNumber}>{set.set}</span>
-                            <span className={styles.setData}>
-                              {set.weight}{weightUnit} × {set.reps}
-                              {set.rir && <span className={styles.setRir}> @ {set.rir} RIR</span>}
-                            </span>
+                            <div className={styles.setDetails}>
+                              <span className={styles.setData}>
+                                {set.weight}{weightUnit} × {set.reps}
+                                {set.rir && <span className={styles.setRir}> @ {set.rir} RIR</span>}
+                              </span>
+                              {set.notes && <span className={styles.setNotes}>{set.notes}</span>}
+                            </div>
                           </div>
                         ))}
                       </div>

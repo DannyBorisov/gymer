@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ChevronRight, Loader2, Plus, Check } from "lucide-react";
+import { ChevronRight, Loader2, Plus } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { apiFetch } from "../../utils/api";
 import { formatDate } from "../../lib/date";
@@ -78,13 +78,12 @@ const Programs = () => {
                     Created {formatDate(program.createdTime)}
                   </span>
                 </div>
-                {isActive ? (
-                  <div className={styles.activeIndicator}>
-                    <Check size={16} />
-                  </div>
-                ) : (
+                <div className={styles.programActions}>
+                  {isActive && (
+                    <span className={styles.activeBadge}>Active</span>
+                  )}
                   <ChevronRight size={16} className={styles.chevronIcon} />
-                )}
+                </div>
               </button>
             );
           })}
