@@ -15,17 +15,18 @@ let restStartTime: number | null = null;
 const WORKOUT_COLOR = "#22C55E";
 const REST_COLOR = "#F97316";
 
-// Create layout with native timer that auto-updates
+// Create layout with native timer that auto-updates (lock screen)
 const createLayout = (startTime: number): LayoutElement => ({
   type: "container",
-  properties: [{ direction: "vertical" }, { spacing: 8 }, { padding: 16 }],
+  properties: [{ direction: "vertical" }, { spacing: 4 }, { padding: 16 }],
   children: [
     {
       type: "text",
       properties: [
         { text: "{{workoutName}}" },
-        { fontSize: 14 },
-        { color: "#A0A0A0" },
+        { fontSize: 16 },
+        { fontWeight: "medium" },
+        { color: "#FFFFFF" },
       ],
     },
     {
@@ -33,9 +34,10 @@ const createLayout = (startTime: number): LayoutElement => ({
       properties: [
         { endTime: startTime },
         { style: "timer" },
-        { fontSize: 32 },
+        { fontSize: 48 },
         { fontWeight: "bold" },
-        { color: "#FFFFFF" },
+        { color: WORKOUT_COLOR },
+        { monospacedDigit: true },
       ],
     },
   ],
@@ -110,36 +112,38 @@ const createDynamicIslandLayout = (startTime: number): DynamicIslandLayout => ({
   },
 });
 
-// Create layout with rest timer active
+// Create layout with rest timer active (lock screen)
 const createLayoutWithRest = (workoutStart: number, restStart: number): LayoutElement => ({
   type: "container",
-  properties: [{ direction: "vertical" }, { spacing: 8 }, { padding: 16 }],
+  properties: [{ direction: "vertical" }, { spacing: 4 }, { padding: 16 }],
   children: [
     {
       type: "text",
       properties: [
         { text: "{{workoutName}}" },
-        { fontSize: 14 },
-        { color: "#A0A0A0" },
+        { fontSize: 16 },
+        { fontWeight: "medium" },
+        { color: "#FFFFFF" },
       ],
     },
     {
       type: "container",
-      properties: [{ direction: "horizontal" }, { spacing: 16 }],
+      properties: [{ direction: "horizontal" }, { spacing: 24 }],
       children: [
         {
           type: "timer",
           properties: [
             { endTime: workoutStart },
             { style: "timer" },
-            { fontSize: 24 },
+            { fontSize: 36 },
             { fontWeight: "bold" },
-            { color: "#FFFFFF" },
+            { color: WORKOUT_COLOR },
+            { monospacedDigit: true },
           ],
         },
         {
           type: "container",
-          properties: [{ direction: "horizontal" }, { spacing: 4 }],
+          properties: [{ direction: "horizontal" }, { spacing: 6 }],
           children: [
             {
               type: "image",
@@ -150,9 +154,10 @@ const createLayoutWithRest = (workoutStart: number, restStart: number): LayoutEl
               properties: [
                 { endTime: restStart },
                 { style: "timer" },
-                { fontSize: 24 },
+                { fontSize: 36 },
                 { fontWeight: "bold" },
                 { color: REST_COLOR },
+                { monospacedDigit: true },
               ],
             },
           ],
@@ -252,6 +257,30 @@ const promptEnableLiveActivities = async (): Promise<void> => {
   });
 };
 
+// End all existing activities to prevent duplicates
+const endAllActivities = async (): Promise<void> => {
+  try {
+    const { activities } = await LiveActivities.getAllActivities();
+    for (const activity of activities) {
+      try {
+        // The activity object has 'id', not 'activityId'
+        const activityId = (activity as unknown as { id: string }).id;
+        if (activityId) {
+          await LiveActivities.endActivity({
+            activityId,
+            data: {},
+          });
+        }
+      } catch {
+        // Ignore errors ending individual activities
+      }
+    }
+  } catch {
+    // Ignore if getAllActivities fails
+  }
+  currentActivityId = null;
+};
+
 export const startWorkoutLiveActivity = async (
   workoutName: string,
   exerciseName: string = "",
@@ -268,6 +297,9 @@ export const startWorkoutLiveActivity = async (
   }
 
   try {
+    // End all existing activities first to prevent duplicates
+    await endAllActivities();
+
     workoutStartTime = Date.now();
     restStartTime = null;
     console.log("Live Activity: Calling startActivity...");
@@ -302,16 +334,18 @@ export const updateRestTimer = async (
   exerciseName: string = "",
   startTime?: number,
 ): Promise<void> => {
-  if (!currentActivityId || !Capacitor.isNativePlatform()) {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") {
+    return;
+  }
+
+  // If no workout is active, don't update
+  if (workoutStartTime === 0) {
     return;
   }
 
   try {
-    // End current activity and start new one with updated layout
-    await LiveActivities.endActivity({
-      activityId: currentActivityId,
-      data: { workoutName, exerciseName },
-    });
+    // End all existing activities first to prevent duplicates
+    await endAllActivities();
 
     if (isActive) {
       // Use provided start time or current time
@@ -370,18 +404,13 @@ export const updateExerciseName = async (
 };
 
 export const endWorkoutLiveActivity = async (): Promise<void> => {
-  if (!currentActivityId || !Capacitor.isNativePlatform()) {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") {
     return;
   }
 
   try {
-    await LiveActivities.endActivity({
-      activityId: currentActivityId,
-      data: {
-        workoutName: "Workout Complete",
-      },
-    });
-    currentActivityId = null;
+    // End all activities to ensure cleanup
+    await endAllActivities();
     workoutStartTime = 0;
     restStartTime = null;
   } catch (error) {

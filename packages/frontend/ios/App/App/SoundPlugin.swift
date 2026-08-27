@@ -128,6 +128,8 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         // Get start time from JS (milliseconds since epoch), default to now
         let jsStartTime = call.getDouble("startTime") ?? (Date().timeIntervalSince1970 * 1000)
 
+        print("SoundPlugin: scheduleRestSound called - mode: \(mode), interval: \(interval), startTime: \(jsStartTime)")
+
         DispatchQueue.main.async {
             // Always stop first to prevent duplicates
             self.stopTimer()
@@ -138,6 +140,8 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
             self.isRunning = true
             self.isSpeaking = false
             self.lastAnnouncedSecond = -1
+
+            print("SoundPlugin: Timer starting - isVoiceMode: \(self.isVoiceMode), interval: \(self.announceInterval)")
 
             // Start timer immediately on main run loop
             self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -192,6 +196,7 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
                             elapsedSeconds != lastAnnouncedSecond
 
         if shouldAnnounce {
+            print("SoundPlugin: Announcing at \(elapsedSeconds) seconds")
             lastAnnouncedSecond = elapsedSeconds
             let text = formatDuration(elapsedSeconds)
             speakText(text: text, rate: 0.52)
@@ -209,32 +214,69 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
             synthesizer.stopSpeaking(at: .immediate)
         }
 
-        // Configure audio session before speaking
-        configureAudioSession()
+        // Configure audio session for speech with mixWithOthers to not interrupt other apps
+        // Keep audio engine running - don't pause it
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+            try session.setActive(true, options: [])
+        } catch {
+            print("SoundPlugin: Failed to configure audio session for speech: \(error)")
+        }
 
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = rate
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        // Try to get a good English voice, fall back to default
+        if let voice = AVSpeechSynthesisVoice(language: "en-US") {
+            utterance.voice = voice
+        } else if let voice = AVSpeechSynthesisVoice(language: "en") {
+            utterance.voice = voice
+        }
         utterance.volume = 1.0
+        utterance.pitchMultiplier = 1.0
+        utterance.preUtteranceDelay = 0
+        utterance.postUtteranceDelay = 0
 
+        print("SoundPlugin: Speaking '\(text)'")
         synthesizer.speak(utterance)
 
         // Safety timeout - reset isSpeaking after 5 seconds max
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-            self?.isSpeaking = false
+            if self?.isSpeaking == true {
+                print("SoundPlugin: Safety timeout - resetting speech state")
+                self?.isSpeaking = false
+            }
         }
     }
 
     // AVSpeechSynthesizerDelegate
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        print("SoundPlugin: Speech finished")
         DispatchQueue.main.async {
             self.isSpeaking = false
+            self.restoreBackgroundAudioSession()
         }
     }
 
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        print("SoundPlugin: Speech cancelled")
         DispatchQueue.main.async {
             self.isSpeaking = false
+            self.restoreBackgroundAudioSession()
+        }
+    }
+
+    public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        print("SoundPlugin: Speech started")
+    }
+
+    private func restoreBackgroundAudioSession() {
+        // Restore audio session to background mode after speech
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+        } catch {
+            print("SoundPlugin: Failed to restore audio session: \(error)")
         }
     }
 
