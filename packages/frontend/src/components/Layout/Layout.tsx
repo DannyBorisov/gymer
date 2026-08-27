@@ -191,8 +191,8 @@ const Layout = ({ children }: LayoutProps) => {
 
       <main className={`${styles.main} ${isOnWorkoutPage ? styles.mainWorkout : ''}`}>{children}</main>
 
-      {/* Mobile Bottom Navigation - hide when on workout page */}
-      {isMobile && !isOnWorkoutPage && (
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
         <nav className={styles.bottomNav}>
           <NavLink
             to="/programs"

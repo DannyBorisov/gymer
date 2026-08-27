@@ -16,6 +16,7 @@ interface ScrollableInputProps {
   hint?: string | number;
   hintLabel?: string;
   target?: string | number;
+  dark?: boolean;
 }
 
 export function ScrollableInput({
@@ -32,6 +33,7 @@ export function ScrollableInput({
   hint,
   hintLabel = "last",
   target,
+  dark = false,
 }: ScrollableInputProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -160,7 +162,7 @@ export function ScrollableInput({
   };
 
   return (
-    <div className={styles.inputGroup}>
+    <div className={`${styles.inputGroup} ${dark ? styles.dark : ""}`}>
       <span className={styles.label}>{label}</span>
       <div className={styles.pickerContainer}>
         <button
@@ -192,6 +194,9 @@ export function ScrollableInput({
               ref={scrollRef}
               className={styles.pickerScroll}
               onScroll={handleScroll}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
             >
               <div className={styles.pickerSpacer} />
               {values.map((val, idx) => (

@@ -1,0 +1,58 @@
+/* Gymerr Design System Variables */
+/* Dark, minimal aesthetic - see /CLAUDE.md for full guidelines */
+
+:root {
+  /* Background colors */
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #1a1a1a;
+  --bg-elevated: rgba(255, 255, 255, 0.05);
+  --bg-interactive: rgba(255, 255, 255, 0.08);
+  --bg-hover: rgba(255, 255, 255, 0.12);
+  --bg-active: rgba(255, 255, 255, 0.15);
+
+  /* Text colors */
+  --text-primary: #fff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --text-disabled: rgba(255, 255, 255, 0.25);
+
+  /* Border colors */
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-emphasis: rgba(255, 255, 255, 0.2);
+
+  /* Accent colors - use sparingly */
+  --accent-orange: #f97316;
+  --accent-green: #22c55e;
+  --accent-red: #f87171;
+
+  /* Backdrop */
+  --backdrop: rgba(0, 0, 0, 0.7);
+
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+
+  /* Spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Typography */
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  /* Shadows */
+  --shadow-drawer: 0 -4px 32px rgba(0, 0, 0, 0.5);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+}

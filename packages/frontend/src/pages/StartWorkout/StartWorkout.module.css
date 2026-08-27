@@ -7,7 +7,7 @@
 .title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #0f0f0f;
+  color: var(--text-primary);
   margin: 0 0 1.5rem 0;
   letter-spacing: -0.025em;
 }
@@ -18,21 +18,21 @@
   }
 }
 
-/* Quick Workout Card - simple */
+/* Quick Workout Card */
 .quickWorkoutCard {
   width: 100%;
   display: flex;
   align-items: center;
   padding: 1rem;
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   margin-bottom: 1.5rem;
 }
 
 .quickWorkoutCard:active {
-  background: #f9fafb;
+  background: var(--bg-hover);
 }
 
 .quickWorkoutContent {
@@ -46,16 +46,16 @@
 .quickWorkoutTitle {
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #0f0f0f;
+  color: var(--text-primary);
 }
 
 .quickWorkoutSubtitle {
   font-size: 0.8125rem;
-  color: #737373;
+  color: var(--text-secondary);
 }
 
 .chevron {
-  color: #a1a1a1;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -74,7 +74,7 @@
 .sectionTitle {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #0f0f0f;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -83,18 +83,18 @@
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem 0.75rem;
-  background: #f5f5f5;
+  background: var(--bg-interactive);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #525252;
+  color: var(--text-secondary);
   text-decoration: none;
   cursor: pointer;
 }
 
 .changeBtn:active {
-  background: #e5e5e5;
+  background: var(--bg-hover);
 }
 
 .programsList {
@@ -109,26 +109,26 @@
   align-items: center;
   gap: 0.875rem;
   padding: 1rem;
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .programCard:active {
-  background: #f5f5f5;
+  background: var(--bg-hover);
 }
 
 .programIcon {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
-  background: #f0f7ff;
+  border-radius: var(--radius-md);
+  background: var(--bg-interactive);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #3b82f6;
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
@@ -144,7 +144,7 @@
 .programName {
   font-size: 0.9375rem;
   font-weight: 500;
-  color: #0f0f0f;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -152,11 +152,11 @@
 
 .programMeta {
   font-size: 0.8125rem;
-  color: #737373;
+  color: var(--text-secondary);
 }
 
 .programCard .chevron {
-  color: #a1a1a1;
+  color: var(--text-muted);
 }
 
 /* Empty & Loading States */
@@ -165,7 +165,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  color: #737373;
+  color: var(--text-secondary);
 }
 
 .spinner {
@@ -180,7 +180,7 @@
 .emptyState {
   text-align: center;
   padding: 2rem 1rem;
-  color: #737373;
+  color: var(--text-secondary);
 }
 
 .emptyState p {
@@ -190,42 +190,42 @@
 
 .createBtn {
   padding: 0.625rem 1.25rem;
-  background: #0f0f0f;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--bg-primary);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .createBtn:active {
-  background: #262626;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 /* No Program State */
 .noProgram {
   text-align: center;
   padding: 2.5rem 1rem;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px dashed #e5e5e5;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-subtle);
 }
 
 .noProgramText {
   margin: 0 0 1rem 0;
   font-size: 0.9375rem;
-  color: #737373;
+  color: var(--text-secondary);
 }
 
 .selectProgramBtn {
   display: inline-block;
   padding: 0.75rem 1.5rem;
-  background: #0f0f0f;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--bg-primary);
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
@@ -233,15 +233,15 @@
 }
 
 .selectProgramBtn:active {
-  background: #262626;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 /* Error State */
 .errorState {
   text-align: center;
   padding: 1.5rem;
-  background: #fef2f2;
-  border-radius: 12px;
-  color: #dc2626;
+  background: rgba(248, 113, 113, 0.1);
+  border-radius: var(--radius-lg);
+  color: var(--accent-red);
   font-size: 0.875rem;
 }

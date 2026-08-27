@@ -1,4 +1,7 @@
+@import './styles/variables.css';
+
 :root {
+  /* Legacy variables - being phased out */
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #fff;
@@ -67,7 +70,7 @@ html, body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background-color: #fafafa;
+  background-color: var(--bg-primary);
 }
 
 #root {
@@ -79,7 +82,7 @@ html, body {
   padding-right: env(safe-area-inset-right, 0px);
   /* No bottom padding - bottom nav handles safe area */
   overflow: hidden;
-  background-color: #fafafa;
+  background-color: var(--bg-primary);
 }
 
 *,

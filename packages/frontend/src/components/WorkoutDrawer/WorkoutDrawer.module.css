@@ -1,0 +1,104 @@
+/* Backdrop */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  z-index: 999;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+
+.backdropVisible {
+  background: rgba(0, 0, 0, 0.7);
+  pointer-events: auto;
+}
+
+/* Drawer */
+.drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-primary);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.3s ease, transform 0.3s ease, bottom 0.3s ease;
+  will-change: height, transform;
+  box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.5);
+}
+
+.drawerExpanded {
+  /* Almost full screen, but respect safe area for battery/wifi (leave ~24px gap) */
+  height: calc(100vh - env(safe-area-inset-top, 20px) - 8px);
+  height: calc(100dvh - env(safe-area-inset-top, 20px) - 8px);
+}
+
+.drawerCollapsed {
+  height: 64px;
+  /* Position above the bottom nav (nav is ~66px + safe-area) */
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Handle area */
+.handleArea {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 16px 8px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.handleArea:active {
+  cursor: grabbing;
+}
+
+.handle {
+  width: 40px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+/* Peek content (collapsed state) */
+.peekContent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+  width: 100%;
+  justify-content: center;
+  padding: 0 16px;
+}
+
+.peekTimer {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.peekExercise {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Content area */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.drawerCollapsed .content {
+  display: none;
+}

@@ -16,8 +16,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: #fff;
-  border-radius: 12px 12px 0 0;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   z-index: 1001;
   display: flex;
   flex-direction: column;
@@ -54,7 +54,7 @@
 .handle {
   width: 36px;
   height: 4px;
-  background: #e5e7eb;
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
 }
 

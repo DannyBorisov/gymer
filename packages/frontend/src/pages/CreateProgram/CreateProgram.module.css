@@ -13,7 +13,7 @@
 .stickyHeader {
   position: sticky;
   top: -1.5rem;
-  background: #fafafa;
+  background: var(--bg-primary);
   z-index: 10;
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
@@ -21,7 +21,7 @@
   margin-right: -1.5rem;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
-  box-shadow: 0 1px 0 #e5e5e5;
+  box-shadow: 0 1px 0 var(--border-default);
 }
 
 @media (min-width: 768px) {
@@ -35,11 +35,11 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  color: #737373;
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
-  transition: color 0.15s ease;
+  transition: color var(--transition-fast);
   min-height: var(--touch-target);
   background: none;
   border: none;
@@ -48,7 +48,7 @@
 }
 
 .backLink:hover {
-  color: #0f0f0f;
+  color: var(--text-primary);
 }
 
 .pageHeader {
@@ -58,7 +58,7 @@
 .title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #0f0f0f;
+  color: var(--text-primary);
   margin: 0 0 0.5rem 0;
   letter-spacing: -0.025em;
 }
@@ -70,7 +70,7 @@
 }
 
 .subtitle {
-  color: #737373;
+  color: var(--text-secondary);
   font-size: 0.9375rem;
   margin: 0;
 }
@@ -95,13 +95,13 @@
   content: "";
   flex: 1;
   height: 1px;
-  background: #e5e5e5;
+  background: var(--border-default);
 }
 
 .orDivider span {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #a1a1a1;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -112,10 +112,10 @@
   justify-content: space-between;
   gap: 0.25rem;
   padding: 1.25rem;
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  transition: all 0.15s ease;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-fast);
 }
 
 @media (max-width: 767px) {
@@ -127,8 +127,7 @@
 }
 
 .templateCard:hover {
-  border-color: #0f0f0f;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-color: var(--border-emphasis);
 }
 
 .templateInfo {
@@ -144,13 +143,13 @@
 .templateName {
   font-size: 1rem;
   font-weight: 600;
-  color: #0f0f0f;
+  color: var(--text-primary);
   margin: 0 0 0.25rem 0;
 }
 
 .templateDescription {
   font-size: 0.875rem;
-  color: #737373;
+  color: var(--text-secondary);
   margin: 0 0 0.75rem 0;
 }
 
@@ -165,11 +164,11 @@
   align-items: center;
   gap: 0.375rem;
   font-size: 0.8125rem;
-  color: #525252;
+  color: var(--text-secondary);
 }
 
 .metaItem svg {
-  color: #a1a1a1;
+  color: var(--text-muted);
 }
 
 .useTemplateBtn {
@@ -177,14 +176,14 @@
   align-items: center;
   gap: 0.375rem;
   padding: 0.625rem 1rem;
-  background: #0f0f0f;
-  color: #fafafa;
+  background: var(--text-primary);
+  color: var(--bg-primary);
   border: none;
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast);
   white-space: nowrap;
   min-height: var(--touch-target);
 }
@@ -197,7 +196,7 @@
 }
 
 .useTemplateBtn:hover {
-  background: #262626;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .createFromScratchBtn {
@@ -207,21 +206,21 @@
   gap: 0.5rem;
   width: 100%;
   padding: 1rem;
-  background: #f5f5f5;
-  border: 1px dashed #d4d4d4;
-  border-radius: 12px;
-  color: #525252;
+  background: var(--bg-interactive);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
   font-size: 0.9375rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
 }
 
 .createFromScratchBtn:hover {
-  background: #e5e5e5;
-  border-color: #a1a1a1;
-  color: #0f0f0f;
+  background: var(--bg-hover);
+  border-color: var(--border-emphasis);
+  color: var(--text-primary);
 }
 
 /* Form */
@@ -242,13 +241,13 @@
 
 .programNameInput {
   padding: 0.75rem 1rem;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 500;
-  background: #fff;
-  color: #0f0f0f;
-  transition: all 0.15s ease;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
 }
 
@@ -260,11 +259,11 @@
 
 .programNameInput:focus {
   outline: none;
-  border-color: #0f0f0f;
+  border-color: var(--border-emphasis);
 }
 
 .programNameInput::placeholder {
-  color: #a1a1a1;
+  color: var(--text-muted);
   font-weight: 400;
 }
 
@@ -287,23 +286,23 @@
   gap: 0.375rem;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #737373;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .settingLabel svg {
-  color: #a1a1a1;
+  color: var(--text-muted);
 }
 
 .settingInput {
   padding: 0.75rem 1rem;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   font-size: 1rem;
-  background: #fff;
-  color: #0f0f0f;
-  transition: all 0.15s ease;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
   -moz-appearance: textfield;
 }
@@ -322,21 +321,21 @@
 
 .settingInput:focus {
   outline: none;
-  border-color: #0f0f0f;
+  border-color: var(--border-emphasis);
 }
 
 .settingSelect {
   padding: 0.75rem 1rem;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   font-size: 1rem;
-  background: #fff;
-  color: #0f0f0f;
-  transition: all 0.15s ease;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   padding-right: 2.5rem;
@@ -350,7 +349,7 @@
 
 .settingSelect:focus {
   outline: none;
-  border-color: #0f0f0f;
+  border-color: var(--border-emphasis);
 }
 
 /* Workouts */
@@ -376,7 +375,7 @@
 .workoutsTitle {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #737373;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -386,25 +385,25 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.375rem 0.625rem;
-  background: #0f0f0f;
-  color: #fafafa;
+  background: var(--text-primary);
+  color: var(--bg-primary);
   border: none;
   border-radius: 5px;
   font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast);
   min-height: var(--touch-target);
 }
 
 .addWorkoutBtn:hover {
-  background: #262626;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 /* Workout Section */
 .workoutSection {
-  background: #fff;
-  border: 1px solid #e5e5e5;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   display: block;
 }
@@ -414,8 +413,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: #fff;
-  border-bottom: 1px solid #e5e5e5;
+  background: var(--bg-interactive);
+  border-bottom: 1px solid var(--border-default);
   border-radius: 8px 8px 0 0;
 }
 
@@ -427,20 +426,20 @@
   background: transparent;
   border: none;
   border-radius: 3px;
-  color: #737373;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-width: var(--touch-target);
   min-height: var(--touch-target);
 }
 
 .collapseBtn:hover {
-  background: #e5e5e5;
-  color: #0f0f0f;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .chevron {
-  transition: transform 0.15s ease;
+  transition: transform var(--transition-fast);
 }
 
 .chevronOpen {
@@ -450,7 +449,7 @@
 .workoutLabel {
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #a1a1a1;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -463,8 +462,8 @@
   font-size: 0.875rem;
   font-weight: 500;
   background: transparent;
-  color: #0f0f0f;
-  transition: all 0.15s ease;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
 }
 
@@ -475,18 +474,18 @@
 }
 
 .workoutNameInput:hover {
-  background: #fff;
-  border-color: #e5e5e5;
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
 }
 
 .workoutNameInput:focus {
   outline: none;
-  background: #fff;
-  border-color: #0f0f0f;
+  background: var(--bg-elevated);
+  border-color: var(--border-emphasis);
 }
 
 .workoutNameInput::placeholder {
-  color: #a1a1a1;
+  color: var(--text-muted);
   font-weight: 400;
 }
 
@@ -498,16 +497,16 @@
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: #d4d4d4;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-width: var(--touch-target);
   min-height: var(--touch-target);
 }
 
 .removeWorkoutBtn:hover:not(:disabled) {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--accent-red);
 }
 
 .removeWorkoutBtn:disabled {
@@ -519,7 +518,7 @@
 .emptyExercises {
   padding: 1.5rem;
   text-align: center;
-  color: #a1a1a1;
+  color: var(--text-muted);
   font-size: 0.875rem;
 }
 
@@ -530,7 +529,7 @@
 /* Exercises Table */
 .exercisesTable {
   padding: 0.5rem;
-  background: #fff;
+  background: var(--bg-elevated);
 }
 
 .tableHeader {
@@ -540,7 +539,7 @@
   padding: 0.25rem 0.375rem;
   font-size: 0.625rem;
   font-weight: 600;
-  color: #a1a1a1;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -573,19 +572,19 @@
   .exerciseRow {
     display: block;
     padding: 0.75rem;
-    background: #fafafa;
+    background: var(--bg-interactive);
     border-radius: 8px;
     margin-bottom: 0.5rem;
   }
 }
 
 .exerciseRow:hover {
-  background: #fafafa;
+  background: var(--bg-interactive);
 }
 
 @media (max-width: 767px) {
   .exerciseRow:hover {
-    background: #f0f0f0;
+    background: var(--bg-hover);
   }
 }
 
@@ -635,7 +634,7 @@
     display: block;
     font-size: 0.6875rem;
     font-weight: 600;
-    color: #737373;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
@@ -647,22 +646,22 @@
   justify-content: center;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: #a1a1a1;
+  color: var(--text-muted);
   width: 1.25rem;
   height: 1.25rem;
-  background: #e5e5e5;
+  background: var(--bg-interactive);
   border-radius: 4px;
   flex-shrink: 0;
 }
 
 .exerciseNameInput {
   padding: 0.375rem 0.5rem;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   font-size: 0.8125rem;
-  background: #fff;
-  color: #0f0f0f;
-  transition: all 0.15s ease;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
 }
 
@@ -675,22 +674,22 @@
 
 .exerciseNameInput:focus {
   outline: none;
-  border-color: #0f0f0f;
+  border-color: var(--border-emphasis);
 }
 
 .exerciseNameInput::placeholder {
-  color: #a1a1a1;
+  color: var(--text-muted);
 }
 
 .numberInput {
   padding: 0.375rem 0.25rem;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   font-size: 0.8125rem;
   text-align: center;
-  background: #fff;
-  color: #0f0f0f;
-  transition: all 0.15s ease;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
   -moz-appearance: textfield;
   min-height: var(--touch-target);
 }
@@ -711,11 +710,11 @@
 
 .numberInput:focus {
   outline: none;
-  border-color: #0f0f0f;
+  border-color: var(--border-emphasis);
 }
 
 .numberInput::placeholder {
-  color: #d4d4d4;
+  color: var(--text-muted);
 }
 
 .removeBtn {
@@ -726,17 +725,17 @@
   background: transparent;
   border: none;
   border-radius: 4px;
-  color: #d4d4d4;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-width: var(--touch-target);
   min-height: var(--touch-target);
   flex-shrink: 0;
 }
 
 .removeBtn:hover:not(:disabled) {
-  background: #fee2e2;
-  color: #dc2626;
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--accent-red);
 }
 
 .removeBtn:disabled {
@@ -752,12 +751,12 @@
   margin-left: 0.375rem;
   padding: 0.375rem 0.5rem;
   background: transparent;
-  border: 1px dashed #d4d4d4;
+  border: 1px dashed var(--border-default);
   border-radius: 4px;
   font-size: 0.75rem;
-  color: #737373;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
 }
 
@@ -769,8 +768,8 @@
 }
 
 .addExerciseBtn:hover {
-  border-color: #0f0f0f;
-  color: #0f0f0f;
+  border-color: var(--border-emphasis);
+  color: var(--text-primary);
 }
 
 /* Form Actions */
@@ -794,14 +793,14 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  background-color: #0f0f0f;
-  color: #fafafa;
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
   border: none;
   border-radius: 8px;
   font-size: 0.9375rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
 }
 
@@ -812,7 +811,7 @@
 }
 
 .submitButton:hover:not(:disabled) {
-  background-color: #262626;
+  background-color: rgba(255, 255, 255, 0.9);
 }
 
 .submitButton:disabled {
@@ -838,10 +837,10 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
   border-radius: 8px;
-  color: #166534;
+  color: var(--accent-green);
   font-size: 0.9375rem;
   font-weight: 500;
   width: 100%;
@@ -859,13 +858,13 @@
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem 0.875rem;
-  background: #166534;
-  color: #fff;
+  background: var(--accent-green);
+  color: var(--bg-primary);
   text-decoration: none;
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast);
   min-height: var(--touch-target);
 }
 
@@ -877,7 +876,7 @@
 }
 
 .sheetLink:hover {
-  background: #15803d;
+  background: rgba(34, 197, 94, 0.8);
 }
 
 .goBackBtn {
@@ -886,13 +885,13 @@
   justify-content: center;
   padding: 0.5rem 0.875rem;
   background: transparent;
-  border: 1px solid #166534;
-  color: #166534;
+  border: 1px solid var(--accent-green);
+  color: var(--accent-green);
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
 }
 
@@ -903,12 +902,12 @@
 }
 
 .goBackBtn:hover {
-  background: #166534;
-  color: #fff;
+  background: var(--accent-green);
+  color: var(--bg-primary);
 }
 
 .errorMessage {
-  color: #dc2626;
+  color: var(--accent-red);
   font-size: 0.875rem;
   font-weight: 500;
 }

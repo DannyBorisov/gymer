@@ -7,8 +7,8 @@
 
 .sidebar {
   width: 240px;
-  background-color: #0f0f0f;
-  color: #fafafa;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   padding: 1.25rem 0.75rem;
   display: flex;
   flex-direction: column;
@@ -17,7 +17,7 @@
   left: 0;
   height: 100vh;
   box-sizing: border-box;
-  border-right: 1px solid #1f1f1f;
+  border-right: 1px solid var(--border-default);
 }
 
 @media (max-width: 767px) {
@@ -32,7 +32,7 @@
   gap: 0.625rem;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #fafafa;
+  color: var(--text-primary);
   padding: 0.5rem 0.75rem;
   margin-bottom: 1.5rem;
   letter-spacing: -0.025em;
@@ -50,29 +50,29 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.625rem 0.75rem;
-  border-radius: 6px;
-  color: #a1a1a1;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
   text-decoration: none;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .navLink:hover {
-  background-color: #1a1a1a;
-  color: #fafafa;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .active {
-  background-color: #1a1a1a;
-  color: #fafafa;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .main {
   flex: 1;
   margin-left: 240px;
   padding: 0 0.5rem;
-  background-color: #fafafa;
+  background-color: var(--bg-primary);
   height: 100%;
   box-sizing: border-box;
   min-width: 0;
@@ -88,10 +88,8 @@
 
   .mainWorkout {
     padding: 0;
-    /* Pull content to edges, counteracting root safe area padding */
     margin-top: calc(-1 * env(safe-area-inset-top, 0px));
     margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-    /* Add safe areas back to height so content fills full screen */
     height: calc(
       100% + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px)
     );
@@ -102,7 +100,7 @@
   position: relative;
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #1f1f1f;
+  border-top: 1px solid var(--border-default);
 }
 
 .userButton {
@@ -113,21 +111,21 @@
   padding: 0.5rem 0.75rem;
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--transition-fast);
 }
 
 .userButton:hover {
-  background-color: #1a1a1a;
+  background-color: var(--bg-secondary);
 }
 
 .avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #3b82f6;
-  color: #fff;
+  background-color: var(--bg-interactive);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -137,7 +135,7 @@
 }
 
 .userName {
-  color: #fafafa;
+  color: var(--text-primary);
   font-size: 0.875rem;
   font-weight: 500;
   text-align: left;
@@ -152,11 +150,11 @@
   left: 0.5rem;
   right: 0.5rem;
   margin-bottom: 0.5rem;
-  background-color: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-drawer);
 }
 
 .popoverHeader {
@@ -164,7 +162,7 @@
   align-items: center;
   gap: 0.75rem;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-default);
   margin-bottom: 0.75rem;
 }
 
@@ -172,8 +170,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #3b82f6;
-  color: #fff;
+  background-color: var(--bg-interactive);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -189,7 +187,7 @@
 }
 
 .popoverName {
-  color: #fafafa;
+  color: var(--text-primary);
   font-size: 0.875rem;
   font-weight: 500;
   overflow: hidden;
@@ -198,7 +196,7 @@
 }
 
 .popoverEmail {
-  color: #a1a1a1;
+  color: var(--text-secondary);
   font-size: 0.75rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -208,7 +206,7 @@
 .settingsSection {
   padding-bottom: 0.75rem;
   margin-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -225,14 +223,14 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #a1a1a1;
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
 .unitToggle {
   display: flex;
-  background-color: #2a2a2a;
-  border-radius: 6px;
+  background-color: var(--bg-interactive);
+  border-radius: var(--radius-sm);
   padding: 2px;
 }
 
@@ -241,32 +239,32 @@
   background: none;
   border: none;
   border-radius: 4px;
-  color: #a1a1a1;
+  color: var(--text-secondary);
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .unitBtnActive {
-  background-color: #3b82f6;
-  color: #fff;
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .toggleBtn {
   position: relative;
   width: 44px;
   height: 26px;
-  background: #2a2a2a;
+  background: var(--bg-interactive);
   border: none;
   border-radius: 13px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background var(--transition-normal);
   padding: 2px;
 }
 
 .toggleBtnActive {
-  background: #22c55e;
+  background: var(--accent-green);
 }
 
 .toggleKnob {
@@ -275,9 +273,9 @@
   left: 3px;
   width: 20px;
   height: 20px;
-  background: #fff;
+  background: var(--text-primary);
   border-radius: 50%;
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-normal);
 }
 
 .toggleBtnActive .toggleKnob {
@@ -286,8 +284,8 @@
 
 .durationToggle {
   display: flex;
-  background-color: #2a2a2a;
-  border-radius: 6px;
+  background-color: var(--bg-interactive);
+  border-radius: var(--radius-sm);
   padding: 2px;
 }
 
@@ -296,16 +294,16 @@
   background: none;
   border: none;
   border-radius: 4px;
-  color: #a1a1a1;
+  color: var(--text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .durationBtnActive {
-  background-color: #3b82f6;
-  color: #fff;
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
 }
 
 .signOutButton {
@@ -315,20 +313,20 @@
   gap: 0.5rem;
   width: 100%;
   padding: 0.75rem;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(248, 113, 113, 0.1);
   border: none;
-  border-radius: 12px;
-  color: #ef4444;
+  border-radius: var(--radius-lg);
+  color: var(--accent-red);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
   min-height: var(--touch-target);
 }
 
 .signOutButton:hover,
 .signOutButton:active {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(248, 113, 113, 0.15);
 }
 
 /* Mobile Header */
@@ -338,13 +336,13 @@
   left: 0;
   right: 0;
   height: var(--mobile-header-height);
-  background-color: #0f0f0f;
+  background-color: var(--bg-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 1rem;
   z-index: 100;
-  border-bottom: 1px solid #1f1f1f;
+  border-bottom: 1px solid var(--border-default);
 }
 
 .mobileHeaderLogo {
@@ -353,7 +351,7 @@
   gap: 0.5rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #fafafa;
+  color: var(--text-primary);
   letter-spacing: -0.025em;
 }
 
@@ -362,18 +360,18 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.875rem;
-  background: #22c55e;
+  background: var(--text-primary);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.9375rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #fff;
+  color: var(--bg-primary);
   cursor: pointer;
 }
 
 .workoutIndicator:active {
-  background: #16a34a;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .pulseIcon {
@@ -410,8 +408,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #3b82f6;
-  color: #fff;
+  background-color: var(--bg-interactive);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -425,28 +423,28 @@
   right: 0;
   margin-top: 0.5rem;
   width: 220px;
-  background-color: #1a1a1a;
-  border: 1px solid #2a2a2a;
-  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-drawer);
   z-index: 101;
 }
 
-/* Mobile Bottom Navigation - Bumble style floating */
+/* Mobile Bottom Navigation */
 .bottomNav {
   position: fixed;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  left: 12px;
-  right: 12px;
-  background: #fff;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: space-around;
   z-index: 100;
   padding: 8px 4px;
-  border-radius: 28px;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border-default);
 }
 
 .bottomNavItem {
@@ -459,11 +457,11 @@
   padding: 4px 0;
   background: transparent;
   border: none;
-  color: #a1a1a1;
+  color: var(--text-muted);
   text-decoration: none;
   font-size: 0.625rem;
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 .bottomNavItem svg {
@@ -476,23 +474,23 @@
 }
 
 .bottomNavActive {
-  color: #0f0f0f;
+  color: var(--text-primary);
 }
 
 .bottomNavActive .navIconWrapper {
-  background: #0f0f0f;
-  color: #fff;
+  background: var(--text-primary);
+  color: var(--bg-primary);
 }
 
-/* Icon wrapper for pill effect */
+/* Icon wrapper */
 .navIconWrapper {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 48px;
   height: 32px;
-  border-radius: 16px;
-  transition: all 0.15s ease;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
 }
 
 /* Center button wrapper to maintain nav spacing */
@@ -505,20 +503,20 @@
   transform: translateY(-25%);
 }
 
-/* Center Start Button - round and elevated */
+/* Center Start Button - white and elevated */
 .centerBtn {
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 60px;
-  height: 60px;
+  height: 56px;
   gap: 0.375rem;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
+  background: var(--text-primary);
   border: none;
-  border-radius: 26px;
-  color: #fff;
+  border-radius: var(--radius-md);
+  color: var(--bg-primary);
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
   transition: all 0.25s ease;
   padding: 1rem;
 }
@@ -555,8 +553,9 @@
 
 /* Disabled state when no exercises */
 .centerBtnDisabled {
-  background: linear-gradient(135deg, #9ca3af, #6b7280);
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  background: var(--bg-interactive);
+  color: var(--text-muted);
+  box-shadow: none;
 }
 
 /* Active workout minimized state */

@@ -295,34 +295,36 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       setCompletedSets(new Set());
     }
 
-    // Calculate previous stats for each exercise
+    // Calculate previous stats for each exercise from the SAME workout type only
     const stats: Record<string, PreviousStats> = {};
     const exerciseNames = [...new Set(workout.exercises.map((e) => e.exercise))];
+    const currentWorkoutName = workout.name;
 
     for (const exerciseName of exerciseNames) {
       for (let w = week - 1; w >= 1; w--) {
         const prevWeek = programData.find((p) => p.week === w);
         if (!prevWeek) continue;
 
-        for (const prevWorkout of prevWeek.workouts) {
-          const prevExercises = prevWorkout.exercises.filter(
-            (e) => e.exercise === exerciseName && e.weight && e.repsAchieved,
-          );
+        // Only look at the same workout type (same name)
+        const prevWorkout = prevWeek.workouts.find((pw) => pw.name === currentWorkoutName);
+        if (!prevWorkout) continue;
 
-          if (prevExercises.length > 0) {
-            stats[exerciseName] = {
-              week: w,
-              workout: prevWorkout.name,
-              sets: prevExercises.map((e) => ({
-                weight: e.weight,
-                reps: e.repsAchieved,
-                rir: e.rirAchieved,
-              })),
-            };
-            break;
-          }
+        const prevExercises = prevWorkout.exercises.filter(
+          (e) => e.exercise === exerciseName && e.weight && e.repsAchieved,
+        );
+
+        if (prevExercises.length > 0) {
+          stats[exerciseName] = {
+            week: w,
+            workout: prevWorkout.name,
+            sets: prevExercises.map((e) => ({
+              weight: e.weight,
+              reps: e.repsAchieved,
+              rir: e.rirAchieved,
+            })),
+          };
+          break;
         }
-        if (stats[exerciseName]) break;
       }
     }
     setPreviousStats(stats);

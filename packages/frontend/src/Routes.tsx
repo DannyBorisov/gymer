@@ -2,7 +2,7 @@ import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
-import { SwipeableDrawer } from "./components/SwipeableDrawer";
+import { WorkoutDrawer } from "./components/WorkoutDrawer";
 import Landing from "./pages/Landing/Landing";
 import Login from "./pages/Login/Login";
 import Programs from "./pages/Programs/Programs";
@@ -15,6 +15,8 @@ import Analytics from "./pages/Analytics/Analytics";
 import StartWorkout from "./pages/StartWorkout/StartWorkout";
 import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
 import Profile from "./pages/Profile/Profile";
+import { useWorkout } from "./contexts/WorkoutContext";
+import { formatTime } from "./lib/time";
 
 const PageWrapper = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -33,16 +35,32 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => {
 const WorkoutDrawerOverlay = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { activeWorkout, workoutData, timer, currentExerciseIndex } = useWorkout();
   const isWorkoutRoute = location.pathname === "/workout";
 
   const handleClose = () => {
     navigate("/start-workout");
   };
 
+  // Get current exercise name
+  const exerciseNames = [...new Set(workoutData.map((e) => e.exercise))];
+  const currentExerciseName = exerciseNames[currentExerciseIndex] || "";
+
   return (
-    <SwipeableDrawer isOpen={isWorkoutRoute} onClose={handleClose} maxHeight="100vh">
+    <WorkoutDrawer
+      isOpen={isWorkoutRoute}
+      onClose={handleClose}
+      peekContent={
+        activeWorkout
+          ? {
+              timer: formatTime(timer),
+              exerciseName: currentExerciseName,
+            }
+          : undefined
+      }
+    >
       <ActiveWorkout />
-    </SwipeableDrawer>
+    </WorkoutDrawer>
   );
 };
 
