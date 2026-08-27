@@ -18,13 +18,13 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     private var audioEngine: AVAudioEngine?
     private var playerNode: AVAudioPlayerNode?
     private var timer: Timer?
-    private var elapsedSeconds: Int = 0
+    private var startTime: Double = 0
     private var announceInterval: Int = 30
     private var isVoiceMode: Bool = true
     private var isRunning: Bool = false
     private var isAudioReady: Bool = false
     private var isSpeaking: Bool = false
-    private var lastAnnouncedSecond: Int = 0
+    private var lastAnnouncedSecond: Int = -1
 
     public override func load() {
         synthesizer.delegate = self
@@ -125,6 +125,8 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         if interval <= 0 {
             interval = 30
         }
+        // Get start time from JS (milliseconds since epoch), default to now
+        let jsStartTime = call.getDouble("startTime") ?? (Date().timeIntervalSince1970 * 1000)
 
         DispatchQueue.main.async {
             // Always stop first to prevent duplicates
@@ -132,10 +134,10 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
 
             self.announceInterval = interval
             self.isVoiceMode = mode == "voice"
-            self.elapsedSeconds = 0
+            self.startTime = jsStartTime
             self.isRunning = true
             self.isSpeaking = false
-            self.lastAnnouncedSecond = 0
+            self.lastAnnouncedSecond = -1
 
             // Start timer immediately on main run loop
             self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -177,7 +179,9 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     private func tick() {
         guard isRunning else { return }
 
-        elapsedSeconds += 1
+        // Calculate elapsed seconds from start time (same as frontend)
+        let now = Date().timeIntervalSince1970 * 1000
+        let elapsedSeconds = Int(floor((now - startTime) / 1000))
 
         // Announce at intervals (both foreground and background)
         let shouldAnnounce = elapsedSeconds > 0 &&

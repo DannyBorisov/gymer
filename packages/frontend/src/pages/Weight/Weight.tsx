@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, Loader2, ChevronLeft } from "lucide-react";
 import {
@@ -31,6 +31,8 @@ const Weight = () => {
   const [weightInput, setWeightInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [viewPeriod, setViewPeriod] = useState<ViewPeriod>("daily");
+  const [activeChartIndex, setActiveChartIndex] = useState<number | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   // Auto-switch to available view if current view doesn't have enough data
   useEffect(() => {
@@ -152,6 +154,7 @@ const Weight = () => {
           const [day, month] = entry.date.split("/");
           return {
             date: `${day}/${month}`,
+            fullDate: entry.date,
             weight: parseFloat(entry.weight),
           };
         })
@@ -245,6 +248,29 @@ const Weight = () => {
     return sum / chartData.length;
   }, [chartData]);
 
+  // Handle clicking on a history entry to highlight it on the chart
+  const handleHistoryClick = (entryDate: string, entryIdx: number) => {
+    if (viewPeriod !== "daily" || entryIdx >= 30) {
+      // Only works for daily view and entries within chart range
+      return;
+    }
+
+    const chartIndex = chartData.findIndex(
+      (d) => "fullDate" in d && d.fullDate === entryDate
+    );
+
+    if (chartIndex !== -1) {
+      setActiveChartIndex(chartIndex);
+      // Scroll chart into view
+      chartRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  // Clear active index when view period changes
+  useEffect(() => {
+    setActiveChartIndex(null);
+  }, [viewPeriod]);
+
   return (
     <div className={styles.container}>
       <button className={styles.backBtn} onClick={() => navigate("/profile")}>
@@ -314,11 +340,15 @@ const Weight = () => {
               </option>
             </select>
           </div>
-          <div className={styles.chartCard}>
+          <div className={styles.chartCard} ref={chartRef}>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart
+                key={activeChartIndex ?? "default"}
                 data={chartData}
                 margin={{ top: 10, right: 50, left: -10, bottom: 5 }}
+                onMouseMove={() => {
+                  if (activeChartIndex !== null) setActiveChartIndex(null);
+                }}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -342,6 +372,7 @@ const Weight = () => {
                   width={40}
                 />
                 <Tooltip
+                  defaultIndex={activeChartIndex ?? undefined}
                   contentStyle={{
                     background: "#0f0f0f",
                     border: "none",
@@ -404,16 +435,23 @@ const Weight = () => {
           <p className={styles.emptyState}>No entries yet</p>
         ) : (
           <div className={styles.historyList}>
-            {entries.map((entry, idx) => (
-              <div key={`${entry.date}-${idx}`} className={styles.historyItem}>
-                <span className={styles.historyDate}>
-                  {formatDisplayDate(entry.date)}
-                </span>
-                <span className={styles.historyWeight}>
-                  {entry.weight} {weightUnit}
-                </span>
-              </div>
-            ))}
+            {entries.map((entry, idx) => {
+              const isClickable = viewPeriod === "daily" && idx < 30 && chartData.length >= 2;
+              return (
+                <div
+                  key={`${entry.date}-${idx}`}
+                  className={`${styles.historyItem} ${isClickable ? styles.historyItemClickable : ""}`}
+                  onClick={() => isClickable && handleHistoryClick(entry.date, idx)}
+                >
+                  <span className={styles.historyDate}>
+                    {formatDisplayDate(entry.date)}
+                  </span>
+                  <span className={styles.historyWeight}>
+                    {entry.weight} {weightUnit}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

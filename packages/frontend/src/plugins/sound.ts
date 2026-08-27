@@ -16,6 +16,7 @@ export interface ScheduleOptions {
   duration: number; // seconds
   mode: SoundMode;
   announceInterval?: number; // seconds between announcements
+  startTime?: number; // milliseconds since epoch (Date.now())
 }
 
 export interface SoundPlugin {

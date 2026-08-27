@@ -121,7 +121,8 @@ const ActiveWorkout = () => {
     setShowRestSuggestion(false);
     setHasVibrated(false);
     unlockAudio(); // Unlock audio on iOS for notification sound
-    scheduleRestTimerNotification(restTimerDuration, restTimerAnnounceInterval); // Schedule background notification with announcements
+    // Schedule background notification with same startTime for sync
+    scheduleRestTimerNotification(restTimerDuration, restTimerAnnounceInterval, startTime);
     if (suggestionTimeoutRef.current) {
       clearTimeout(suggestionTimeoutRef.current);
     }

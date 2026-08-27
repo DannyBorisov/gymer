@@ -34,7 +34,7 @@ function formatDurationForSpeech(seconds: number): string {
 }
 
 // Schedule native background sound for when rest timer completes
-export async function scheduleRestTimerNotification(durationSeconds: number, announceInterval?: number) {
+export async function scheduleRestTimerNotification(durationSeconds: number, announceInterval?: number, startTime?: number) {
   if (!Capacitor.isNativePlatform()) return;
 
   try {
@@ -42,7 +42,8 @@ export async function scheduleRestTimerNotification(durationSeconds: number, ann
     await Sound.scheduleRestSound({
       duration: durationSeconds,
       mode,
-      announceInterval: announceInterval || 30
+      announceInterval: announceInterval || 30,
+      startTime: startTime || Date.now()
     });
   } catch (e) {
     console.error("Failed to schedule rest sound:", e);

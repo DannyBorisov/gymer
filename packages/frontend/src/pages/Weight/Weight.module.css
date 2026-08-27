@@ -249,6 +249,19 @@
   border-bottom: none;
 }
 
+.historyItemClickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.historyItemClickable:hover {
+  background-color: #f5f5f5;
+}
+
+.historyItemClickable:active {
+  background-color: #e5e5e5;
+}
+
 .historyDate {
   font-size: 0.9375rem;
   color: #525252;
