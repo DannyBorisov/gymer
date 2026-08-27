@@ -21,6 +21,8 @@ interface WeightEntry {
   weight: string;
 }
 
+type ViewPeriod = "daily" | "weekly" | "monthly";
+
 const Weight = () => {
   const navigate = useNavigate();
   const { weightUnit } = useSettings();
@@ -28,6 +30,45 @@ const Weight = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [weightInput, setWeightInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [viewPeriod, setViewPeriod] = useState<ViewPeriod>("daily");
+
+  // Auto-switch to available view if current view doesn't have enough data
+  useEffect(() => {
+    if (entries.length === 0) return;
+
+    const getAvailableCount = (period: ViewPeriod) => {
+      if (period === "daily") return Math.min(entries.length, 30);
+
+      const sortedEntries = [...entries].reverse();
+      const [firstDay, firstMonth, firstYear] = sortedEntries[0].date.split("/");
+      const firstDate = new Date(Number(firstYear), Number(firstMonth) - 1, Number(firstDay));
+
+      if (period === "weekly") {
+        const weeks = new Set<number>();
+        entries.forEach((entry) => {
+          const [day, month, year] = entry.date.split("/");
+          const date = new Date(Number(year), Number(month) - 1, Number(day));
+          const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+          weeks.add(Math.floor((date.getTime() - firstDate.getTime()) / msPerWeek) + 1);
+        });
+        return weeks.size;
+      }
+
+      const months = new Set<string>();
+      entries.forEach((entry) => {
+        const [, month, year] = entry.date.split("/");
+        months.add(`${year}-${month}`);
+      });
+      return months.size;
+    };
+
+    const currentCount = getAvailableCount(viewPeriod);
+    if (currentCount < 2) {
+      // Fall back to a view with enough data
+      if (getAvailableCount("daily") >= 2) setViewPeriod("daily");
+      else if (getAvailableCount("weekly") >= 2) setViewPeriod("weekly");
+    }
+  }, [entries, viewPeriod]);
 
   useEffect(() => {
     const fetchEntries = async () => {
@@ -100,18 +141,101 @@ const Weight = () => {
   const todayStr = getTodayStr();
   const hasLoggedToday = entries[0]?.date === todayStr;
 
-  // Prepare chart data (reverse to show chronological order, limit to last 30 entries)
+  // Prepare chart data based on view period
   const chartData = useMemo(() => {
-    return entries
-      .slice(0, 30)
-      .map((entry) => {
-        const [day, month] = entry.date.split("/");
-        return {
-          date: `${day}/${month}`,
-          weight: parseFloat(entry.weight),
-        };
-      })
-      .reverse();
+    if (entries.length === 0) return [];
+
+    if (viewPeriod === "daily") {
+      return entries
+        .slice(0, 30)
+        .map((entry) => {
+          const [day, month] = entry.date.split("/");
+          return {
+            date: `${day}/${month}`,
+            weight: parseFloat(entry.weight),
+          };
+        })
+        .reverse();
+    }
+
+    // Group entries by week or month
+    const grouped: Map<string, { weights: number[]; sortKey: number }> = new Map();
+
+    // Find the earliest entry date for week calculation
+    const sortedEntries = [...entries].reverse(); // oldest first
+    let firstEntryDate: Date | null = null;
+    if (sortedEntries.length > 0) {
+      const [day, month, year] = sortedEntries[0].date.split("/");
+      firstEntryDate = new Date(Number(year), Number(month) - 1, Number(day));
+    }
+
+    entries.forEach((entry) => {
+      const [day, month, year] = entry.date.split("/");
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+      let key: string;
+      let sortKey: number;
+
+      if (viewPeriod === "weekly") {
+        // Calculate week number from first entry
+        const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+        const weekNum = firstEntryDate
+          ? Math.floor((date.getTime() - firstEntryDate.getTime()) / msPerWeek) + 1
+          : 1;
+        key = `W${weekNum}`;
+        sortKey = weekNum;
+      } else {
+        // Monthly - use year-month for sorting
+        key = date.toLocaleDateString("en-US", { month: "short" });
+        sortKey = date.getFullYear() * 12 + date.getMonth();
+      }
+
+      if (!grouped.has(key)) {
+        grouped.set(key, { weights: [], sortKey });
+      }
+      grouped.get(key)!.weights.push(parseFloat(entry.weight));
+    });
+
+    // Calculate averages and convert to array, sorted by sortKey
+    const result = Array.from(grouped.entries())
+      .map(([date, { weights, sortKey }]) => ({
+        date,
+        weight: weights.reduce((a, b) => a + b, 0) / weights.length,
+        sortKey,
+      }))
+      .sort((a, b) => a.sortKey - b.sortKey)
+      .slice(-(viewPeriod === "weekly" ? 12 : 6))
+      .map(({ date, weight }) => ({ date, weight }));
+
+    return result;
+  }, [entries, viewPeriod]);
+
+  // Calculate available data points for each view period
+  const availableViews = useMemo(() => {
+    if (entries.length === 0) return { daily: 0, weekly: 0, monthly: 0 };
+
+    const daily = Math.min(entries.length, 30);
+
+    // Calculate weeks and months
+    const sortedEntries = [...entries].reverse();
+    const [firstDay, firstMonth, firstYear] = sortedEntries[0].date.split("/");
+    const firstDate = new Date(Number(firstYear), Number(firstMonth) - 1, Number(firstDay));
+
+    const weeks = new Set<number>();
+    const months = new Set<string>();
+
+    entries.forEach((entry) => {
+      const [day, month, year] = entry.date.split("/");
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+      const weekNum = Math.floor((date.getTime() - firstDate.getTime()) / msPerWeek) + 1;
+      weeks.add(weekNum);
+
+      months.add(`${year}-${month}`);
+    });
+
+    return { daily, weekly: weeks.size, monthly: months.size };
   }, [entries]);
 
   // Calculate average weight
@@ -172,7 +296,24 @@ const Weight = () => {
       {/* Chart */}
       {!isLoading && chartData.length >= 2 && (
         <div className={styles.chartSection}>
-          <h2 className={styles.sectionTitle}>Progress</h2>
+          <div className={styles.chartHeader}>
+            <h2 className={styles.sectionTitle}>Progress</h2>
+            <select
+              value={viewPeriod}
+              onChange={(e) => setViewPeriod(e.target.value as ViewPeriod)}
+              className={styles.periodSelect}
+            >
+              <option value="daily" disabled={availableViews.daily < 2}>
+                Daily{availableViews.daily < 2 ? " (need more data)" : ""}
+              </option>
+              <option value="weekly" disabled={availableViews.weekly < 2}>
+                Weekly{availableViews.weekly < 2 ? " (need more data)" : ""}
+              </option>
+              <option value="monthly" disabled={availableViews.monthly < 2}>
+                Monthly{availableViews.monthly < 2 ? " (need more data)" : ""}
+              </option>
+            </select>
+          </div>
           <div className={styles.chartCard}>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart

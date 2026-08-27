@@ -22,6 +22,7 @@ export const SwipeableDrawer = ({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
     // Always allow dragging from handle area
     touchStartY.current = e.touches[0].clientY;
     canDrag.current = true;
@@ -46,6 +47,7 @@ export const SwipeableDrawer = ({
   };
 
   const handleContentTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation();
     touchStartY.current = e.touches[0].clientY;
 
     // Don't allow drag if touch started within a scrollable child element
@@ -60,6 +62,7 @@ export const SwipeableDrawer = ({
   };
 
   const handleContentTouchMove = (e: React.TouchEvent) => {
+    e.stopPropagation();
     if (!canDrag.current) return;
 
     const deltaY = e.touches[0].clientY - touchStartY.current;
@@ -74,13 +77,15 @@ export const SwipeableDrawer = ({
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    e.stopPropagation();
     if (!isDragging) return;
     const deltaY = e.touches[0].clientY - touchStartY.current;
     // Only allow dragging down
     setDragY(Math.max(0, deltaY));
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.stopPropagation();
     // Close if dragged more than 100px
     if (isDragging && dragY > 100) {
       onClose();
@@ -96,7 +101,16 @@ export const SwipeableDrawer = ({
 
   return (
     <>
-      <div className={styles.backdrop} onClick={onClose} />
+      <div
+        className={styles.backdrop}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+      />
       <div
         ref={drawerRef}
         className={`${styles.drawer} ${isFullHeight ? styles.drawerFullHeight : ""}`}
@@ -105,6 +119,7 @@ export const SwipeableDrawer = ({
           transform: isDragging ? `translateY(${dragY}px)` : "",
           transition: isDragging ? "none" : "",
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         <div
           className={styles.handleArea}

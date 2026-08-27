@@ -7,7 +7,7 @@ export const createProgram: RouteHandler<{
   Body: CreateProgramRequest;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
-  const { name, durationWeeks, dynamicRir, startingRir, workouts } =
+  const { name, durationWeeks, dynamicRir, startingRir, workouts, frequency } =
     request.body;
 
   const headers = [
@@ -25,6 +25,9 @@ export const createProgram: RouteHandler<{
   ];
   const rows: (string | number)[][] = [headers];
 
+  // Determine how many workout sessions per week
+  const sessionsPerWeek = frequency === "every-other-day" ? 4 : frequency;
+
   for (let week = 1; week <= durationWeeks; week++) {
     let weekRir = startingRir;
     if (dynamicRir && durationWeeks > 1) {
@@ -35,7 +38,15 @@ export const createProgram: RouteHandler<{
       );
     }
 
-    for (const workout of workouts) {
+    // Cycle through workouts to fill the required sessions per week
+    for (let session = 0; session < sessionsPerWeek; session++) {
+      const workout = workouts[session % workouts.length];
+      // Add session number suffix if cycling through same workout multiple times
+      const workoutName =
+        workouts.length < sessionsPerWeek
+          ? `${workout.name} #${session + 1}`
+          : workout.name;
+
       for (const exercise of workout.exercises) {
         const targetRir = dynamicRir ? weekRir : exercise.rir;
         const rirDisplay =
@@ -45,7 +56,7 @@ export const createProgram: RouteHandler<{
           rows.push([
             "",
             week,
-            workout.name,
+            workoutName,
             exercise.name,
             set,
             exercise.reps,
@@ -62,11 +73,13 @@ export const createProgram: RouteHandler<{
 
   try {
     const spreadsheetId = await this.sheets.create(tokens, name);
-    const { key, value } = AppProperties.program;
-    await this.sheets.setFileProperties(tokens, spreadsheetId, {
-      [key]: value,
-    });
-    await this.sheets.update(tokens, spreadsheetId, "Sheet1!A1", rows);
+    const [, { sheetName }] = await Promise.all([
+      this.sheets.setFileProperties(tokens, spreadsheetId, {
+        [AppProperties.program.key]: AppProperties.program.value,
+      }),
+      this.sheets.getSpreadsheetMetadata(tokens, spreadsheetId),
+    ]);
+    await this.sheets.update(tokens, spreadsheetId, `${sheetName}!A1`, rows);
 
     return {
       success: true,
@@ -102,10 +115,11 @@ export const getProgram: RouteHandler<{
   const { id } = request.params;
 
   try {
-    const [data, programName] = await Promise.all([
-      this.sheets.get(tokens, id, "Sheet1!A:K"),
+    const [{ sheetName }, programName] = await Promise.all([
+      this.sheets.getSpreadsheetMetadata(tokens, id),
       this.sheets.getFileName(tokens, id),
     ]);
+    const data = await this.sheets.get(tokens, id, `${sheetName}!A:K`);
 
     if (!data || data.length < 2) {
       return reply.status(404).send({ error: "Program not found or empty" });
@@ -175,8 +189,10 @@ export const updateProgramRows: RouteHandler<{
   const { updates, completedDate, dateRowIndex, duration } = request.body;
 
   try {
+    const { sheetName } = await this.sheets.getSpreadsheetMetadata(tokens, id);
+
     const data = updates.map((update) => ({
-      range: `Sheet1!H${update.rowIndex}:K${update.rowIndex}`,
+      range: `${sheetName}!H${update.rowIndex}:K${update.rowIndex}`,
       values: [
         [update.weight, update.repsAchieved, update.rirAchieved, update.notes],
       ],
@@ -184,14 +200,14 @@ export const updateProgramRows: RouteHandler<{
 
     if (completedDate && dateRowIndex) {
       data.push({
-        range: `Sheet1!A${dateRowIndex}`,
+        range: `${sheetName}!A${dateRowIndex}`,
         values: [[completedDate]],
       });
 
       // Write duration one row below the date
       if (duration) {
         data.push({
-          range: `Sheet1!A${dateRowIndex + 1}`,
+          range: `${sheetName}!A${dateRowIndex + 1}`,
           values: [[duration]],
         });
       }

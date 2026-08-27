@@ -201,6 +201,19 @@ export class GoogleSheets {
     return response.data.values || null;
   }
 
+  async getSpreadsheetMetadata(
+    tokens: Tokens,
+    spreadsheetId: string,
+  ): Promise<{ sheetName: string }> {
+    const sheets = this.getSheetsClient(tokens);
+    const response = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: "sheets.properties.title",
+    });
+    const sheetName = response.data.sheets?.[0]?.properties?.title || "Sheet1";
+    return { sheetName };
+  }
+
   async appendRows(
     tokens: Tokens,
     spreadsheetId: string,

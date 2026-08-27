@@ -11,6 +11,7 @@ import {
   MoreVertical,
   SkipForward,
   History,
+  Clock,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
@@ -19,6 +20,7 @@ import {
   type QuickExercise,
 } from "../../contexts/WorkoutContext";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
+import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import { ScrollableInput } from "../../components/ScrollableInput";
 import { formatTime, formatRestTimer } from "../../lib/time";
 import { updateRestTimer, updateExerciseName } from "../../utils/liveActivity";
@@ -62,6 +64,7 @@ const ActiveWorkout = () => {
   const [showSetComplete, setShowSetComplete] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showPreviousWorkout, setShowPreviousWorkout] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Rest timer state
@@ -426,6 +429,18 @@ const ActiveWorkout = () => {
                   </button>
                   {showMoreMenu && (
                     <div className={styles.moreMenu}>
+                      {Object.keys(previousStats).length > 0 && (
+                        <button
+                          className={styles.moreMenuItemNeutral}
+                          onClick={() => {
+                            setShowMoreMenu(false);
+                            setShowPreviousWorkout(true);
+                          }}
+                        >
+                          <History size={16} />
+                          <span>Previous workout</span>
+                        </button>
+                      )}
                       {currentSetIndex < currentExerciseSets.length - 1 && (
                         <button
                           className={styles.moreMenuItemNeutral}
@@ -758,6 +773,49 @@ const ActiveWorkout = () => {
           onSelect={handleAddExercise}
           excludeExercises={groupedByExercise.map(([name]) => name)}
         />
+
+        {/* Previous Workout Drawer */}
+        <SwipeableDrawer
+          isOpen={showPreviousWorkout}
+          onClose={() => setShowPreviousWorkout(false)}
+          maxHeight="85vh"
+        >
+          <div className={styles.prevWorkoutHeader}>
+            <div className={styles.prevWorkoutHeaderInfo}>
+              <h2 className={styles.prevWorkoutTitle}>Previous Workout</h2>
+              <div className={styles.prevWorkoutMeta}>
+                <Clock size={14} />
+                <span>Week {Object.values(previousStats)[0]?.week}</span>
+              </div>
+            </div>
+          </div>
+          <div className={styles.prevWorkoutContent}>
+            <div className={styles.prevExerciseList}>
+              {Object.entries(previousStats).map(([exerciseName, stats]) => (
+                <div key={exerciseName} className={styles.prevExerciseCard}>
+                  <h3 className={styles.prevExerciseName}>{exerciseName}</h3>
+                  <div className={styles.prevSetsList}>
+                    {stats.sets.map((set, idx) => (
+                      <div key={idx} className={styles.prevSetRow}>
+                        <span className={styles.prevSetNumber}>{idx + 1}</span>
+                        <div className={styles.prevSetDetails}>
+                          <span className={styles.prevSetData}>
+                            {set.weight}{weightUnit} × {set.reps}
+                            {set.rir && (
+                              <span className={styles.prevSetRir}>
+                                {" "}@ {set.rir} RIR
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SwipeableDrawer>
       </div>
   );
 };

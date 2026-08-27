@@ -83,6 +83,8 @@
 }
 
 .pickerScroll {
+  position: relative;
+  z-index: 3;
   height: 100%;
   overflow-y: scroll;
   scroll-snap-type: y mandatory;
@@ -102,17 +104,17 @@
   font-size: 1.25rem;
   font-weight: 500;
   color: #d1d5db;
+  -webkit-text-fill-color: #d1d5db;
   scroll-snap-align: center;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  position: relative;
-  z-index: 3;
 }
 
-.pickerItemSelected {
+.pickerItem.pickerItemSelected {
   color: #111827;
   font-size: 1.5rem;
   font-weight: 700;
+  -webkit-text-fill-color: #111827;
 }
 
 /* Spacer items for scroll padding */
