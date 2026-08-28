@@ -459,6 +459,21 @@
   color: var(--text-muted);
 }
 
+.footerLinks {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.footerLinks a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.footerLinks a:hover {
+  color: var(--text-primary);
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .hero {

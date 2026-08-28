@@ -98,6 +98,10 @@
   line-height: 1.5;
 }
 
+.terms a {
+  color: var(--text-secondary);
+}
+
 /* Background gradients */
 .background {
   position: absolute;

@@ -221,6 +221,10 @@ const Landing = () => {
             <span>Gymerr</span>
           </div>
           <p>Simple workout tracking for people who lift.</p>
+          <nav className={styles.footerLinks} aria-label="Legal">
+            <Link to="/terms">Terms</Link>
+            <Link to="/privacy">Privacy</Link>
+          </nav>
         </div>
       </footer>
     </div>

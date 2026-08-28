@@ -1,0 +1,133 @@
+.page {
+  min-height: 100vh;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.header {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.brand,
+.backLink,
+.switcher a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.brand {
+  font-weight: 600;
+}
+
+.brandIcon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.backLink {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.backLink:hover,
+.switcher a:hover {
+  color: var(--text-primary);
+}
+
+.document {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 5rem 1.5rem 6rem;
+}
+
+.eyebrow {
+  margin-bottom: 0.75rem;
+  color: #a5b4fc;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.document h1 {
+  margin: 0 0 1rem;
+  color: var(--text-primary);
+  font-size: clamp(2.25rem, 6vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.intro {
+  max-width: 560px;
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.updated {
+  margin-top: 1rem;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.section {
+  margin-top: 3rem;
+}
+
+.section h2 {
+  margin-bottom: 0.625rem;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.section p {
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  line-height: 1.75;
+}
+
+.switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-default);
+  font-size: 0.875rem;
+}
+
+.switcher a {
+  color: var(--text-secondary);
+}
+
+.switcher a.active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .document {
+    padding: 3.5rem 1rem 4rem;
+  }
+}

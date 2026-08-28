@@ -14,6 +14,7 @@ import QuickWorkout from "./pages/QuickWorkout/QuickWorkout";
 import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
 import Analytics from "./pages/Analytics/Analytics";
 import Profile from "./pages/Profile/Profile";
+import LegalPage from "./pages/Legal/LegalPage";
 import { useWorkout } from "./contexts/WorkoutContext";
 import { formatTime } from "./lib/time";
 
@@ -107,6 +108,8 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Landing />} />
     <Route path="/login" element={<Login />} />
+    <Route path="/terms" element={<LegalPage />} />
+    <Route path="/privacy" element={<LegalPage />} />
     <Route
       path="/*"
       element={

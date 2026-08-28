@@ -1,5 +1,6 @@
 import { useAuth } from "../../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import styles from "./Login.module.css";
 
 const GoogleIcon = () => (
@@ -55,7 +56,7 @@ const Login = () => {
         </button>
 
         <p className={styles.terms}>
-          By continuing, you agree to our Terms of Service and Privacy Policy
+          By continuing, you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>
         </p>
       </div>
 
