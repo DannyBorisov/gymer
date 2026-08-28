@@ -118,6 +118,7 @@ export class GoogleSheets {
       orderBy: "createdTime desc",
     });
 
+    console.log(response.data.files)
     if (!response.data.files) {
       return [];
     }
