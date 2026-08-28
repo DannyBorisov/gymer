@@ -1,8 +1,6 @@
 import { buildApp } from "./app.js";
 import config from "./config.js";
 
-
-// start
 const app = buildApp();
 
 const start = async () => {

@@ -1,8 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Loader2, ChevronLeft } from "lucide-react";
+import { Loader2, ChevronLeft, Trophy, Check, PartyPopper } from "lucide-react";
 import { useWorkout, type Week } from "../../contexts/WorkoutContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import { WeeksList } from "../../components/WeeksList/WeeksList";
+import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
+import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import { apiFetch } from "../../utils/api";
 import styles from "./ProgramDetail.module.css";
 
@@ -10,11 +13,20 @@ const ProgramDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { activeWorkout } = useWorkout();
+  const { weightUnit } = useSettings();
 
   const [program, setProgram] = useState<Week[]>([]);
   const [programName, setProgramName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 1RM prompt state
+  const [showExerciseDrawer, setShowExerciseDrawer] = useState(false);
+  const [showWeightDrawer, setShowWeightDrawer] = useState(false);
+  const [selected1RMExercise, setSelected1RMExercise] = useState<string | null>(null);
+  const [oneRMWeight, setOneRMWeight] = useState("");
+  const [isSaving1RM, setIsSaving1RM] = useState(false);
+  const [has1RMBeenPrompted, setHas1RMBeenPrompted] = useState(false);
 
   useEffect(() => {
     const fetchProgram = async () => {
@@ -40,6 +52,76 @@ const ProgramDetail = () => {
   const isWorkoutActiveForDifferentProgram = !!(
     activeWorkout && activeWorkout.programId !== id
   );
+
+  // Check if entire program is complete
+  const isProgramComplete = useMemo(() => {
+    if (program.length === 0) return false;
+    return program.every((week) =>
+      week.workouts.every((workout) => workout.isComplete)
+    );
+  }, [program]);
+
+  // Get all unique exercises from the program for 1RM selection
+  const allExercises = useMemo(() => {
+    const exercises = new Set<string>();
+    program.forEach((week) => {
+      week.workouts.forEach((workout) => {
+        workout.exercises.forEach((ex) => {
+          exercises.add(ex.exercise);
+        });
+      });
+    });
+    return Array.from(exercises).sort();
+  }, [program]);
+
+  // Show 1RM prompt when program is first completed
+  useEffect(() => {
+    if (isProgramComplete && !has1RMBeenPrompted && !isLoading) {
+      // Small delay to let the UI settle
+      const timer = setTimeout(() => {
+        setShowExerciseDrawer(true);
+        setHas1RMBeenPrompted(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isProgramComplete, has1RMBeenPrompted, isLoading]);
+
+  // Handle exercise selection for 1RM
+  const handleExerciseSelect = (exerciseName: string) => {
+    setSelected1RMExercise(exerciseName);
+    setShowExerciseDrawer(false);
+    setShowWeightDrawer(true);
+  };
+
+  // Handle 1RM save
+  const handleSave1RM = async () => {
+    if (!selected1RMExercise || !oneRMWeight) return;
+
+    setIsSaving1RM(true);
+    try {
+      await apiFetch("/api/analytics/1rm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exercise: selected1RMExercise,
+          weight: parseFloat(oneRMWeight),
+        }),
+      });
+      setShowWeightDrawer(false);
+      setSelected1RMExercise(null);
+      setOneRMWeight("");
+    } catch (err) {
+      console.error("Failed to save 1RM:", err);
+    } finally {
+      setIsSaving1RM(false);
+    }
+  };
+
+  const handleWeightDrawerClose = () => {
+    setShowWeightDrawer(false);
+    setSelected1RMExercise(null);
+    setOneRMWeight("");
+  };
 
   // If workout is active for this program, redirect to workout page
   useEffect(() => {
@@ -93,12 +175,94 @@ const ProgramDetail = () => {
         </div>
       )}
 
+      {/* Program Complete Banner */}
+      {isProgramComplete && (
+        <div className={styles.completeBanner}>
+          <div className={styles.completeBannerContent}>
+            <PartyPopper size={24} />
+            <div className={styles.completeBannerText}>
+              <span className={styles.completeBannerTitle}>Program Complete!</span>
+              <span className={styles.completeBannerSubtitle}>
+                Great job finishing all {program.length} weeks
+              </span>
+            </div>
+          </div>
+          <button
+            className={styles.log1RMBtn}
+            onClick={() => setShowExerciseDrawer(true)}
+          >
+            <Trophy size={16} />
+            Log 1RM
+          </button>
+        </div>
+      )}
+
       <WeeksList
         programId={id!}
         programName={programName}
         weeks={program}
         disabled={isWorkoutActiveForDifferentProgram}
       />
+
+      {/* Exercise Selection Drawer */}
+      <ExerciseDrawer
+        isOpen={showExerciseDrawer}
+        onClose={() => setShowExerciseDrawer(false)}
+        onSelect={handleExerciseSelect}
+        includeOnly={allExercises}
+        multiSelect={false}
+      />
+
+      {/* Weight Input Drawer */}
+      <SwipeableDrawer
+        isOpen={showWeightDrawer}
+        onClose={handleWeightDrawerClose}
+        maxHeight="50vh"
+      >
+        <div className={styles.weightDrawer}>
+          <div className={styles.weightHeader}>
+            <Trophy size={24} className={styles.weightTrophy} />
+            <h2 className={styles.weightTitle}>{selected1RMExercise}</h2>
+            <p className={styles.weightSubtitle}>Enter your 1RM weight</p>
+          </div>
+
+          <div className={styles.weightInputContainer}>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={oneRMWeight}
+              onChange={(e) => setOneRMWeight(e.target.value)}
+              placeholder="0"
+              className={styles.weightInput}
+              autoFocus
+            />
+            <span className={styles.weightUnitLabel}>{weightUnit}</span>
+          </div>
+
+          <div className={styles.weightActions}>
+            <button
+              className={styles.weightCancelBtn}
+              onClick={handleWeightDrawerClose}
+            >
+              Cancel
+            </button>
+            <button
+              className={styles.weightSaveBtn}
+              onClick={handleSave1RM}
+              disabled={!oneRMWeight || isSaving1RM}
+            >
+              {isSaving1RM ? (
+                <Loader2 size={18} className={styles.spinner} />
+              ) : (
+                <>
+                  <Check size={18} />
+                  Save
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </SwipeableDrawer>
     </div>
   );
 };

@@ -1,11 +1,7 @@
 import type { RouteHandler } from "fastify";
 import config from "../config.js";
-import {
-  getSession,
-  setSession,
-  clearSession,
-  encrypt,
-} from "../routes/auth.js";
+import { getSession, setSession, clearSession } from "../routes/auth.js";
+import { encrypt } from "../lib/encryption.js";
 
 export const getAuthUrl: RouteHandler<{
   Querystring: { native?: string };
@@ -39,9 +35,7 @@ export const handleCallback: RouteHandler<{
     return reply.redirect(config.env.FRONTEND_URL);
   } catch (error) {
     this.log.error(error);
-    return reply.redirect(
-      `${config.env.FRONTEND_URL}/login?error=auth_failed`,
-    );
+    return reply.redirect(`${config.env.FRONTEND_URL}/login?error=auth_failed`);
   }
 };
 

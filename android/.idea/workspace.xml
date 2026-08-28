@@ -4,31 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="68e4137f-b74f-4996-a02a-e6e8883b648a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/../package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/backend/src/handlers/workouts.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/handlers/workouts.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/android/app/capacitor.build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/android/app/capacitor.build.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/android/capacitor.settings.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/android/capacitor.settings.gradle" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/ios/App/App/SoundPlugin.swift" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/ios/App/App/SoundPlugin.swift" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/components/Layout/Layout.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/components/Layout/Layout.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/components/Layout/Layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/components/Layout/Layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/components/ScrollableInput/ScrollableInput.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/components/ScrollableInput/ScrollableInput.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/components/ScrollableInput/ScrollableInput.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/components/ScrollableInput/ScrollableInput.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/contexts/SettingsContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/contexts/SettingsContext.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/ActiveWorkout/ActiveWorkout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/ActiveWorkout/ActiveWorkout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/CreateProgram.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/CreateProgram.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/CreateProgram.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/CreateProgram.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/ProgramDetail/ProgramDetail.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/ProgramDetail/ProgramDetail.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/ProgramDetail/ProgramDetail.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/ProgramDetail/ProgramDetail.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/Programs/Programs.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/Programs/Programs.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/Programs/Programs.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/Programs/Programs.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/StartWorkout/StartWorkout.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/StartWorkout/StartWorkout.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/StartWorkout/StartWorkout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/StartWorkout/StartWorkout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/WorkoutHistory/WorkoutHistory.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/WorkoutHistory/WorkoutHistory.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/plugins/sound.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/plugins/sound.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/utils/sound.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/utils/sound.ts" afterDir="false" />
-    </list>
+    <list default="true" id="68e4137f-b74f-4996-a02a-e6e8883b648a" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

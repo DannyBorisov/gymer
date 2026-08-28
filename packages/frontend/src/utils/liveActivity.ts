@@ -11,9 +11,9 @@ let hasPromptedForPermission = false;
 let workoutStartTime: number = 0;
 let restStartTime: number | null = null;
 
-// Green color for workout, orange for rest
+// Green color for workout, yellow for rest
 const WORKOUT_COLOR = "#22C55E";
-const REST_COLOR = "#F97316";
+const REST_COLOR = "#EAB308";
 
 // Create layout with native timer that auto-updates (lock screen)
 const createLayout = (startTime: number): LayoutElement => ({

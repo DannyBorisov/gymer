@@ -11,6 +11,8 @@ import {
   SkipForward,
   History,
   Clock,
+  Trophy,
+  TrendingUp,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
@@ -22,12 +24,7 @@ import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import { ScrollableInput } from "../../components/ScrollableInput";
 import { formatTime, formatRestTimer } from "../../lib/time";
-import { updateRestTimer, updateExerciseName } from "../../utils/liveActivity";
-import {
-  unlockAudio,
-  scheduleRestTimerNotification,
-  cancelRestTimerNotification,
-} from "../../utils/sound";
+import { updateExerciseName } from "../../utils/liveActivity";
 import { announceTime } from "../../utils/speech";
 import styles from "./ActiveWorkout.module.css";
 import useClickOutside from "../../hooks/useClickOutside";
@@ -48,7 +45,12 @@ const ActiveWorkout = () => {
     currentExerciseIndex,
     currentSetIndex,
     previousStats,
+    exerciseBests,
     isQuickWorkout,
+    restTimer,
+    isRestTimerActive,
+    startRestTimer,
+    stopRestTimer,
     stopWorkout,
     updateExercise,
     adjustValue,
@@ -61,20 +63,15 @@ const ActiveWorkout = () => {
 
   const [showNotes, setShowNotes] = useState(false);
   const [showSetComplete, setShowSetComplete] = useState(false);
+  const [prType, setPrType] = useState<"weight" | "reps" | null>(null);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showPreviousWorkout, setShowPreviousWorkout] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  // Rest timer state
-  const [restTimer, setRestTimer] = useState(0);
-  const [isRestTimerActive, setIsRestTimerActive] = useState(false);
-  const [restTimerStartTime, setRestTimerStartTime] = useState<number | null>(
-    null,
-  );
+  // Rest suggestion UI state (rest timer state is in WorkoutContext)
   const [showRestSuggestion, setShowRestSuggestion] = useState(false);
   const [triggeredForSet, setTriggeredForSet] = useState<number | null>(null);
-  const restTimerIntervalRef = useRef<ReturnType<typeof setInterval>>();
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Refs for swipe and auto-scroll
@@ -110,47 +107,13 @@ const ActiveWorkout = () => {
     }, 3000);
   };
 
-  // Start rest timer
-  const startRestTimer = (exerciseName: string) => {
-    const startTime = Date.now();
-    setRestTimer(0);
-    setRestTimerStartTime(startTime);
-    setIsRestTimerActive(true);
+  // Wrapper to handle UI state when starting rest timer
+  const handleStartRestTimer = (exerciseName: string) => {
     setShowRestSuggestion(false);
-    unlockAudio(); // Unlock audio on iOS for notification sound
-    // Schedule background notification with same startTime for sync
-    scheduleRestTimerNotification(
-      restTimerDuration,
-      restTimerAnnounceInterval,
-      startTime,
-    );
     if (suggestionTimeoutRef.current) {
       clearTimeout(suggestionTimeoutRef.current);
     }
-    // Update Live Activity to show rest timer with same start time
-    if (activeWorkout) {
-      updateRestTimer(
-        true,
-        activeWorkout.workout.name,
-        exerciseName,
-        startTime,
-      );
-    }
-  };
-
-  // Stop rest timer
-  const stopRestTimer = (exerciseName: string) => {
-    setIsRestTimerActive(false);
-    setRestTimer(0);
-    setRestTimerStartTime(null);
-    cancelRestTimerNotification(); // Cancel background notification
-    if (restTimerIntervalRef.current) {
-      clearInterval(restTimerIntervalRef.current);
-    }
-    // Update Live Activity to hide rest timer
-    if (activeWorkout) {
-      updateRestTimer(false, activeWorkout.workout.name, exerciseName);
-    }
+    startRestTimer(exerciseName, restTimerDuration, restTimerAnnounceInterval);
   };
 
   // Swipe gesture handlers for set navigation
@@ -173,22 +136,6 @@ const ActiveWorkout = () => {
       }
     }
   };
-
-  // Rest timer count up effect
-  useEffect(() => {
-    if (isRestTimerActive && restTimerStartTime) {
-      restTimerIntervalRef.current = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - restTimerStartTime) / 1000);
-        setRestTimer(elapsed);
-      }, 1000);
-
-      return () => {
-        if (restTimerIntervalRef.current) {
-          clearInterval(restTimerIntervalRef.current);
-        }
-      };
-    }
-  }, [isRestTimerActive, restTimerStartTime]);
 
   // Voice announcement at intervals during rest timer (web only - native handles its own)
   useEffect(() => {
@@ -238,12 +185,9 @@ const ActiveWorkout = () => {
     }
   }, [currentExerciseIndex]);
 
-  // Cleanup on unmount
+  // Cleanup suggestion timeout on unmount
   useEffect(() => {
     return () => {
-      if (restTimerIntervalRef.current) {
-        clearInterval(restTimerIntervalRef.current);
-      }
       if (suggestionTimeoutRef.current) {
         clearTimeout(suggestionTimeoutRef.current);
       }
@@ -264,24 +208,68 @@ const ActiveWorkout = () => {
     }
   }, [currentExerciseIndex, activeWorkout, isRestTimerActive, workoutData]);
 
+  // Calculate estimated 1RM using Epley formula
+  const calculateE1RM = (weight: number, reps: number): number => {
+    if (reps <= 0 || weight <= 0) return 0;
+    if (reps === 1) return weight;
+    return weight * (1 + reps / 30);
+  };
+
+  // Check for PR using estimated 1RM comparison against all-time bests
+  const checkForPR = (rowIndex: number): "weight" | "reps" | null => {
+    const row = workoutData.find((r) => r.rowIndex === rowIndex);
+    if (!row) return null;
+
+    const exerciseName = row.exercise;
+    const currentWeight = parseFloat(row.weight) || 0;
+    const currentReps = parseFloat(row.repsAchieved) || 0;
+    const currentE1RM = calculateE1RM(currentWeight, currentReps);
+
+    if (currentE1RM <= 0) return null;
+
+    const best = exerciseBests[exerciseName];
+
+    // No previous data = it's a PR (first time doing this exercise)
+    if (!best) {
+      return currentWeight > 0 ? "weight" : null;
+    }
+
+    // Compare e1RM - if current beats all-time best, it's a PR
+    if (currentE1RM > best.e1rm) {
+      // Determine if it's primarily a weight PR or rep PR
+      if (currentWeight > best.weight) {
+        return "weight";
+      }
+      return "reps";
+    }
+
+    return null;
+  };
+
   // Handle complete set with animation
   const handleCompleteSet = (rowIndex: number) => {
+    const pr = checkForPR(rowIndex);
+    setPrType(pr);
     setShowSetComplete(true);
     completeSet(rowIndex);
 
     setTimeout(() => {
       setShowSetComplete(false);
-    }, 400);
+      setPrType(null);
+    }, pr ? 1200 : 400); // Longer animation for PRs
   };
 
   // Handle complete workout (last set)
   const handleCompleteWorkout = async (rowIndex: number) => {
+    const pr = checkForPR(rowIndex);
+    setPrType(pr);
     setShowSetComplete(true);
     await completeWorkout(rowIndex);
 
     setTimeout(() => {
       setShowSetComplete(false);
-    }, 400);
+      setPrType(null);
+    }, pr ? 1200 : 400);
   };
 
   const handleStopWorkout = async () => {
@@ -371,6 +359,50 @@ const ActiveWorkout = () => {
   ).length;
   const isWorkoutComplete = duration !== null;
 
+  // Calculate workout summary stats
+  const workoutSummary = isWorkoutComplete ? (() => {
+    // Total volume (weight × reps)
+    const totalVolume = workoutData.reduce((sum, row) => {
+      const weight = parseFloat(row.weight) || 0;
+      const reps = parseFloat(row.repsAchieved) || 0;
+      return sum + (weight * reps);
+    }, 0);
+
+    // Count PRs using e1RM comparison
+    // Track best e1RM per exercise within this workout to avoid counting multiple PRs for same exercise
+    const workoutBests = new Map<string, number>();
+    let prCount = 0;
+
+    workoutData.forEach(row => {
+      const currentWeight = parseFloat(row.weight) || 0;
+      const currentReps = parseFloat(row.repsAchieved) || 0;
+      const currentE1RM = calculateE1RM(currentWeight, currentReps);
+
+      if (currentE1RM <= 0) return;
+
+      const exerciseName = row.exercise;
+      const historicalBest = exerciseBests[exerciseName]?.e1rm || 0;
+      const workoutBest = workoutBests.get(exerciseName) || 0;
+
+      // Only count PR once per exercise (the best set)
+      if (currentE1RM > historicalBest && currentE1RM > workoutBest) {
+        if (workoutBest === 0) prCount++; // First PR for this exercise
+        workoutBests.set(exerciseName, currentE1RM);
+      }
+    });
+
+    // Average RPE (10 - avg RIR)
+    const rirsWithData = workoutData
+      .map(row => parseFloat(row.rirAchieved))
+      .filter(rir => !isNaN(rir));
+    const avgRir = rirsWithData.length > 0
+      ? rirsWithData.reduce((a, b) => a + b, 0) / rirsWithData.length
+      : null;
+    const avgRpe = avgRir !== null ? (10 - avgRir).toFixed(1) : null;
+
+    return { totalVolume, prCount, avgRpe };
+  })() : null;
+
   const currentExercise = groupedByExercise[currentExerciseIndex];
   const currentExerciseName = currentExercise?.[0] || "";
   const currentExerciseSets = currentExercise?.[1] || [];
@@ -458,16 +490,55 @@ const ActiveWorkout = () => {
         </div>
       )}
 
-      {/* Workout complete banner */}
-      {isWorkoutComplete && (
-        <div className={styles.workoutCompleteBanner}>
-          <Check size={24} />
-          <div>
-            <span className={styles.completeTitle}>Workout Complete!</span>
-            <span className={styles.completeSubtitle}>
-              All {totalSets} sets finished
-              {duration !== null && ` • ${formatTime(duration)}`}
-            </span>
+      {/* Workout complete summary */}
+      {isWorkoutComplete && workoutSummary && (
+        <div className={styles.workoutSummary}>
+          <div className={styles.summaryHeader}>
+            <Check size={28} className={styles.summaryCheck} />
+            <h2 className={styles.summaryTitle}>Workout Complete!</h2>
+          </div>
+          <div className={styles.summaryStats}>
+            <div className={styles.summaryStat}>
+              <Clock size={20} />
+              <div className={styles.summaryStatContent}>
+                <span className={styles.summaryStatValue}>
+                  {duration !== null ? formatTime(duration) : "—"}
+                </span>
+                <span className={styles.summaryStatLabel}>Duration</span>
+              </div>
+            </div>
+            <div className={styles.summaryStat}>
+              <TrendingUp size={20} />
+              <div className={styles.summaryStatContent}>
+                <span className={styles.summaryStatValue}>
+                  {workoutSummary.totalVolume.toLocaleString()} {weightUnit}
+                </span>
+                <span className={styles.summaryStatLabel}>Total Volume</span>
+              </div>
+            </div>
+            {workoutSummary.prCount > 0 && (
+              <div className={`${styles.summaryStat} ${styles.summaryStatPr}`}>
+                <Trophy size={20} />
+                <div className={styles.summaryStatContent}>
+                  <span className={styles.summaryStatValue}>
+                    {workoutSummary.prCount} PR{workoutSummary.prCount > 1 ? "s" : ""}
+                  </span>
+                  <span className={styles.summaryStatLabel}>Personal Records</span>
+                </div>
+              </div>
+            )}
+            {workoutSummary.avgRpe && (
+              <div className={styles.summaryStat}>
+                <span className={styles.rpeIcon}>RPE</span>
+                <div className={styles.summaryStatContent}>
+                  <span className={styles.summaryStatValue}>{workoutSummary.avgRpe}</span>
+                  <span className={styles.summaryStatLabel}>Avg Intensity</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className={styles.summaryMeta}>
+            {totalSets} sets completed
           </div>
         </div>
       )}
@@ -529,9 +600,18 @@ const ActiveWorkout = () => {
           >
             {/* Set complete animation overlay */}
             {showSetComplete && (
-              <div className={styles.setCompleteOverlay}>
+              <div className={`${styles.setCompleteOverlay} ${prType ? styles.prOverlay : ""}`}>
                 <div className={styles.setCompleteIcon}>
-                  <Check size={48} strokeWidth={3} />
+                  {prType ? (
+                    <>
+                      <Trophy size={48} strokeWidth={2} className={styles.prTrophy} />
+                      <span className={styles.prBadge}>
+                        {prType === "weight" ? "Weight PR!" : "Rep PR!"}
+                      </span>
+                    </>
+                  ) : (
+                    <Check size={48} strokeWidth={3} />
+                  )}
                 </div>
               </div>
             )}
@@ -728,7 +808,7 @@ const ActiveWorkout = () => {
                     onClick={() =>
                       isRestTimerActive
                         ? stopRestTimer(currentExerciseName)
-                        : startRestTimer(currentExerciseName)
+                        : handleStartRestTimer(currentExerciseName)
                     }
                     className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ""}`}
                   >

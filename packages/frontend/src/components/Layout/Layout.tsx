@@ -9,6 +9,7 @@ import {
   Volume2,
   Pause,
   Home,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -30,6 +31,7 @@ const navItems = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/programs", label: "Programs", icon: Dumbbell },
   { to: "/history", label: "History", icon: ClipboardList },
+  { to: "/analytics", label: "Analytics", icon: TrendingUp },
   { to: "/profile", label: "Profile", icon: User },
 ];
 

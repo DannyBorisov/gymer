@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout, type Week, type Workout } from "../../contexts/WorkoutContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch } from "../../utils/api";
 import styles from "./Home.module.css";
 
@@ -28,6 +29,7 @@ const Home = () => {
   const navigate = useNavigate();
   const { activeProgram } = useSettings();
   const { startWorkout, activeWorkout } = useWorkout();
+  const { user } = useAuth();
 
   const [programData, setProgramData] = useState<Week[]>([]);
   const [programName, setProgramName] = useState<string>("");
@@ -40,9 +42,10 @@ const Home = () => {
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
+    const rawFirstName = user?.name?.split(" ")[0];
+    const firstName = rawFirstName ? rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase() : null;
+    const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
   };
 
   // Fetch active program data

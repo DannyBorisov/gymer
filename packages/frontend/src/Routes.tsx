@@ -12,6 +12,7 @@ import CreateProgram from "./pages/CreateProgram/CreateProgram";
 import ActiveWorkout from "./pages/ActiveWorkout/ActiveWorkout";
 import QuickWorkout from "./pages/QuickWorkout/QuickWorkout";
 import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
+import Analytics from "./pages/Analytics/Analytics";
 import Profile from "./pages/Profile/Profile";
 import { useWorkout } from "./contexts/WorkoutContext";
 import { formatTime } from "./lib/time";
@@ -84,11 +85,11 @@ const ProtectedRoutes = () => {
             <Route path="/workout" element={<Home />} />
             <Route path="/quick-workout" element={<QuickWorkout />} />
             <Route path="/history" element={<WorkoutHistory />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
 
             {/* Legacy redirects */}
             <Route path="/workouts" element={<Navigate to="/history" replace />} />
-            <Route path="/analytics" element={<Navigate to="/history" replace />} />
             <Route path="/start-workout" element={<Navigate to="/home" replace />} />
             <Route path="/weight" element={<Navigate to="/profile" replace />} />
 

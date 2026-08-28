@@ -1,0 +1,384 @@
+.container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding-bottom: 100px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.025em;
+}
+
+@media (max-width: 767px) {
+  .title {
+    font-size: 1.25rem;
+  }
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tabActive {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.tabActive:hover {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+/* Loading & Empty states */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.emptyIcon {
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+
+.emptySubtext {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* Exercise list */
+.exerciseList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.exerciseCard {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.exerciseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.exerciseInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.exerciseName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.exerciseMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.latestWeight {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.progressBadge {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.progressPositive {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.progressNegative {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.expandIcon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.exerciseContent {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border-default);
+}
+
+.chartContainer {
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.notEnoughData {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.entryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.entryRow:last-child {
+  border-bottom: none;
+}
+
+.entryRowBest {
+  background: rgba(234, 179, 8, 0.1);
+  margin: 0 -16px;
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+
+.entryDate {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.entryData {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+/* 1RM specific styles */
+.prWeight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #eab308;
+}
+
+.trophyIcon {
+  color: #eab308;
+}
+
+.trophySmall {
+  color: #eab308;
+}
+
+.prDate {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.historyLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 12px 0 8px;
+}
+
+/* Log 1RM Button */
+.log1RMButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #000;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.log1RMButton:active {
+  opacity: 0.9;
+}
+
+/* Weight Input Drawer */
+.weightDrawer {
+  padding: 1.5rem;
+}
+
+.weightHeader {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.weightTrophy {
+  color: #eab308;
+  margin-bottom: 0.5rem;
+}
+
+.weightTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.weightSubtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.weightInputContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.weightInput {
+  width: 150px;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.weightInput::placeholder {
+  color: var(--text-muted);
+}
+
+.weightInput:focus {
+  outline: none;
+  border-color: #eab308;
+}
+
+.weightUnitLabel {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.weightActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.weightCancelBtn {
+  flex: 1;
+  padding: 0.875rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.weightSaveBtn {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  background: #eab308;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #000;
+  cursor: pointer;
+}
+
+.weightSaveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

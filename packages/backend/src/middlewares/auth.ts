@@ -1,5 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { getSession, type SessionData } from "../routes/auth.js";
+import { getSession } from "../routes/auth.js";
+import type { SessionData } from "../lib/encryption.js";
 
 // Extend FastifyRequest to include session
 declare module "fastify" {

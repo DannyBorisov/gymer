@@ -109,7 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Open in Safari for OAuth
       await Browser.open({
         url: authUrl,
-        windowName: "_blank"
+        windowName: "_blank",
       });
     } else {
       window.location.href = authUrl;
@@ -140,7 +140,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, sessionToken, login, logout, checkAuth }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        isLoading,
+        user,
+        sessionToken,
+        login,
+        logout,
+        checkAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

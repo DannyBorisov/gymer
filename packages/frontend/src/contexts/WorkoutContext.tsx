@@ -12,7 +12,13 @@ import { formatTodayDDMMYYYY } from "../lib/date";
 import {
   startWorkoutLiveActivity,
   endWorkoutLiveActivity,
+  updateRestTimer as updateRestTimerLiveActivity,
 } from "../utils/liveActivity";
+import {
+  unlockAudio,
+  scheduleRestTimerNotification,
+  cancelRestTimerNotification,
+} from "../utils/sound";
 
 export interface ExerciseRow {
   rowIndex: number;
@@ -48,6 +54,12 @@ export interface PreviousStats {
   sets: { weight: string; reps: string; rir: string }[];
 }
 
+export interface ExerciseBest {
+  weight: number;
+  reps: number;
+  e1rm: number;
+}
+
 export interface QuickExercise {
   name: string;
   sets: number;
@@ -76,7 +88,15 @@ interface WorkoutContextType {
   program: Week[];
   programName: string;
   previousStats: Record<string, PreviousStats>;
+  exerciseBests: Record<string, ExerciseBest>;
   isQuickWorkout: boolean;
+
+  // Rest timer state (persisted across drawer collapse)
+  restTimer: number;
+  isRestTimerActive: boolean;
+  restTimerStartTime: number | null;
+  startRestTimer: (exerciseName: string, duration: number, announceInterval: number) => void;
+  stopRestTimer: (exerciseName: string) => void;
 
   // Actions
   startWorkout: (
@@ -125,7 +145,14 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [program, setProgram] = useState<Week[]>([]);
   const [programName, setProgramName] = useState<string>("");
   const [previousStats, setPreviousStats] = useState<Record<string, PreviousStats>>({});
+  const [exerciseBests, setExerciseBests] = useState<Record<string, ExerciseBest>>({});
   const [isQuickWorkout, setIsQuickWorkout] = useState(false);
+
+  // Rest timer state (persisted across drawer collapse)
+  const [restTimer, setRestTimer] = useState(0);
+  const [isRestTimerActive, setIsRestTimerActive] = useState(false);
+  const [restTimerStartTime, setRestTimerStartTime] = useState<number | null>(null);
+  const restTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -193,6 +220,22 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isTimerRunning]);
+
+  // Rest timer count up effect
+  useEffect(() => {
+    if (isRestTimerActive && restTimerStartTime) {
+      restTimerIntervalRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - restTimerStartTime) / 1000);
+        setRestTimer(elapsed);
+      }, 1000);
+
+      return () => {
+        if (restTimerIntervalRef.current) {
+          clearInterval(restTimerIntervalRef.current);
+        }
+      };
+    }
+  }, [isRestTimerActive, restTimerStartTime]);
 
   // Keep workoutDataRef in sync with state
   useEffect(() => {
@@ -262,6 +305,40 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     return () => clearInterval(interval);
   }, [activeWorkout, saveWorkout]);
 
+  // Start rest timer
+  const startRestTimer = (exerciseName: string, duration: number, announceInterval: number) => {
+    const startTime = Date.now();
+    setRestTimer(0);
+    setRestTimerStartTime(startTime);
+    setIsRestTimerActive(true);
+    unlockAudio();
+    scheduleRestTimerNotification(duration, announceInterval, startTime);
+    // Update Live Activity to show rest timer
+    if (activeWorkout) {
+      updateRestTimerLiveActivity(
+        true,
+        activeWorkout.workout.name,
+        exerciseName,
+        startTime,
+      );
+    }
+  };
+
+  // Stop rest timer
+  const stopRestTimer = (exerciseName: string) => {
+    setIsRestTimerActive(false);
+    setRestTimer(0);
+    setRestTimerStartTime(null);
+    cancelRestTimerNotification();
+    if (restTimerIntervalRef.current) {
+      clearInterval(restTimerIntervalRef.current);
+    }
+    // Update Live Activity to hide rest timer
+    if (activeWorkout) {
+      updateRestTimerLiveActivity(false, activeWorkout.workout.name, exerciseName);
+    }
+  };
+
   const startWorkout = (
     programId: string,
     week: number,
@@ -329,6 +406,17 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
     setPreviousStats(stats);
 
+    // Fetch exercise bests asynchronously for PR detection
+    apiFetch<{ bests: Record<string, ExerciseBest> }>("/api/analytics/bests")
+      .then((data) => {
+        if (data.bests) {
+          setExerciseBests(data.bests);
+        }
+      })
+      .catch(() => {
+        // Silently fail - PRs just won't be detected
+      });
+
     // Only start Live Activity if workout is not already complete
     if (!workout.isComplete && !workout.completedDate) {
       const firstExercise = workout.exercises[0]?.exercise || "";
@@ -377,6 +465,15 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setPreviousStats({});
     setIsQuickWorkout(true);
 
+    // Fetch exercise bests asynchronously for PR detection
+    apiFetch<{ bests: Record<string, ExerciseBest> }>("/api/analytics/bests")
+      .then((data) => {
+        if (data.bests) {
+          setExerciseBests(data.bests);
+        }
+      })
+      .catch(() => {});
+
     // Start timer
     setTimer(0);
     setDuration(null);
@@ -420,6 +517,17 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setIsTimerRunning(false);
     timerStartRef.current = 0;
 
+    // Stop rest timer if active
+    if (isRestTimerActive) {
+      cancelRestTimerNotification();
+      if (restTimerIntervalRef.current) {
+        clearInterval(restTimerIntervalRef.current);
+      }
+    }
+    setIsRestTimerActive(false);
+    setRestTimer(0);
+    setRestTimerStartTime(null);
+
     // End Live Activity
     endWorkoutLiveActivity();
 
@@ -442,6 +550,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setProgram([]);
     setProgramName("");
     setPreviousStats({});
+    setExerciseBests({});
     setIsQuickWorkout(false);
   };
 
@@ -661,7 +770,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         program,
         programName,
         previousStats,
+        exerciseBests,
         isQuickWorkout,
+        restTimer,
+        isRestTimerActive,
+        restTimerStartTime,
+        startRestTimer,
+        stopRestTimer,
         startWorkout,
         startQuickWorkout,
         addExerciseToWorkout,

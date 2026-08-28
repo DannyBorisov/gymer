@@ -22,6 +22,7 @@ export const AppProperties = {
   program: { key: "createdBy", value: "gymerr" },
   quickWorkouts: { key: "gymerrQuickWorkouts", value: "true" },
   bodyWeight: { key: "gymerrBodyWeight", value: "true" },
+  oneRepMax: { key: "gymerrOneRepMax", value: "true" },
 } as const;
 
 export type AppPropertyType = keyof typeof AppProperties;

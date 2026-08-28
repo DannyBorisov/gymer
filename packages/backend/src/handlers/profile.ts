@@ -48,12 +48,10 @@ export const saveBodyWeight: RouteHandler<{
   }
 
   try {
-    // Find or create the body weight sheet
     const files = await this.sheets.listFiles(tokens, buildQuery("bodyWeight"));
 
     let spreadsheetId: string;
     if (files.length === 0) {
-      // Create the sheet
       spreadsheetId = await this.sheets.create(tokens, BODY_WEIGHT_SHEET_NAME);
       const { key, value } = AppProperties.bodyWeight;
       await this.sheets.setFileProperties(tokens, spreadsheetId, {

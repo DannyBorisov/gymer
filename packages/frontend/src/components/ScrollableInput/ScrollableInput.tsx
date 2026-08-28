@@ -43,26 +43,38 @@ export function ScrollableInput({
   const shouldAnimate = useRef(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const numericValue = parseFloat(value) || 0;
+  const numericValue = parseFloat(value);
+  const isEmpty = value === "" || value === "-";
 
   // Generate fixed list of values based on step (reversed - higher values at top)
+  // Include "-" (empty) and 0 (bodyweight) at the beginning
   const values = useMemo(() => {
-    const result: number[] = [];
+    const result: (number | "-")[] = [];
     const effectiveMax = Math.min(max, step < 1 ? 500 : 200);
-    for (let v = effectiveMax; v >= min; v -= step) {
+    for (let v = effectiveMax; v > 0; v -= step) {
       result.push(Math.round(v * 1000) / 1000);
     }
+    // Add 0 (bodyweight) and "-" (empty) at the end (which appears at bottom when scrolling)
+    result.push(0);
+    result.push("-");
     return result;
-  }, [min, max, step]);
+  }, [max, step]);
 
   // Find index of current value
   const currentIndex = useMemo(() => {
-    const idx = values.findIndex(v => Math.abs(v - numericValue) < step / 2);
+    if (isEmpty) {
+      return values.findIndex(v => v === "-");
+    }
+    if (numericValue === 0) {
+      return values.findIndex(v => v === 0);
+    }
+    const idx = values.findIndex(v => typeof v === "number" && Math.abs(v - numericValue) < step / 2);
     return idx >= 0 ? idx : 0;
-  }, [values, numericValue, step]);
+  }, [values, numericValue, isEmpty, step]);
 
   // Format value for display
-  const formatValue = (val: number) => {
+  const formatValue = (val: number | "-") => {
+    if (val === "-") return "-";
     if (step % 1 === 0) {
       return val.toString();
     }
@@ -106,9 +118,17 @@ export function ScrollableInput({
       const clampedIndex = Math.max(0, Math.min(values.length - 1, selectedIndex));
       const selectedValue = values[clampedIndex];
 
-      if (selectedValue !== undefined && Math.abs(selectedValue - numericValue) >= step / 2) {
-        onChange(formatValue(selectedValue));
-        onInputActivity?.();
+      if (selectedValue !== undefined) {
+        // Handle "-" (empty) case
+        if (selectedValue === "-") {
+          if (!isEmpty) {
+            onChange("");
+            onInputActivity?.();
+          }
+        } else if (Math.abs(selectedValue - numericValue) >= step / 2) {
+          onChange(formatValue(selectedValue));
+          onInputActivity?.();
+        }
       }
 
       scrollRef.current.scrollTop = clampedIndex * itemHeight;
