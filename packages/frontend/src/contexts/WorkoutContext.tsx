@@ -407,7 +407,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setPreviousStats(stats);
 
     // Fetch exercise bests asynchronously for PR detection
-    apiFetch<{ bests: Record<string, ExerciseBest> }>("/api/analytics/bests")
+    apiFetch("/api/analytics/bests")
+      .then((response) => response.json() as Promise<{ bests: Record<string, ExerciseBest> }>)
       .then((data) => {
         if (data.bests) {
           setExerciseBests(data.bests);
@@ -466,7 +467,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setIsQuickWorkout(true);
 
     // Fetch exercise bests asynchronously for PR detection
-    apiFetch<{ bests: Record<string, ExerciseBest> }>("/api/analytics/bests")
+    apiFetch("/api/analytics/bests")
+      .then((response) => response.json() as Promise<{ bests: Record<string, ExerciseBest> }>)
       .then((data) => {
         if (data.bests) {
           setExerciseBests(data.bests);
