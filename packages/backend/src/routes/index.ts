@@ -1,18 +1,24 @@
 import type { FastifyPluginAsync } from "fastify";
 import { authApiRoutes } from "./auth.js";
-import { programCreateRoute, programsRoutes } from "./programs.js";
+import ProgramsRoutes from "./programs.js";
 import { quickWorkoutRoutes, workoutRoutes } from "./workouts.js";
-import profileRoutes from "./profile.js";
-import { analyticsRoutes } from "./analytics.js";
+import AnalyticsRoutes from "./analytics.js";
+import ProfileRoutes from "./profile.js";
+import { SessionData } from "../lib/encryption.js";
+
+declare module "fastify" {
+  interface FastifyRequest {
+    session: SessionData;
+  }
+}
 
 const routes: FastifyPluginAsync = async (server) => {
   server.register(authApiRoutes, { prefix: "/auth" });
-  server.register(programCreateRoute, { prefix: "/program" });
-  server.register(programsRoutes, { prefix: "/programs" });
+  server.register(ProgramsRoutes, { prefix: "/programs" });
   server.register(quickWorkoutRoutes, { prefix: "/quick-workouts" });
   server.register(workoutRoutes, { prefix: "/workouts" });
-  server.register(profileRoutes);
-  server.register(analyticsRoutes, { prefix: "/analytics" });
+  server.register(ProfileRoutes);
+  server.register(AnalyticsRoutes, { prefix: "/analytics" });
 };
 
 export default routes;

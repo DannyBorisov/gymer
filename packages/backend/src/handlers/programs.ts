@@ -93,15 +93,13 @@ export const createProgram: RouteHandler<{
 };
 
 export const listPrograms: RouteHandler = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
-
   try {
-    const files = await this.sheets.listFiles(tokens, buildQuery("program"));
-    const programs = files.map((file) => ({
-      ...file,
-      url: `https://docs.google.com/spreadsheets/d/${file.id}`,
-    }));
-    return { programs };
+    const files = await this.sheets.listFiles(
+      request.session.tokens,
+      buildQuery("program"),
+    );
+
+    return { programs: files };
   } catch (error) {
     this.log.error(error);
     return reply.status(500).send({ error: "Failed to fetch programs" });
@@ -125,22 +123,37 @@ export const getProgram: RouteHandler<{
       return reply.status(404).send({ error: "Program not found or empty" });
     }
 
-    const rows = data.slice(1).map((row, index) => ({
-      rowIndex: index + 2,
-      date: String(row[0] || ""),
-      week: Number(row[1]) || 0,
-      workout: String(row[2] || ""),
-      exercise: String(row[3] || ""),
-      set: Number(row[4]) || 0,
-      targetReps: Number(row[5]) || 0,
-      rir: String(row[6] || ""),
-      weight: String(row[7] || ""),
-      repsAchieved: String(row[8] || ""),
-      rirAchieved: String(row[9] || ""),
-      notes: String(row[10] || ""),
-    }));
+    const rows = data.slice(1).map((row, index) => {
+      const [
+        date,
+        week,
+        workout,
+        exercise,
+        set,
+        targetReps,
+        rir,
+        weight,
+        repsAchieved,
+        rirAchieved,
+        notes,
+      ] = row;
+      return {
+        rowIndex: index + 2,
+        date: date || "",
+        week: week || 0,
+        workout: workout || "",
+        exercise: exercise || "",
+        set: set || 0,
+        targetReps: targetReps || 0,
+        rir: rir || "",
+        weight: weight || "",
+        repsAchieved: repsAchieved || "",
+        rirAchieved: rirAchieved || "",
+        notes: notes || "",
+      };
+    });
 
-    const weeks = new Map<number, Map<string, typeof rows>>();
+    const weeks = new Map<number | string, Map<string | number, typeof rows>>();
     for (const row of rows) {
       if (!weeks.has(row.week)) {
         weeks.set(row.week, new Map());
@@ -158,17 +171,16 @@ export const getProgram: RouteHandler<{
     const program = Array.from(weeks.entries()).map(([weekNum, workouts]) => ({
       week: weekNum,
       workouts: Array.from(workouts.entries()).map(([name, exercises]) => {
-        const completedDate = exercises[0]?.date || "";
-        // Duration is stored in the second row's date column
-        const secondRowDate = exercises[1]?.date || "";
-        const duration = isDurationFormat(secondRowDate) ? secondRowDate : "";
+        const [{ date: date }, { date: duration }] = exercises;
 
         return {
           name,
           exercises,
-          isComplete: exercises.every((e) => e.repsAchieved !== ""),
-          completedDate,
-          duration,
+          isComplete: exercises.every(
+            (e) => e.repsAchieved !== "" && e.weight !== "",
+          ),
+          completedDate: date,
+          duration: isDurationFormat("" + duration),
         };
       }),
     }));

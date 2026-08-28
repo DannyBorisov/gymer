@@ -12,8 +12,12 @@ interface SaveOneRepMaxBody {
   weight: number;
 }
 
-export const analyticsRoutes: FastifyPluginAsync = async (server) => {
-  server.get("/progression", { preHandler: requireAuth }, getExerciseProgression);
+const AnalyticsRoutes: FastifyPluginAsync = async (server) => {
+  server.get(
+    "/progression",
+    { preHandler: requireAuth },
+    getExerciseProgression,
+  );
   server.get("/bests", { preHandler: requireAuth }, getExerciseBests);
   server.get("/1rm", { preHandler: requireAuth }, getOneRepMaxRecords);
   server.post<{ Body: SaveOneRepMaxBody }>(
@@ -22,3 +26,5 @@ export const analyticsRoutes: FastifyPluginAsync = async (server) => {
     saveOneRepMax,
   );
 };
+
+export default AnalyticsRoutes;

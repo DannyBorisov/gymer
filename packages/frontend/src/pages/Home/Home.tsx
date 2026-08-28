@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Play,
@@ -13,17 +13,9 @@ import {
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout, type Week, type Workout } from "../../contexts/WorkoutContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { apiFetch } from "../../utils/api";
+import { useGetProgram } from "../../api/programs";
+import { useGetWorkoutHistory } from "../../api/workouts";
 import styles from "./Home.module.css";
-
-interface WorkoutHistoryItem {
-  id: string;
-  date: string;
-  name: string;
-  type: "quick" | "program";
-  duration?: string;
-  exerciseCount: number;
-}
 
 const Home = () => {
   const navigate = useNavigate();
@@ -31,13 +23,12 @@ const Home = () => {
   const { startWorkout, activeWorkout } = useWorkout();
   const { user } = useAuth();
 
-  const [programData, setProgramData] = useState<Week[]>([]);
-  const [programName, setProgramName] = useState<string>("");
-  const [isLoadingProgram, setIsLoadingProgram] = useState(false);
-  const [lastWorkout, setLastWorkout] = useState<WorkoutHistoryItem | null>(null);
-  const [workoutCount, setWorkoutCount] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const { data: programResponse, isLoading: isLoadingProgram } = useGetProgram<Week[]>(activeProgram?.id);
+  const { data: historyResponse, isLoading: isLoadingHistory } = useGetWorkoutHistory();
+  const programData = programResponse?.program || [];
+  const programName = programResponse?.name || activeProgram?.name || "";
+  const workouts = historyResponse?.workouts || [];
+  const lastWorkout = workouts[0] || null;
 
   // Get greeting based on time of day
   const getGreeting = () => {
@@ -48,110 +39,34 @@ const Home = () => {
     return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
   };
 
-  // Fetch active program data
-  useEffect(() => {
-    if (!activeProgram) {
-      setProgramData([]);
-      setProgramName("");
-      return;
+  const { workoutCount, streak } = useMemo(() => {
+    const now = new Date();
+    const workoutCount = workouts.filter((workout) => {
+      const [day, month, year] = workout.date.split("/");
+      const date = new Date(Number(year), Number(month) - 1, Number(day));
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).length;
+
+    const getWeekStart = (date: Date) => {
+      const result = new Date(date);
+      result.setHours(0, 0, 0, 0);
+      result.setDate(result.getDate() - result.getDay());
+      return result.getTime();
+    };
+    const workoutWeeks = new Set(workouts.map((workout) => {
+      const [day, month, year] = workout.date.split("/");
+      return getWeekStart(new Date(Number(year), Number(month) - 1, Number(day)));
+    }));
+    const weekLength = 7 * 24 * 60 * 60 * 1000;
+    let checkWeek = getWeekStart(now);
+    if (!workoutWeeks.has(checkWeek)) checkWeek -= weekLength;
+    let streak = 0;
+    while (workoutWeeks.has(checkWeek)) {
+      streak++;
+      checkWeek -= weekLength;
     }
-
-    const fetchProgram = async () => {
-      setIsLoadingProgram(true);
-      try {
-        const response = await apiFetch(`/api/programs/${activeProgram.id}`);
-        const data = await response.json();
-        if (response.ok) {
-          setProgramData(data.program);
-          setProgramName(data.name || activeProgram.name);
-        }
-      } catch (err) {
-        console.error("Failed to fetch program:", err);
-      } finally {
-        setIsLoadingProgram(false);
-      }
-    };
-    fetchProgram();
-  }, [activeProgram]);
-
-  // Fetch workout history for stats
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const response = await apiFetch("/api/workouts/history");
-        const data = await response.json();
-        if (response.ok && data.workouts) {
-          const workouts = data.workouts as WorkoutHistoryItem[];
-          if (workouts.length > 0) {
-            setLastWorkout(workouts[0]);
-          }
-
-          // Count workouts this month
-          const now = new Date();
-          const thisMonth = workouts.filter((w) => {
-            const [day, month, year] = w.date.split("/");
-            const workoutDate = new Date(Number(year), Number(month) - 1, Number(day));
-            return (
-              workoutDate.getMonth() === now.getMonth() &&
-              workoutDate.getFullYear() === now.getFullYear()
-            );
-          });
-          setWorkoutCount(thisMonth.length);
-
-          // Calculate streak (consecutive weeks with at least one workout)
-          const calculateStreak = () => {
-            if (workouts.length === 0) return 0;
-
-            // Get week number for a date (week starts on Sunday)
-            const getWeekStart = (date: Date) => {
-              const d = new Date(date);
-              d.setHours(0, 0, 0, 0);
-              d.setDate(d.getDate() - d.getDay()); // Go to Sunday
-              return d.getTime();
-            };
-
-            const today = new Date();
-            const thisWeekStart = getWeekStart(today);
-            const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-
-            // Get unique weeks that have workouts
-            const workoutWeeks = new Set(
-              workouts.map((w) => {
-                const [day, month, year] = w.date.split("/");
-                const d = new Date(Number(year), Number(month) - 1, Number(day));
-                return getWeekStart(d);
-              })
-            );
-
-            let currentStreak = 0;
-            let checkWeek = thisWeekStart;
-
-            // Check if worked out this week or last week to start streak
-            if (!workoutWeeks.has(checkWeek)) {
-              checkWeek -= msPerWeek; // Check last week
-              if (!workoutWeeks.has(checkWeek)) {
-                return 0; // No recent workout
-              }
-            }
-
-            while (workoutWeeks.has(checkWeek)) {
-              currentStreak++;
-              checkWeek -= msPerWeek;
-            }
-
-            return currentStreak;
-          };
-
-          setStreak(calculateStreak());
-        }
-      } catch (err) {
-        console.error("Failed to fetch history:", err);
-      } finally {
-        setIsLoadingHistory(false);
-      }
-    };
-    fetchHistory();
-  }, []);
+    return { workoutCount, streak };
+  }, [workouts]);
 
   // Find next incomplete workout
   const getNextWorkout = (): { week: number; workout: Workout } | null => {
@@ -255,7 +170,10 @@ const Home = () => {
     <div className={styles.container}>
       {/* Header */}
       <div className={styles.header}>
-        <h1 className={styles.greeting}>{getGreeting()}</h1>
+        <div>
+          <span className={styles.eyebrow}>GYMERR / TODAY</span>
+          <h1 className={styles.greeting}>{getGreeting()}</h1>
+        </div>
         {streak > 0 && (
           <div className={styles.streakBadge}>
             <Flame size={16} />
@@ -268,7 +186,10 @@ const Home = () => {
       {activeProgram && programData.length > 0 && (
         <div className={styles.progressCard}>
           <div className={styles.progressHeader}>
-            <span className={styles.progressLabel}>Week {weekProgress.week}</span>
+            <div className={styles.progressTitle}>
+              <span className={styles.progressLabel}>Week {weekProgress.week}</span>
+              <span className={styles.progressStatus}>IN PROGRESS</span>
+            </div>
             <span className={styles.progressCount}>
               {weekProgress.completed} of {weekProgress.total} workouts
             </span>
@@ -281,11 +202,16 @@ const Home = () => {
               }}
             />
           </div>
+          <div className={styles.progressFooter}>
+            <span>Keep the streak alive</span>
+            <span>{Math.round((weekProgress.completed / weekProgress.total) * 100)}%</span>
+          </div>
         </div>
       )}
 
       {/* Primary Action */}
       <div className={styles.actionCard}>
+        <div className={styles.actionCardLabel}>NEXT UP</div>
         {isLoadingProgram ? (
           <div className={styles.loadingAction}>
             <Loader2 size={24} className={styles.spinner} />

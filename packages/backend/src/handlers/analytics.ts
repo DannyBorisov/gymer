@@ -7,6 +7,7 @@ export interface ExerciseProgressionEntry {
   weight: number;
   reps: number;
   sets: number;
+  e1rm: number;
 }
 
 export interface ExerciseProgression {
@@ -275,11 +276,13 @@ export const getExerciseProgression: RouteHandler = async function (
       for (const [date, data] of dateMap) {
         // Calculate average weight per set for that day
         const avgWeight = data.totalWeight / data.sets;
+        const e1rm = calculateE1RM(avgWeight, data.totalReps / data.sets);
         entries.push({
           date,
           weight: Math.round(avgWeight * 10) / 10,
           reps: data.totalReps,
           sets: data.sets,
+          e1rm: Math.round(e1rm * 10) / 10,
         });
       }
 

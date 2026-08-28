@@ -781,12 +781,6 @@
   padding-top: 0.5rem;
 }
 
-@media (max-width: 767px) {
-  .formActions {
-    display: none;
-  }
-}
-
 .submitButton {
   display: inline-flex;
   align-items: center;

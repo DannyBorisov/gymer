@@ -3,12 +3,12 @@ import config from "../config.js";
 import { UserInfo } from "../types.js";
 
 export interface SessionData {
-  tokens?: {
+  tokens: {
     access_token: string;
     refresh_token?: string;
     expiry_date?: number;
   };
-  user?: UserInfo;
+  user: UserInfo;
 }
 
 export const ENCRYPTION_KEY = crypto.scryptSync(

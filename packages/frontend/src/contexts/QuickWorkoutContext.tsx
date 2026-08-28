@@ -6,7 +6,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { apiFetch } from "../utils/api";
+import { workoutsApi } from "../api";
 import { type QuickExercise } from "./WorkoutContext";
 
 // Common preset exercises
@@ -243,11 +243,8 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
   const loadExercises = async () => {
     setIsLoadingExercises(true);
     try {
-      const response = await apiFetch("/api/quick-workouts/exercises");
-      if (response.ok) {
-        const data = await response.json();
-        setUserExercises(data.exercises || []);
-      }
+      const data = await workoutsApi.quickExercises();
+      setUserExercises(data.exercises || []);
     } catch (err) {
       console.error("Failed to load exercises:", err);
     } finally {
@@ -387,10 +384,7 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     setIsSaving(true);
     try {
-      const response = await apiFetch("/api/quick-workouts/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      await workoutsApi.saveQuick({
           workoutId,
           duration: formatDuration(timer),
           sets: validSets.map((s) => ({
@@ -401,20 +395,16 @@ export const QuickWorkoutProvider = ({ children }: { children: ReactNode }) => {
             rir: s.rir,
             notes: s.notes,
           })),
-        }),
       });
 
-      if (response.ok) {
-        localStorage.removeItem(STORAGE_KEY);
-        setIsActive(false);
-        setWorkoutId(null);
-        setExercises([]);
-        setSets([]);
-        setTimer(0);
-        timerStartRef.current = 0;
-        return true;
-      }
-      return false;
+      localStorage.removeItem(STORAGE_KEY);
+      setIsActive(false);
+      setWorkoutId(null);
+      setExercises([]);
+      setSets([]);
+      setTimer(0);
+      timerStartRef.current = 0;
+      return true;
     } catch (err) {
       console.error("Failed to save workout:", err);
       return false;

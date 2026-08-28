@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   LogOut,
   Bell,
@@ -17,7 +17,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts";
-import { apiFetch } from "../../utils/api";
+import { useGetBodyWeight, useSaveBodyWeight } from "../../api/profile";
 
 const BodyScaleIcon = ({ size = 18 }: { size?: number }) => (
   <svg
@@ -48,11 +48,6 @@ import {
 } from "../../utils/notifications";
 import styles from "./Profile.module.css";
 
-interface WeightEntry {
-  date: string;
-  weight: string;
-}
-
 const getInitials = (name: string) => {
   return name
     .split(" ")
@@ -81,29 +76,12 @@ const Profile = () => {
   });
 
   // Weight tracking state
-  const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
-  const [isLoadingWeight, setIsLoadingWeight] = useState(true);
   const [weightInput, setWeightInput] = useState("");
-  const [isSavingWeight, setIsSavingWeight] = useState(false);
   const [showWeightHistory, setShowWeightHistory] = useState(false);
-
-  // Fetch weight entries
-  useEffect(() => {
-    const fetchWeight = async () => {
-      try {
-        const response = await apiFetch("/api/body-weight");
-        const data = await response.json();
-        if (response.ok && data.entries) {
-          setWeightEntries(data.entries);
-        }
-      } catch (err) {
-        console.error("Weight fetch error:", err);
-      } finally {
-        setIsLoadingWeight(false);
-      }
-    };
-    fetchWeight();
-  }, []);
+  const { data: weightData, isLoading: isLoadingWeight } = useGetBodyWeight();
+  const saveBodyWeight = useSaveBodyWeight();
+  const weightEntries = weightData?.entries || [];
+  const isSavingWeight = saveBodyWeight.isPending;
 
   const getTodayStr = () => {
     const today = new Date();
@@ -113,30 +91,12 @@ const Profile = () => {
   const hasLoggedToday = weightEntries[0]?.date === getTodayStr();
   const latestWeight = weightEntries[0];
 
-  const handleSaveWeight = async () => {
+  const handleSaveWeight = () => {
     if (!weightInput.trim()) return;
 
-    setIsSavingWeight(true);
-    try {
-      const response = await apiFetch("/api/body-weight", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weight: weightInput }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setWeightEntries((prev) => [
-          { date: data.date, weight: data.weight },
-          ...prev,
-        ]);
-        setWeightInput("");
-      }
-    } catch (err) {
-      console.error("Weight save error:", err);
-    } finally {
-      setIsSavingWeight(false);
-    }
+    saveBodyWeight.mutate(weightInput, {
+      onSuccess: () => setWeightInput(""),
+    });
   };
 
   const formatDisplayDate = (dateStr: string) => {

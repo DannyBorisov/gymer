@@ -20,9 +20,13 @@ const BASE_QUERY =
 
 export const AppProperties = {
   program: { key: "createdBy", value: "gymerr" },
-  quickWorkouts: { key: "gymerrQuickWorkouts", value: "true" },
-  bodyWeight: { key: "gymerrBodyWeight", value: "true" },
-  oneRepMax: { key: "gymerrOneRepMax", value: "true" },
+  quickWorkouts: {
+    key: "gymerrQuickWorkouts",
+    value: "true",
+    title: "Quick Workouts",
+  },
+  bodyWeight: { key: "gymerrBodyWeight", value: "true", title: "Body Weight" },
+  oneRepMax: { key: "gymerrOneRepMax", value: "true", title: "One Rep Max" },
 } as const;
 
 export type AppPropertyType = keyof typeof AppProperties;
@@ -118,7 +122,6 @@ export class GoogleSheets {
       orderBy: "createdTime desc",
     });
 
-    console.log(response.data.files)
     if (!response.data.files) {
       return [];
     }
@@ -183,10 +186,7 @@ export class GoogleSheets {
     const sheets = this.getSheetsClient(tokens);
     await sheets.spreadsheets.values.batchUpdate({
       spreadsheetId,
-      requestBody: {
-        valueInputOption: "RAW",
-        data,
-      },
+      requestBody: { valueInputOption: "RAW", data },
     });
   }
 
@@ -233,12 +233,6 @@ export class GoogleSheets {
   }
 }
 
-declare module "fastify" {
-  interface FastifyInstance {
-    sheets: GoogleSheets;
-  }
-}
-
 const googleSheetsPlugin: FastifyPluginAsync = async (
   fastify: FastifyInstance,
 ) => {
@@ -247,3 +241,9 @@ const googleSheetsPlugin: FastifyPluginAsync = async (
 };
 
 export default fp(googleSheetsPlugin, { name: "google-sheets" });
+
+declare module "fastify" {
+  interface FastifyInstance {
+    sheets: GoogleSheets;
+  }
+}

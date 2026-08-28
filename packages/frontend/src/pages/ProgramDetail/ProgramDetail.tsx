@@ -6,7 +6,8 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { WeeksList } from "../../components/WeeksList/WeeksList";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
-import { apiFetch } from "../../utils/api";
+import { useGetProgram } from "../../api/programs";
+import { useSaveOneRepMax } from "../../api/analytics";
 import styles from "./ProgramDetail.module.css";
 
 const ProgramDetail = () => {
@@ -15,38 +16,17 @@ const ProgramDetail = () => {
   const { activeWorkout } = useWorkout();
   const { weightUnit } = useSettings();
 
-  const [program, setProgram] = useState<Week[]>([]);
-  const [programName, setProgramName] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: programResponse, isLoading, error } = useGetProgram<Week[]>(id);
+  const program = programResponse?.program || [];
+  const programName = programResponse?.name || "Program";
 
   // 1RM prompt state
   const [showExerciseDrawer, setShowExerciseDrawer] = useState(false);
   const [showWeightDrawer, setShowWeightDrawer] = useState(false);
   const [selected1RMExercise, setSelected1RMExercise] = useState<string | null>(null);
   const [oneRMWeight, setOneRMWeight] = useState("");
-  const [isSaving1RM, setIsSaving1RM] = useState(false);
   const [has1RMBeenPrompted, setHas1RMBeenPrompted] = useState(false);
-
-  useEffect(() => {
-    const fetchProgram = async () => {
-      try {
-        const response = await apiFetch(`/api/programs/${id}`);
-        const data = await response.json();
-        if (response.ok) {
-          setProgram(data.program);
-          setProgramName(data.name || "Program");
-        } else {
-          setError(data.error || "Failed to fetch program");
-        }
-      } catch {
-        setError("Network error");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProgram();
-  }, [id]);
+  const saveOneRepMax = useSaveOneRepMax();
 
   // Check if there's an active workout for a different program
   const isWorkoutActiveForDifferentProgram = !!(
@@ -97,23 +77,16 @@ const ProgramDetail = () => {
   const handleSave1RM = async () => {
     if (!selected1RMExercise || !oneRMWeight) return;
 
-    setIsSaving1RM(true);
     try {
-      await apiFetch("/api/analytics/1rm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exercise: selected1RMExercise,
-          weight: parseFloat(oneRMWeight),
-        }),
+      await saveOneRepMax.mutateAsync({
+        exercise: selected1RMExercise,
+        weight: parseFloat(oneRMWeight),
       });
       setShowWeightDrawer(false);
       setSelected1RMExercise(null);
       setOneRMWeight("");
     } catch (err) {
       console.error("Failed to save 1RM:", err);
-    } finally {
-      setIsSaving1RM(false);
     }
   };
 
@@ -145,7 +118,7 @@ const ProgramDetail = () => {
     return (
       <div className={styles.container}>
         <div className={styles.errorState}>
-          <p>{error}</p>
+          <p>{error instanceof Error ? error.message : "Failed to load program"}</p>
           <Link to="/programs" className={styles.backLink}>
             Back to Programs
           </Link>
@@ -249,9 +222,9 @@ const ProgramDetail = () => {
             <button
               className={styles.weightSaveBtn}
               onClick={handleSave1RM}
-              disabled={!oneRMWeight || isSaving1RM}
+              disabled={!oneRMWeight || saveOneRepMax.isPending}
             >
-              {isSaving1RM ? (
+              {saveOneRepMax.isPending ? (
                 <Loader2 size={18} className={styles.spinner} />
               ) : (
                 <>

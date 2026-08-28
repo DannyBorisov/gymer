@@ -6,7 +6,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { apiFetch } from "../utils/api";
+import { analyticsApi, programsApi, workoutsApi } from "../api";
 import { formatDuration } from "../lib/time";
 import { formatTodayDDMMYYYY } from "../lib/date";
 import {
@@ -266,20 +266,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       const completedDate = includeDate ? formatTodayDDMMYYYY() : undefined;
       const durationVal = includeDate ? formatDuration(timer) : undefined;
 
-      const response = await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          updates,
-          ...(includeDate && { completedDate, dateRowIndex, duration: durationVal })
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Save failed:", response.status, errorText);
-        return;
-      }
+      await programsApi.updateRows(
+        activeWorkout.programId,
+        updates,
+        completedDate,
+        dateRowIndex,
+        durationVal,
+      );
 
       setHasUnsavedChanges(false);
       hasUnsavedChangesRef.current = false;
@@ -407,8 +400,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setPreviousStats(stats);
 
     // Fetch exercise bests asynchronously for PR detection
-    apiFetch("/api/analytics/bests")
-      .then((response) => response.json() as Promise<{ bests: Record<string, ExerciseBest> }>)
+    analyticsApi.bests()
       .then((data) => {
         if (data.bests) {
           setExerciseBests(data.bests);
@@ -467,8 +459,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setIsQuickWorkout(true);
 
     // Fetch exercise bests asynchronously for PR detection
-    apiFetch("/api/analytics/bests")
-      .then((response) => response.json() as Promise<{ bests: Record<string, ExerciseBest> }>)
+    analyticsApi.bests()
       .then((data) => {
         if (data.bests) {
           setExerciseBests(data.bests);
@@ -609,10 +600,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           // Save quick workout
           const validSets = newData.filter((s) => s.weight || s.repsAchieved);
           if (validSets.length > 0) {
-            await apiFetch("/api/quick-workouts/save", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+            await workoutsApi.saveQuick({
                 workoutId: `quick-${Date.now()}`,
                 duration: formatDuration(timer),
                 sets: validSets.map((s) => ({
@@ -623,7 +611,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
                   rir: s.rirAchieved,
                   notes: s.notes,
                 })),
-              }),
             });
           }
         } else {
@@ -636,11 +623,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             notes: r.notes,
           }));
 
-          await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ updates }),
-          });
+          await programsApi.updateRows(activeWorkout.programId, updates);
         }
 
         setHasUnsavedChanges(false);
@@ -705,10 +688,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       if (validSets.length > 0) {
         setIsSaving(true);
         try {
-          await apiFetch("/api/quick-workouts/save", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+          await workoutsApi.saveQuick({
               workoutId: `quick-${Date.now()}`,
               duration: formatDuration(timer),
               sets: validSets.map((s) => ({
@@ -719,7 +699,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
                 rir: s.rirAchieved,
                 notes: s.notes,
               })),
-            }),
           });
         } catch (error) {
           console.error("Failed to save quick workout:", error);
@@ -735,16 +714,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         const completedDate = formatTodayDDMMYYYY();
         const durationStr = formatDuration(timer);
 
-        await apiFetch(`/api/programs/${activeWorkout.programId}/rows`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            updates,
-            completedDate,
-            dateRowIndex: firstRowIndex,
-            duration: durationStr
-          }),
-        });
+        await programsApi.updateRows(
+          activeWorkout.programId,
+          updates,
+          completedDate,
+          firstRowIndex,
+          durationStr,
+        );
 
         setHasUnsavedChanges(false);
         hasUnsavedChangesRef.current = false;

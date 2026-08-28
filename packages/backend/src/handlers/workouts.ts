@@ -193,7 +193,13 @@ export const saveQuickWorkout: RouteHandler<{
 
 export const getWorkoutDetail: RouteHandler<{
   Params: { id: string };
-  Querystring: { type: string; programId?: string; date?: string; week?: string; workout?: string };
+  Querystring: {
+    type: string;
+    programId?: string;
+    date?: string;
+    week?: string;
+    workout?: string;
+  };
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { id } = request.params;
@@ -215,9 +221,14 @@ export const getWorkoutDetail: RouteHandler<{
 
     if (type === "quick") {
       // Fetch from quick workouts sheet
-      const files = await this.sheets.listFiles(tokens, buildQuery("quickWorkouts"));
+      const files = await this.sheets.listFiles(
+        tokens,
+        buildQuery("quickWorkouts"),
+      );
       if (files.length === 0) {
-        return reply.status(404).send({ error: "Quick workouts sheet not found" });
+        return reply
+          .status(404)
+          .send({ error: "Quick workouts sheet not found" });
       }
 
       const data = await this.sheets.get(tokens, files[0].id, "Sheet1!A:I");
@@ -247,7 +258,8 @@ export const getWorkoutDetail: RouteHandler<{
       const data = await this.sheets.get(tokens, programId, "Sheet1!A:J");
       if (data && data.length > 1) {
         let inTargetWorkout = false;
-        const isDurationFormat = (str: string) => /^\d{1,2}:\d{2}:\d{2}$/.test(str);
+        const isDurationFormat = (str: string) =>
+          /^\d{1,2}:\d{2}:\d{2}$/.test(str);
 
         for (let i = 1; i < data.length; i++) {
           const row = data[i];
@@ -395,7 +407,10 @@ export const getWorkoutHistory: RouteHandler = async function (request, reply) {
           .get(tokens, file.id, "Sheet1!A:D") // Only fetch columns we need
           .then((data) => {
             if (data && data.length > 1) {
-              const completedWorkouts = new Map<string, { date: string; duration: string }>();
+              const completedWorkouts = new Map<
+                string,
+                { date: string; duration: string }
+              >();
               const workoutExercises = new Map<string, Set<string>>();
 
               for (let i = 1; i < data.length; i++) {
@@ -408,11 +423,22 @@ export const getWorkoutHistory: RouteHandler = async function (request, reply) {
                 const key = `${week}|${workoutName}`;
 
                 // Check if this is a date row or duration row
-                const isDate = dateOrDuration && !isDurationFormat(dateOrDuration) && dateOrDuration.includes("/");
+                const isDate =
+                  dateOrDuration &&
+                  !isDurationFormat(dateOrDuration) &&
+                  dateOrDuration.includes("/");
                 const isDuration = isDurationFormat(dateOrDuration);
 
-                if (isDate && week && workoutName && !completedWorkouts.has(key)) {
-                  completedWorkouts.set(key, { date: dateOrDuration, duration: "" });
+                if (
+                  isDate &&
+                  week &&
+                  workoutName &&
+                  !completedWorkouts.has(key)
+                ) {
+                  completedWorkouts.set(key, {
+                    date: dateOrDuration,
+                    duration: "",
+                  });
                 }
 
                 // Check if next row has duration (same week/workout, duration format in date column)

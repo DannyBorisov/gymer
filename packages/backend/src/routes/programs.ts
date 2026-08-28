@@ -8,18 +8,14 @@ import {
 } from "../handlers/programs.js";
 import type { CreateProgramRequest, UpdateRowsRequest } from "../types.js";
 
-// POST /api/program/create
-export const programCreateRoute: FastifyPluginAsync = async (server) => {
+const ProgramsRoutes: FastifyPluginAsync = async (server) => {
+  server.get("/", { preHandler: requireAuth }, listPrograms);
+
   server.post<{ Body: CreateProgramRequest }>(
     "/create",
     { preHandler: requireAuth },
     createProgram,
   );
-};
-
-// GET /api/programs, GET /api/programs/:id, PATCH /api/programs/:id/rows
-export const programsRoutes: FastifyPluginAsync = async (server) => {
-  server.get("/", { preHandler: requireAuth }, listPrograms);
 
   server.get<{ Params: { id: string } }>(
     "/:id",
@@ -33,3 +29,5 @@ export const programsRoutes: FastifyPluginAsync = async (server) => {
     updateProgramRows,
   );
 };
+
+export default ProgramsRoutes;

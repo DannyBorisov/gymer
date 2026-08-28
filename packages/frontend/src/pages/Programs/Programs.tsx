@@ -1,17 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, Loader2, Plus, Play, CheckCircle2 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
-import { apiFetch } from "../../utils/api";
+import { useGetProgram, useGetPrograms, type ProgramSummary } from "../../api/programs";
 import { formatDate } from "../../lib/date";
 import styles from "./Programs.module.css";
-
-interface Program {
-  id: string;
-  name: string;
-  createdTime: string;
-  url: string;
-}
 
 interface Week {
   week: number;
@@ -25,53 +18,10 @@ interface Week {
 const Programs = () => {
   const navigate = useNavigate();
   const { activeProgram, setActiveProgram } = useSettings();
-  const [programs, setPrograms] = useState<Program[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeProgramData, setActiveProgramData] = useState<Week[] | null>(null);
-
-  useEffect(() => {
-    const fetchPrograms = async () => {
-      try {
-        const response = await apiFetch("/api/programs");
-        const data = await response.json();
-
-        if (response.ok) {
-          setPrograms(data.programs);
-        } else {
-          setError(data.error || "Failed to fetch programs");
-        }
-      } catch (err) {
-        console.error("Programs fetch error:", err);
-        setError("Network error");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchPrograms();
-  }, []);
-
-  // Fetch active program data for progress display
-  useEffect(() => {
-    if (!activeProgram) {
-      setActiveProgramData(null);
-      return;
-    }
-
-    const fetchActiveProgram = async () => {
-      try {
-        const response = await apiFetch(`/api/programs/${activeProgram.id}`);
-        const data = await response.json();
-        if (response.ok) {
-          setActiveProgramData(data.program);
-        }
-      } catch (err) {
-        console.error("Failed to fetch active program:", err);
-      }
-    };
-    fetchActiveProgram();
-  }, [activeProgram]);
+  const { data: programsData, isLoading, error } = useGetPrograms();
+  const { data: activeProgramResponse } = useGetProgram<Week[]>(activeProgram?.id);
+  const programs = programsData?.programs || [];
+  const activeProgramData = activeProgramResponse?.program || null;
 
   // Calculate progress for active program
   const activeProgress = useMemo(() => {
@@ -109,11 +59,11 @@ const Programs = () => {
     };
   }, [activeProgramData]);
 
-  const handleProgramClick = (program: Program) => {
+  const handleProgramClick = (program: ProgramSummary) => {
     navigate(`/programs/${program.id}`);
   };
 
-  const handleSetActive = (program: Program, e: React.MouseEvent) => {
+  const handleSetActive = (program: ProgramSummary, e: React.MouseEvent) => {
     e.stopPropagation();
     setActiveProgram({ id: program.id, name: program.name });
   };
@@ -134,7 +84,7 @@ const Programs = () => {
         </div>
       ) : error ? (
         <div className={styles.errorState}>
-          <p>{error}</p>
+          <p>{error instanceof Error ? error.message : "Failed to load programs"}</p>
         </div>
       ) : (
         <>
@@ -204,7 +154,7 @@ const Programs = () => {
                     <div className={styles.programInfo}>
                       <span className={styles.programName}>{program.name}</span>
                       <span className={styles.programDate}>
-                        Created {formatDate(program.createdTime)}
+                        Created {program.createdTime ? formatDate(program.createdTime) : "Unknown date"}
                       </span>
                     </div>
                     <div className={styles.programActions}>

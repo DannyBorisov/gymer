@@ -1,52 +1,42 @@
-import { useState, useEffect } from "react";
-import { Loader2, TrendingUp, ChevronDown, ChevronUp, Trophy, Plus, Check } from "lucide-react";
+import { useState } from "react";
+import { Loader2, TrendingUp, ChevronDown, ChevronUp, Trophy, Plus, Check, BarChart3, ArrowUp, ArrowDown } from "lucide-react";
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { apiFetch } from "../../utils/api";
+import {
+  useGetAnalyticsProgression,
+  useGetOneRepMaxRecords,
+  useSaveOneRepMax,
+  type ProgressionEntry,
+} from "../../api/analytics";
 import { useSettings } from "../../contexts/SettingsContext";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import styles from "./Analytics.module.css";
 
-interface ProgressionEntry {
-  date: string;
-  weight: number;
-  reps: number;
-  sets: number;
-}
-
-interface ExerciseProgression {
-  exercise: string;
-  entries: ProgressionEntry[];
-}
-
-interface OneRepMaxRecord {
-  date: string;
-  exercise: string;
-  weight: number;
-}
-
-type TabType = "progression" | "1rm";
+type TabType = "progression" | "1rm" | "volume";
 
 const Analytics = () => {
   const { weightUnit } = useSettings();
   const [activeTab, setActiveTab] = useState<TabType>("progression");
 
   // Progression state
-  const [exercises, setExercises] = useState<ExerciseProgression[]>([]);
-  const [isLoadingProgression, setIsLoadingProgression] = useState(true);
+  const { data: progressionData, isLoading: isLoadingProgression } = useGetAnalyticsProgression();
+  const exercises = progressionData?.exercises || [];
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
 
   // 1RM state
-  const [oneRmRecords, setOneRmRecords] = useState<OneRepMaxRecord[]>([]);
-  const [bestByExercise, setBestByExercise] = useState<OneRepMaxRecord[]>([]);
-  const [isLoading1RM, setIsLoading1RM] = useState(true);
+  const { data: oneRmData, isLoading: isLoading1RM } = useGetOneRepMaxRecords();
+  const oneRmRecords = oneRmData?.records || [];
+  const bestByExercise = oneRmData?.bestByExercise || [];
+  const saveOneRepMax = useSaveOneRepMax();
   const [expanded1RM, setExpanded1RM] = useState<string | null>(null);
 
   // 1RM drawer state
@@ -54,42 +44,6 @@ const Analytics = () => {
   const [showWeightDrawer, setShowWeightDrawer] = useState(false);
   const [selected1RMExercise, setSelected1RMExercise] = useState<string | null>(null);
   const [oneRMWeight, setOneRMWeight] = useState("");
-  const [isSaving1RM, setIsSaving1RM] = useState(false);
-
-  useEffect(() => {
-    const fetchProgression = async () => {
-      try {
-        const response = await apiFetch("/api/analytics/progression");
-        const data = await response.json();
-        if (response.ok && data.exercises) {
-          setExercises(data.exercises);
-        }
-      } catch (err) {
-        console.error("Failed to fetch progression:", err);
-      } finally {
-        setIsLoadingProgression(false);
-      }
-    };
-    fetchProgression();
-  }, []);
-
-  useEffect(() => {
-    const fetch1RM = async () => {
-      try {
-        const response = await apiFetch("/api/analytics/1rm");
-        const data = await response.json();
-        if (response.ok) {
-          setOneRmRecords(data.records || []);
-          setBestByExercise(data.bestByExercise || []);
-        }
-      } catch (err) {
-        console.error("Failed to fetch 1RM records:", err);
-      } finally {
-        setIsLoading1RM(false);
-      }
-    };
-    fetch1RM();
-  }, []);
 
   const formatDate = (dateStr: string) => {
     const [day, month] = dateStr.split("/");
@@ -129,20 +83,6 @@ const Analytics = () => {
       .slice(0, 10);
   };
 
-  // Refresh 1RM data after saving
-  const refresh1RMData = async () => {
-    try {
-      const response = await apiFetch("/api/analytics/1rm");
-      const data = await response.json();
-      if (response.ok) {
-        setOneRmRecords(data.records || []);
-        setBestByExercise(data.bestByExercise || []);
-      }
-    } catch (err) {
-      console.error("Failed to refresh 1RM records:", err);
-    }
-  };
-
   // Handle exercise selection for 1RM
   const handleExerciseSelect = (exerciseName: string) => {
     setSelected1RMExercise(exerciseName);
@@ -154,25 +94,16 @@ const Analytics = () => {
   const handleSave1RM = async () => {
     if (!selected1RMExercise || !oneRMWeight) return;
 
-    setIsSaving1RM(true);
     try {
-      await apiFetch("/api/analytics/1rm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exercise: selected1RMExercise,
-          weight: parseFloat(oneRMWeight),
-        }),
+      await saveOneRepMax.mutateAsync({
+        exercise: selected1RMExercise,
+        weight: parseFloat(oneRMWeight),
       });
       setShowWeightDrawer(false);
       setSelected1RMExercise(null);
       setOneRMWeight("");
-      // Refresh the data
-      await refresh1RMData();
     } catch (err) {
       console.error("Failed to save 1RM:", err);
-    } finally {
-      setIsSaving1RM(false);
     }
   };
 
@@ -182,9 +113,65 @@ const Analytics = () => {
     setOneRMWeight("");
   };
 
+  const parseDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split("/").map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const getWeekStart = (date: Date) => {
+    const result = new Date(date);
+    result.setHours(0, 0, 0, 0);
+    const day = result.getDay();
+    result.setDate(result.getDate() - (day === 0 ? 6 : day - 1));
+    return result;
+  };
+
+  const now = new Date();
+  const sessionDates = new Set(
+    exercises.flatMap((exercise) => exercise.entries.map((entry) => entry.date)),
+  );
+  const sessionsThisMonth = [...sessionDates].filter((date) => {
+    const parsed = parseDate(date);
+    return parsed.getMonth() === now.getMonth() && parsed.getFullYear() === now.getFullYear();
+  }).length;
+  const weeklyVolume = new Map<number, number>();
+  exercises.forEach((exercise) => exercise.entries.forEach((entry) => {
+    const week = getWeekStart(parseDate(entry.date)).getTime();
+    weeklyVolume.set(week, (weeklyVolume.get(week) || 0) + entry.weight * entry.reps);
+  }));
+  const currentWeek = getWeekStart(now).getTime();
+  const previousWeek = currentWeek - 7 * 24 * 60 * 60 * 1000;
+  const currentWeekVolume = weeklyVolume.get(currentWeek) || 0;
+  const previousWeekVolume = weeklyVolume.get(previousWeek) || 0;
+  const volumeChange = previousWeekVolume > 0
+    ? Math.round(((currentWeekVolume - previousWeekVolume) / previousWeekVolume) * 100)
+    : null;
+  const volumeChartData = Array.from({ length: 8 }, (_, index) => {
+    const week = currentWeek - (7 - index) * 7 * 24 * 60 * 60 * 1000;
+    const date = new Date(week);
+    return { label: `${date.getDate()}/${date.getMonth() + 1}`, volume: Math.round(weeklyVolume.get(week) || 0) };
+  });
+
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Analytics</h1>
+
+      <div className={styles.summaryStrip}>
+        <div className={styles.summaryMetric}>
+          <span className={styles.summaryLabel}>Sessions this month</span>
+          <strong>{sessionsThisMonth}</strong>
+        </div>
+        <div className={styles.summaryMetric}>
+          <span className={styles.summaryLabel}>Volume vs last week</span>
+          <strong className={styles.summaryVolumeValue}>
+            {volumeChange === null ? "—" : `${volumeChange >= 0 ? "+" : ""}${volumeChange}%`}
+          </strong>
+        </div>
+        <div className={`${styles.volumeChange} ${volumeChange !== null && volumeChange >= 0 ? styles.volumeUp : styles.volumeDown}`}>
+          {volumeChange !== null && volumeChange >= 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+          <span>{volumeChange === null ? "No prior week" : `${Math.abs(volumeChange)}% vs last week`}</span>
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className={styles.tabs}>
@@ -201,6 +188,13 @@ const Analytics = () => {
         >
           <Trophy size={16} />
           <span>1RM Records</span>
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === "volume" ? styles.tabActive : ""}`}
+          onClick={() => setActiveTab("volume")}
+        >
+          <BarChart3 size={16} />
+          <span>Volume</span>
         </button>
       </div>
 
@@ -227,9 +221,12 @@ const Analytics = () => {
                 const isExpanded = expandedExercise === ex.exercise;
                 const chartData = ex.entries.map((e) => ({
                   date: formatDate(e.date),
-                  weight: e.weight,
+                  e1rm: e.e1rm,
                 }));
                 const latestWeight = ex.entries[ex.entries.length - 1]?.weight;
+                const bestEver = Math.max(...ex.entries.map((entry) => entry.e1rm || 0));
+                const lastTrained = parseDate(ex.entries[ex.entries.length - 1].date);
+                const daysSinceLastTrained = Math.max(0, Math.floor((now.getTime() - lastTrained.getTime()) / (24 * 60 * 60 * 1000)));
 
                 return (
                   <div key={ex.exercise} className={styles.exerciseCard}>
@@ -268,6 +265,10 @@ const Analytics = () => {
 
                     {isExpanded && (
                       <div className={styles.exerciseContent}>
+                        <div className={styles.exerciseDetails}>
+                          <span>All-time PR: {bestEver.toFixed(1)} {weightUnit} e1RM</span>
+                          <span>Last trained: {daysSinceLastTrained === 0 ? "today" : `${daysSinceLastTrained} days ago`}</span>
+                        </div>
                         {chartData.length >= 2 ? (
                           <div className={styles.chartContainer}>
                             <ResponsiveContainer width="100%" height={160}>
@@ -305,12 +306,12 @@ const Analytics = () => {
                                   itemStyle={{ color: "var(--text-primary)" }}
                                   formatter={(value) => [
                                     `${Number(value).toFixed(1)} ${weightUnit}`,
-                                    "Avg Weight",
+                                    "Estimated 1RM",
                                   ]}
                                 />
                                 <Line
                                   type="monotone"
-                                  dataKey="weight"
+                                  dataKey="e1rm"
                                   stroke="#22c55e"
                                   strokeWidth={2}
                                   dot={{
@@ -335,23 +336,6 @@ const Analytics = () => {
                           </div>
                         )}
 
-                        <div className={styles.entryList}>
-                          {ex.entries
-                            .slice()
-                            .reverse()
-                            .slice(0, 5)
-                            .map((entry, idx) => (
-                              <div key={idx} className={styles.entryRow}>
-                                <span className={styles.entryDate}>
-                                  {entry.date}
-                                </span>
-                                <span className={styles.entryData}>
-                                  {entry.weight} {weightUnit} · {entry.sets} sets ·{" "}
-                                  {entry.reps} reps
-                                </span>
-                              </div>
-                            ))}
-                        </div>
                       </div>
                     )}
                   </div>
@@ -451,6 +435,38 @@ const Analytics = () => {
         </>
       )}
 
+      {activeTab === "volume" && (
+        <div className={styles.volumePanel}>
+          <div className={styles.volumeHeader}>
+            <div>
+              <span className={styles.sectionEyebrow}>LAST 8 WEEKS</span>
+              <h2>Training volume</h2>
+            </div>
+            <strong>{currentWeekVolume.toLocaleString()} {weightUnit}</strong>
+          </div>
+          {exercises.length === 0 ? (
+            <div className={styles.emptyState}>
+              <BarChart3 size={48} className={styles.emptyIcon} />
+              <p>No volume data yet.</p>
+            </div>
+          ) : (
+            <div className={styles.volumeChart}>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={volumeChartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#71717a" }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#71717a" }} tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--bg-secondary)", border: "1px solid var(--border-default)", borderRadius: "8px", fontSize: "12px" }}
+                    formatter={(value) => [`${Number(value).toLocaleString()} ${weightUnit}`, "Volume"]}
+                  />
+                  <Bar dataKey="volume" fill="#f97316" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Exercise Selection Drawer */}
       <ExerciseDrawer
         isOpen={showExerciseDrawer}
@@ -495,9 +511,9 @@ const Analytics = () => {
             <button
               className={styles.weightSaveBtn}
               onClick={handleSave1RM}
-              disabled={!oneRMWeight || isSaving1RM}
+              disabled={!oneRMWeight || saveOneRepMax.isPending}
             >
-              {isSaving1RM ? (
+              {saveOneRepMax.isPending ? (
                 <Loader2 size={18} className={styles.spinner} />
               ) : (
                 <>

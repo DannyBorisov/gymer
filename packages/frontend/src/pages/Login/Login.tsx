@@ -1,6 +1,7 @@
 import { useAuth } from "../../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Link } from "react-router-dom";
+import logo from "../../assets/gymerr-logo.png";
 import styles from "./Login.module.css";
 
 const GoogleIcon = () => (
@@ -43,10 +44,11 @@ const Login = () => {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.logo}>
-          <span className={styles.logoIcon}>G</span>
+          <img src={logo} alt="Gymerr" className={styles.logoIcon} />
           <span className={styles.logoText}>Gymerr</span>
         </div>
 
+        <div className={styles.kicker}>TRAIN WITH INTENT</div>
         <h1 className={styles.title}>Welcome back</h1>
         <p className={styles.subtitle}>Sign in to manage your workout programs</p>
 

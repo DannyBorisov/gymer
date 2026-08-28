@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
-import { apiUrl } from "../utils/api";
+import { authApi } from "../api";
 
 interface UserInfo {
   email: string;
@@ -33,17 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAuth = async () => {
     try {
-      const headers: Record<string, string> = {};
-      const storedToken = localStorage.getItem("sessionToken");
-      if (storedToken) {
-        headers["Authorization"] = `Bearer ${storedToken}`;
-      }
-
-      const response = await fetch(apiUrl("/api/auth/google/status"), {
-        credentials: "include",
-        headers,
-      });
-      const data = await response.json();
+      const data = await authApi.status();
       setIsAuthenticated(data.authenticated);
       setUser(data.user);
     } catch {
@@ -77,12 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (code) {
             try {
               // Exchange code for session token
-              const response = await fetch(apiUrl("/api/auth/google/native"), {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code }),
-              });
-              const data = await response.json();
+              const data = await authApi.native(code);
 
               if (data.success && data.sessionToken) {
                 localStorage.setItem("sessionToken", data.sessionToken);
@@ -103,16 +88,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async () => {
     const isNative = Capacitor.isNativePlatform();
-    const authUrl = apiUrl(`/auth/google${isNative ? "?native=true" : ""}`);
-
     if (isNative) {
       // Open in Safari for OAuth
-      await Browser.open({
-        url: authUrl,
-        windowName: "_blank",
-      });
+      await authApi.login();
     } else {
-      window.location.href = authUrl;
+      await authApi.login();
     }
   };
 
@@ -125,15 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // Notify server (best effort)
     try {
-      const headers: Record<string, string> = {};
-      if (sessionToken) {
-        headers["Authorization"] = `Bearer ${sessionToken}`;
-      }
-      await fetch(apiUrl("/api/auth/logout"), {
-        method: "POST",
-        credentials: "include",
-        headers,
-      });
+      await authApi.logout();
     } catch {
       // Ignore
     }

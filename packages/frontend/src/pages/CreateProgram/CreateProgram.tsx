@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
+import { useCreateProgram as useCreateProgramMutation } from "../../api/programs";
 import { presets } from "../../data/presets";
-import { apiFetch } from "../../utils/api";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import type { Workout, Exercise, Program } from "../../types/program";
 import styles from "./CreateProgram.module.css";
@@ -230,9 +230,9 @@ const CreateProgram = () => {
     resetProgram,
   } = useCreateProgram();
   const { setFloatingAction } = useQuickWorkout();
+  const createProgram = useCreateProgramMutation<Program>();
 
   const [mode, setMode] = useState<"templates" | "edit">("templates");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{
     success: boolean;
     url?: string;
@@ -240,6 +240,7 @@ const CreateProgram = () => {
   } | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
+  const isSubmitting = createProgram.isPending;
   const isSubmittingRef = useRef(isSubmitting);
   isSubmittingRef.current = isSubmitting;
 
@@ -316,30 +317,16 @@ const CreateProgram = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setResult(null);
 
     try {
-      const response = await apiFetch("/api/program/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(program),
+      const data = await createProgram.mutateAsync(program);
+      setResult({ success: true, url: data.url });
+    } catch (error) {
+      setResult({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to create program",
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setResult({ success: true, url: data.url });
-      } else {
-        setResult({
-          success: false,
-          error: data.error || "Failed to create program",
-        });
-      }
-    } catch {
-      setResult({ success: false, error: "Network error" });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -464,7 +451,11 @@ const CreateProgram = () => {
               value={program.frequency}
               onChange={(e) => {
                 const val = e.target.value;
-                updateFrequency(val === "every-other-day" ? val : Number(val) as 1 | 2 | 3 | 4 | 5 | 6);
+                updateFrequency(
+                  val === "every-other-day"
+                    ? val
+                    : (Number(val) as 1 | 2 | 3 | 4 | 5 | 6),
+                );
               }}
               className={styles.settingSelect}
             >
@@ -483,7 +474,9 @@ const CreateProgram = () => {
               RIR
             </label>
             <select
-              value={program.dynamicRir ? `dynamic-${program.startingRir}` : "manual"}
+              value={
+                program.dynamicRir ? `dynamic-${program.startingRir}` : "manual"
+              }
               onChange={(e) => {
                 const val = e.target.value;
                 if (val === "manual") {

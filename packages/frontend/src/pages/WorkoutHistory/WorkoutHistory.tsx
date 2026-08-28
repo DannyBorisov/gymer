@@ -1,64 +1,26 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Loader2, Dumbbell, Zap, Clock, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react'
-import { apiFetch } from '../../utils/api'
+import { useGetWorkout, useGetWorkoutHistory, type WorkoutHistoryItem } from '../../api/workouts'
 import { useSettings } from '../../contexts/SettingsContext'
 import { SwipeableDrawer } from '../../components/SwipeableDrawer'
 import styles from './WorkoutHistory.module.css'
 
-interface Workout {
-  id: string
-  date: string
-  name: string
-  type: 'quick' | 'program'
-  duration?: string
-  exerciseCount: number
-  programId?: string
-  programName?: string
-}
-
-interface WorkoutSet {
-  exercise: string
-  set: number
-  weight: string
-  reps: string
-  rir: string
-  notes: string
-}
-
-interface WorkoutDetail {
-  date: string
-  duration: string
-  exercises: {
-    name: string
-    sets: WorkoutSet[]
-  }[]
-}
+type Workout = WorkoutHistoryItem & { programName?: string }
 
 const WorkoutHistory = () => {
   const { weightUnit } = useSettings()
-  const [workouts, setWorkouts] = useState<Workout[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { data: historyData, isLoading } = useGetWorkoutHistory()
+  const workouts = (historyData?.workouts || []) as Workout[]
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null)
-  const [workoutDetail, setWorkoutDetail] = useState<WorkoutDetail | null>(null)
-  const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [showStats, setShowStats] = useState(true)
-
-  useEffect(() => {
-    const fetchWorkouts = async () => {
-      try {
-        const response = await apiFetch('/api/workouts/history')
-        const data = await response.json()
-        if (response.ok && data.workouts) {
-          setWorkouts(data.workouts)
-        }
-      } catch (err) {
-        console.error('Failed to fetch workouts:', err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchWorkouts()
-  }, [])
+  const detailParams = selectedWorkout?.type === 'program' && selectedWorkout.programId
+    ? `&programId=${selectedWorkout.programId}&date=${encodeURIComponent(selectedWorkout.id.split('|')[1] || '')}&week=${encodeURIComponent(selectedWorkout.id.split('|')[2] || '')}&workout=${encodeURIComponent(selectedWorkout.id.split('|')[3] || '')}`
+    : ''
+  const { data: workoutDetail, isLoading: isDetailLoading } = useGetWorkout(
+    selectedWorkout?.id,
+    selectedWorkout?.type,
+    detailParams,
+  )
 
   const formatDate = (dateStr: string) => {
     const [day, month, year] = dateStr.split('/')
@@ -102,38 +64,11 @@ const WorkoutHistory = () => {
 
   const handleWorkoutClick = async (workout: Workout) => {
     setSelectedWorkout(workout)
-    setWorkoutDetail(null)
-    setIsDetailLoading(true)
-
-    try {
-      let url = `/api/workouts/${encodeURIComponent(workout.id)}?type=${workout.type}`
-
-      if (workout.type === 'program' && workout.programId) {
-        // Parse the workout id to get week and workout name
-        // ID format: programId|date|week|workoutName
-        const parts = workout.id.split('|')
-        const date = parts[1]
-        const week = parts[2]
-        const workoutName = parts[3]
-        url += `&programId=${workout.programId}&date=${encodeURIComponent(date)}&week=${encodeURIComponent(week)}&workout=${encodeURIComponent(workoutName)}`
-      }
-
-      const response = await apiFetch(url)
-      const data = await response.json()
-
-      if (response.ok) {
-        setWorkoutDetail(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch workout details:', err)
-    } finally {
-      setIsDetailLoading(false)
-    }
+    setSelectedWorkout(workout)
   }
 
   const closeDetail = () => {
     setSelectedWorkout(null)
-    setWorkoutDetail(null)
   }
 
   // Group workouts by date
