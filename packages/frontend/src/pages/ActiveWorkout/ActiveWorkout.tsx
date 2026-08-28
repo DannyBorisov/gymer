@@ -67,9 +67,6 @@ const ActiveWorkout = () => {
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const celebratedPRExercises = useRef(new Set<string>());
 
-  // Rest suggestion UI state (rest timer state is in WorkoutContext)
-  const [showRestSuggestion, setShowRestSuggestion] = useState(false);
-  const [triggeredForSet, setTriggeredForSet] = useState<number | null>(null);
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Refs for swipe and auto-scroll
@@ -89,30 +86,8 @@ const ActiveWorkout = () => {
     celebratedPRExercises.current.clear();
   }, [activeWorkout?.programId, activeWorkout?.workout.name]);
 
-  const handleInputActivity = (currentRowIndex: number) => {
-    if (
-      isRestTimerActive ||
-      showRestSuggestion ||
-      triggeredForSet === currentRowIndex
-    )
-      return;
-
-    if (suggestionTimeoutRef.current) {
-      clearTimeout(suggestionTimeoutRef.current);
-    }
-
-    suggestionTimeoutRef.current = setTimeout(() => {
-      setShowRestSuggestion(true);
-      setTriggeredForSet(currentRowIndex);
-    }, 3000);
-  };
-
   // Wrapper to handle UI state when starting rest timer
   const handleStartRestTimer = (exerciseName: string) => {
-    setShowRestSuggestion(false);
-    if (suggestionTimeoutRef.current) {
-      clearTimeout(suggestionTimeoutRef.current);
-    }
     startRestTimer(exerciseName, restTimerDuration, restTimerAnnounceInterval);
   };
 
@@ -137,9 +112,7 @@ const ActiveWorkout = () => {
     }
   };
 
-  // Voice announcement at intervals during rest timer (web only - native handles its own)
   useEffect(() => {
-    // Native plugin handles announcements on iOS/Android
     const isNative =
       typeof (
         window as unknown as {
@@ -160,15 +133,6 @@ const ActiveWorkout = () => {
       announceTime(restTimer);
     }
   }, [restTimer, isRestTimerActive, restTimerAnnounceInterval]);
-
-  // Reset suggestion state when set changes
-  useEffect(() => {
-    setShowRestSuggestion(false);
-    setTriggeredForSet(null);
-    if (suggestionTimeoutRef.current) {
-      clearTimeout(suggestionTimeoutRef.current);
-    }
-  }, [currentSetIndex, currentExerciseIndex]);
 
   // Auto-scroll to current exercise tab
   useEffect(() => {
@@ -418,17 +382,18 @@ const ActiveWorkout = () => {
           }
         });
 
-        // Average RPE (10 - avg RIR)
+        // Average reps in reserve across completed sets.
         const rirsWithData = workoutData
-          .map((row) => parseFloat(row.rirAchieved))
+          .map((row) => +row.rirAchieved)
           .filter((rir) => !isNaN(rir));
+
         const avgRir =
           rirsWithData.length > 0
             ? rirsWithData.reduce((a, b) => a + b, 0) / rirsWithData.length
             : null;
-        const avgRpe = avgRir !== null ? (10 - avgRir).toFixed(1) : null;
+        const averageRir = avgRir !== null ? avgRir.toFixed(1) : null;
 
-        return { totalVolume, prCount, avgRpe };
+        return { totalVolume, prCount, averageRir };
       })()
     : null;
 
@@ -560,14 +525,12 @@ const ActiveWorkout = () => {
                 </div>
               </div>
             )}
-            {workoutSummary.avgRpe && (
+            {workoutSummary.averageRir && (
               <div className={styles.summaryStat}>
-                <span className={styles.rpeIcon}>RPE</span>
+                <span className={styles.rirIcon}>RIR</span>
                 <div className={styles.summaryStatContent}>
-                  <span className={styles.summaryStatValue}>
-                    {workoutSummary.avgRpe}
-                  </span>
-                  <span className={styles.summaryStatLabel}>Avg Intensity</span>
+                  <span className={styles.summaryStatValue}>{workoutSummary.averageRir}</span>
+                  <span className={styles.summaryStatLabel}>Avg RIR</span>
                 </div>
               </div>
             )}
@@ -732,9 +695,6 @@ const ActiveWorkout = () => {
                   step={0.25}
                   inputMode="decimal"
                   placeholder="0"
-                  onInputActivity={() =>
-                    handleInputActivity(currentSet.rowIndex)
-                  }
                   dark
                 />
                 <ScrollableInput
@@ -748,9 +708,6 @@ const ActiveWorkout = () => {
                   }
                   step={1}
                   placeholder={currentSet.targetReps.toString()}
-                  onInputActivity={() =>
-                    handleInputActivity(currentSet.rowIndex)
-                  }
                   dark
                 />
                 <ScrollableInput
