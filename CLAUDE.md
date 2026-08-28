@@ -1,114 +1,65 @@
-# Gymerr - Claude Code Guidelines
+# CLAUDE.md
 
-## Design System
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
-This app follows a **dark, minimal design** aesthetic. All UI components must adhere to this style guide.
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-### Color Palette
+## 1. Think Before Coding
 
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
 ```
-Background:
-- Primary bg:     #0a0a0a (near black)
-- Secondary bg:   #1a1a1a (dark gray)
-- Elevated bg:    rgba(255, 255, 255, 0.05) - subtle lift
-- Interactive bg: rgba(255, 255, 255, 0.08) - buttons, inputs
-- Hover bg:       rgba(255, 255, 255, 0.12)
-- Active bg:      rgba(255, 255, 255, 0.15)
-
-Text:
-- Primary:        #fff
-- Secondary:      rgba(255, 255, 255, 0.6)
-- Muted:          rgba(255, 255, 255, 0.4)
-- Disabled:       rgba(255, 255, 255, 0.25)
-
-Borders:
-- Default:        rgba(255, 255, 255, 0.08)
-- Subtle:         rgba(255, 255, 255, 0.1)
-- Emphasis:       rgba(255, 255, 255, 0.2)
-
-Accents (use sparingly):
-- Primary action: #fff (white buttons for main CTAs)
-- Rest timer:     #f97316 (orange)
-- Success:        #22c55e (green - only for checkmarks/icons, NOT backgrounds)
-- Danger:         #f87171 (red - text only)
-
-Backdrop:
-- Modal overlay:  rgba(0, 0, 0, 0.7)
-```
-
-### Design Principles
-
-1. **No colored backgrounds** - Never use green/red/blue backgrounds for states. Use subtle white alpha overlays instead.
-2. **Minimal color** - The UI is mostly grayscale. Color is reserved for specific semantic meaning.
-3. **White for primary actions** - Main CTA buttons use white bg with dark text.
-4. **Subtle states** - Hover/active/completed states use subtle white alpha changes, not color changes.
-5. **Clean typography** - Use system fonts, tabular-nums for numbers, clear hierarchy.
-
-### Component Patterns
-
-**Buttons:**
-```css
-/* Primary CTA */
-background: #fff;
-color: #0a0a0a;
-border-radius: 12px;
-
-/* Secondary */
-background: rgba(255, 255, 255, 0.1);
-color: #fff;
-
-/* Danger (text only) */
-background: transparent;
-color: #f87171;
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
 ```
 
-**Cards/Containers:**
-```css
-background: rgba(255, 255, 255, 0.05);
-border: 1px solid rgba(255, 255, 255, 0.08);
-border-radius: 12px;
-```
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
-**Inputs:**
-```css
-background: rgba(255, 255, 255, 0.05);
-border: 1px solid rgba(255, 255, 255, 0.1);
-color: #fff;
-```
+---
 
-**Completed/Done states:**
-```css
-/* DO NOT use green backgrounds */
-/* Instead, use subtle visual cues: */
-color: rgba(255, 255, 255, 0.5);  /* muted text */
-background: rgba(255, 255, 255, 0.05);  /* subtle bg */
-```
-
-### Border Radius Scale
-- Small: 6px (chips, tags)
-- Medium: 10px (cards, inputs)
-- Large: 12px (buttons, modals)
-- XL: 20px (drawers, sheets)
-
-### Spacing
-Use 4px base unit: 4, 8, 12, 16, 20, 24, 32, 48
-
-### Shadows
-Minimal shadows. Use elevation through background alpha changes instead.
-```css
-/* Only for floating elements like drawers */
-box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.5);
-```
-
-## Code Style
-
-- Use CSS Modules (`.module.css`)
-- Use CSS variables from `src/styles/variables.css` when available
-- Mobile-first responsive design
-- Support iOS safe areas with `env(safe-area-inset-*)`
-
-## File Structure
-
-- Components: `src/components/ComponentName/`
-- Pages: `src/pages/PageName/`
-- Each component has its own `.tsx` and `.module.css`
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

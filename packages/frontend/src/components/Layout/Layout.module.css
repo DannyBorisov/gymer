@@ -86,6 +86,10 @@
     padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   }
 
+  .mainWithDrawer {
+    padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+  }
+
   .mainWorkout {
     padding: 0;
     margin-top: calc(-1 * env(safe-area-inset-top, 0px));

@@ -1,5 +1,23 @@
-import { useState } from "react";
-import { LogOut, Bell, Volume2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  LogOut,
+  Bell,
+  Volume2,
+  Check,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  ReferenceLine,
+} from "recharts";
+import { apiFetch } from "../../utils/api";
 
 const BodyScaleIcon = ({ size = 18 }: { size?: number }) => (
   <svg
@@ -18,7 +36,6 @@ const BodyScaleIcon = ({ size = 18 }: { size?: number }) => (
     <circle cx="12" cy="12" r="0.5" fill="currentColor" />
   </svg>
 );
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
@@ -30,6 +47,11 @@ import {
   cancelWeightReminder,
 } from "../../utils/notifications";
 import styles from "./Profile.module.css";
+
+interface WeightEntry {
+  date: string;
+  weight: string;
+}
 
 const getInitials = (name: string) => {
   return name
@@ -48,7 +70,6 @@ const Profile = () => {
     restTimerAnnounceInterval,
     setRestTimerAnnounceInterval,
   } = useSettings();
-  const navigate = useNavigate();
 
   // Weight reminder state
   const [weightReminderOn, setWeightReminderOn] = useState(
@@ -58,6 +79,99 @@ const Profile = () => {
     const { hour, minute } = getWeightReminderTime();
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   });
+
+  // Weight tracking state
+  const [weightEntries, setWeightEntries] = useState<WeightEntry[]>([]);
+  const [isLoadingWeight, setIsLoadingWeight] = useState(true);
+  const [weightInput, setWeightInput] = useState("");
+  const [isSavingWeight, setIsSavingWeight] = useState(false);
+  const [showWeightHistory, setShowWeightHistory] = useState(false);
+
+  // Fetch weight entries
+  useEffect(() => {
+    const fetchWeight = async () => {
+      try {
+        const response = await apiFetch("/api/body-weight");
+        const data = await response.json();
+        if (response.ok && data.entries) {
+          setWeightEntries(data.entries);
+        }
+      } catch (err) {
+        console.error("Weight fetch error:", err);
+      } finally {
+        setIsLoadingWeight(false);
+      }
+    };
+    fetchWeight();
+  }, []);
+
+  const getTodayStr = () => {
+    const today = new Date();
+    return `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+  };
+
+  const hasLoggedToday = weightEntries[0]?.date === getTodayStr();
+  const latestWeight = weightEntries[0];
+
+  const handleSaveWeight = async () => {
+    if (!weightInput.trim()) return;
+
+    setIsSavingWeight(true);
+    try {
+      const response = await apiFetch("/api/body-weight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weight: weightInput }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setWeightEntries((prev) => [
+          { date: data.date, weight: data.weight },
+          ...prev,
+        ]);
+        setWeightInput("");
+      }
+    } catch (err) {
+      console.error("Weight save error:", err);
+    } finally {
+      setIsSavingWeight(false);
+    }
+  };
+
+  const formatDisplayDate = (dateStr: string) => {
+    const [day, month, year] = dateStr.split("/");
+    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (dateStr === getTodayStr()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  // Prepare chart data (last 14 entries)
+  const chartData = useMemo(() => {
+    if (weightEntries.length === 0) return [];
+
+    return weightEntries
+      .slice(0, 14)
+      .map((entry) => {
+        const [day, month] = entry.date.split("/");
+        return {
+          date: `${day}/${month}`,
+          weight: parseFloat(entry.weight),
+        };
+      })
+      .reverse();
+  }, [weightEntries]);
+
+  const avgWeight = useMemo(() => {
+    if (chartData.length === 0) return 0;
+    const sum = chartData.reduce((acc, entry) => acc + entry.weight, 0);
+    return sum / chartData.length;
+  }, [chartData]);
 
   const handleWeightReminderToggle = async () => {
     const newValue = !weightReminderOn;
@@ -91,13 +205,6 @@ const Profile = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>Profile</h1>
-        <button
-          className={styles.weightBtn}
-          onClick={() => navigate("/weight")}
-          aria-label="Weight tracking"
-        >
-          <BodyScaleIcon size={20} />
-        </button>
       </div>
 
       {/* User info card */}
@@ -106,6 +213,171 @@ const Profile = () => {
         <div className={styles.userInfo}>
           <span className={styles.userName}>{user.name}</span>
           <span className={styles.userEmail}>{user.email}</span>
+        </div>
+      </div>
+
+      {/* Weight section */}
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Body Weight</h2>
+
+        <div className={styles.weightCard}>
+          {isLoadingWeight ? (
+            <div className={styles.weightLoading}>
+              <Loader2 size={18} className={styles.spinner} />
+            </div>
+          ) : (
+            <>
+              {/* Current weight display */}
+              <div className={styles.weightMain}>
+                {latestWeight ? (
+                  <div className={styles.weightCurrent}>
+                    <span className={styles.weightValue}>
+                      {latestWeight.weight}
+                    </span>
+                    <span className={styles.weightUnit}>{weightUnit}</span>
+                  </div>
+                ) : (
+                  <span className={styles.noWeight}>No entries yet</span>
+                )}
+              </div>
+
+              {/* Log weight input */}
+              {hasLoggedToday ? (
+                <div className={styles.loggedToday}>
+                  <Check size={16} />
+                  <span>Logged today</span>
+                </div>
+              ) : (
+                <div className={styles.weightInputRow}>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={weightInput}
+                    onChange={(e) => setWeightInput(e.target.value)}
+                    placeholder={`Log weight (${weightUnit})`}
+                    className={styles.weightInput}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveWeight()}
+                  />
+                  <button
+                    onClick={handleSaveWeight}
+                    disabled={!weightInput.trim() || isSavingWeight}
+                    className={styles.weightSaveBtn}
+                  >
+                    {isSavingWeight ? (
+                      <Loader2 size={18} className={styles.spinner} />
+                    ) : (
+                      <Check size={18} />
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Weight Chart */}
+              {chartData.length >= 2 && (
+                <div className={styles.chartContainer}>
+                  <ResponsiveContainer width="100%" height={120}>
+                    <LineChart
+                      data={chartData}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
+                      <XAxis
+                        dataKey="date"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: "#71717a" }}
+                        interval="preserveStartEnd"
+                      />
+                      <YAxis
+                        domain={["dataMin - 0.5", "dataMax + 0.5"]}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: "#71717a" }}
+                        tickFormatter={(v) => v.toFixed(1)}
+                        width={45}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--bg-secondary)",
+                          border: "1px solid var(--border-default)",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          fontSize: "12px",
+                        }}
+                        labelStyle={{
+                          color: "var(--text-muted)",
+                          marginBottom: "4px",
+                        }}
+                        itemStyle={{ color: "var(--text-primary)" }}
+                        formatter={(value) => [
+                          `${Number(value).toFixed(1)} ${weightUnit}`,
+                          "Weight",
+                        ]}
+                      />
+                      <ReferenceLine
+                        y={avgWeight}
+                        stroke="var(--text-muted)"
+                        strokeDasharray="4 4"
+                        strokeWidth={1}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="weight"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={{
+                          fill: "var(--bg-primary)",
+                          stroke: "#3b82f6",
+                          strokeWidth: 2,
+                          r: 3,
+                        }}
+                        activeDot={{
+                          fill: "#3b82f6",
+                          stroke: "var(--bg-primary)",
+                          strokeWidth: 2,
+                          r: 5,
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* Recent history toggle */}
+              {weightEntries.length > 0 && (
+                <>
+                  <button
+                    className={styles.historyToggle}
+                    onClick={() => setShowWeightHistory(!showWeightHistory)}
+                  >
+                    <span>Recent entries</span>
+                    {showWeightHistory ? (
+                      <ChevronUp size={16} />
+                    ) : (
+                      <ChevronDown size={16} />
+                    )}
+                  </button>
+
+                  {showWeightHistory && (
+                    <div className={styles.weightHistory}>
+                      {weightEntries.slice(0, 7).map((entry, idx) => (
+                        <div
+                          key={`${entry.date}-${idx}`}
+                          className={styles.historyRow}
+                        >
+                          <span className={styles.historyDate}>
+                            {formatDisplayDate(entry.date)}
+                          </span>
+                          <span className={styles.historyWeight}>
+                            {entry.weight} {weightUnit}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
 

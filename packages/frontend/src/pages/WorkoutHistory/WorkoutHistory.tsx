@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Loader2, Dumbbell, Zap, Clock } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Loader2, Dumbbell, Zap, Clock, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react'
 import { apiFetch } from '../../utils/api'
 import { useSettings } from '../../contexts/SettingsContext'
 import { SwipeableDrawer } from '../../components/SwipeableDrawer'
@@ -41,6 +41,7 @@ const WorkoutHistory = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null)
   const [workoutDetail, setWorkoutDetail] = useState<WorkoutDetail | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [showStats, setShowStats] = useState(true)
 
   useEffect(() => {
     const fetchWorkouts = async () => {
@@ -153,10 +154,115 @@ const WorkoutHistory = () => {
     return parseDate(b) - parseDate(a)
   })
 
+  // Calculate weekly stats for the last 4 weeks
+  const weeklyStats = useMemo(() => {
+    const now = new Date()
+    const weeks: { weekLabel: string; count: number }[] = []
+
+    for (let i = 0; i < 4; i++) {
+      const weekStart = new Date(now)
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay() - (i * 7))
+      weekStart.setHours(0, 0, 0, 0)
+
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekEnd.getDate() + 6)
+      weekEnd.setHours(23, 59, 59, 999)
+
+      const count = workouts.filter((w) => {
+        const [day, month, year] = w.date.split('/')
+        const workoutDate = new Date(Number(year), Number(month) - 1, Number(day))
+        return workoutDate >= weekStart && workoutDate <= weekEnd
+      }).length
+
+      const label = i === 0 ? 'This week' : i === 1 ? 'Last week' : `${i} weeks ago`
+      weeks.push({ weekLabel: label, count })
+    }
+
+    return weeks.reverse()
+  }, [workouts])
+
+  // Calculate totals
+  const totalWorkouts = workouts.length
+  const thisMonthCount = useMemo(() => {
+    const now = new Date()
+    return workouts.filter((w) => {
+      const [day, month, year] = w.date.split('/')
+      const workoutDate = new Date(Number(year), Number(month) - 1, Number(day))
+      return (
+        workoutDate.getMonth() === now.getMonth() &&
+        workoutDate.getFullYear() === now.getFullYear()
+      )
+    }).length
+  }, [workouts])
+
+  const maxWeeklyCount = Math.max(...weeklyStats.map(w => w.count), 1)
+
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Workouts</h1>
-      <p className={styles.subtitle}>Your workout history</p>
+      <h1 className={styles.title}>History</h1>
+
+      {/* Stats Section */}
+      {!isLoading && workouts.length > 0 && (
+        <div className={styles.statsSection}>
+          <button
+            className={styles.statsToggle}
+            onClick={() => setShowStats(!showStats)}
+          >
+            <div className={styles.statsToggleLeft}>
+              <TrendingUp size={16} />
+              <span>Stats</span>
+            </div>
+            {showStats ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+
+          {showStats && (
+            <div className={styles.statsContent}>
+              {/* Summary stats */}
+              <div className={styles.statsSummary}>
+                <div className={styles.statItem}>
+                  <span className={styles.statValue}>{totalWorkouts}</span>
+                  <span className={styles.statLabel}>Total</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statValue}>{thisMonthCount}</span>
+                  <span className={styles.statLabel}>This month</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statValue}>
+                    {Math.round(weeklyStats.reduce((sum, w) => sum + w.count, 0) / 4 * 10) / 10}
+                  </span>
+                  <span className={styles.statLabel}>Avg/week</span>
+                </div>
+              </div>
+
+              {/* Weekly frequency bars */}
+              <div className={styles.weeklyBars}>
+                <span className={styles.barsLabel}>Weekly frequency</span>
+                <div className={styles.barsContainer}>
+                  {weeklyStats.map((week) => (
+                    <div key={week.weekLabel} className={styles.barItem}>
+                      <div className={styles.barTrack}>
+                        <div
+                          className={styles.barFill}
+                          style={{ height: `${(week.count / maxWeeklyCount) * 100}%` }}
+                        />
+                      </div>
+                      <span className={styles.barCount}>{week.count}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className={styles.barsLabels}>
+                  {weeklyStats.map((week) => (
+                    <span key={week.weekLabel} className={styles.barLabel}>
+                      {week.weekLabel.replace(' weeks ago', 'w').replace(' week', 'w')}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {isLoading ? (
         <div className={styles.loadingState}>

@@ -1,18 +1,16 @@
-import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
 import { WorkoutDrawer } from "./components/WorkoutDrawer";
 import Landing from "./pages/Landing/Landing";
 import Login from "./pages/Login/Login";
+import Home from "./pages/Home/Home";
 import Programs from "./pages/Programs/Programs";
 import ProgramDetail from "./pages/ProgramDetail/ProgramDetail";
 import CreateProgram from "./pages/CreateProgram/CreateProgram";
 import ActiveWorkout from "./pages/ActiveWorkout/ActiveWorkout";
 import QuickWorkout from "./pages/QuickWorkout/QuickWorkout";
-import Weight from "./pages/Weight/Weight";
-import Analytics from "./pages/Analytics/Analytics";
-import StartWorkout from "./pages/StartWorkout/StartWorkout";
 import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
 import Profile from "./pages/Profile/Profile";
 import { useWorkout } from "./contexts/WorkoutContext";
@@ -39,7 +37,7 @@ const WorkoutDrawerOverlay = () => {
   const isWorkoutRoute = location.pathname === "/workout";
 
   const handleClose = () => {
-    navigate("/start-workout");
+    navigate("/home");
   };
 
   // Get current exercise name
@@ -70,7 +68,7 @@ const ProtectedRoutes = () => {
 
   // Filter out workout route from normal page transitions
   const displayLocation = isWorkoutRoute
-    ? { ...location, pathname: "/start-workout" } // Show start-workout behind drawer
+    ? { ...location, pathname: "/home" } // Show home behind drawer
     : location;
 
   return (
@@ -78,16 +76,24 @@ const ProtectedRoutes = () => {
       <AnimatePresence mode="wait">
         <PageWrapper key={displayLocation.pathname}>
           <Routes location={displayLocation}>
+            {/* Main routes */}
+            <Route path="/home" element={<Home />} />
             <Route path="/programs" element={<Programs />} />
             <Route path="/programs/create" element={<CreateProgram />} />
             <Route path="/programs/:id" element={<ProgramDetail />} />
-            <Route path="/workout" element={<StartWorkout />} />
+            <Route path="/workout" element={<Home />} />
             <Route path="/quick-workout" element={<QuickWorkout />} />
-            <Route path="/weight" element={<Weight />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/workouts" element={<WorkoutHistory />} />
-            <Route path="/start-workout" element={<StartWorkout />} />
+            <Route path="/history" element={<WorkoutHistory />} />
             <Route path="/profile" element={<Profile />} />
+
+            {/* Legacy redirects */}
+            <Route path="/workouts" element={<Navigate to="/history" replace />} />
+            <Route path="/analytics" element={<Navigate to="/history" replace />} />
+            <Route path="/start-workout" element={<Navigate to="/home" replace />} />
+            <Route path="/weight" element={<Navigate to="/profile" replace />} />
+
+            {/* Default redirect */}
+            <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
         </PageWrapper>
       </AnimatePresence>

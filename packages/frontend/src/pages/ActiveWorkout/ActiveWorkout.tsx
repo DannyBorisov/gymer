@@ -30,6 +30,7 @@ import {
 } from "../../utils/sound";
 import { announceTime } from "../../utils/speech";
 import styles from "./ActiveWorkout.module.css";
+import useClickOutside from "../../hooks/useClickOutside";
 
 const ActiveWorkout = () => {
   const navigate = useNavigate();
@@ -249,19 +250,7 @@ const ActiveWorkout = () => {
     };
   }, []);
 
-  // Close more menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        moreMenuRef.current &&
-        !moreMenuRef.current.contains(event.target as Node)
-      ) {
-        setShowMoreMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(moreMenuRef.current, setShowMoreMenu);
 
   // Update Live Activity when exercise changes
   useEffect(() => {
@@ -622,7 +611,9 @@ const ActiveWorkout = () => {
                   step={0.25}
                   inputMode="decimal"
                   placeholder="0"
-                  onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
+                  onInputActivity={() =>
+                    handleInputActivity(currentSet.rowIndex)
+                  }
                   dark
                 />
                 <ScrollableInput
@@ -636,7 +627,9 @@ const ActiveWorkout = () => {
                   }
                   step={1}
                   placeholder={currentSet.targetReps.toString()}
-                  onInputActivity={() => handleInputActivity(currentSet.rowIndex)}
+                  onInputActivity={() =>
+                    handleInputActivity(currentSet.rowIndex)
+                  }
                   dark
                 />
                 <ScrollableInput
@@ -665,7 +658,11 @@ const ActiveWorkout = () => {
                   <textarea
                     value={getRow(currentSet.rowIndex)?.notes || ""}
                     onChange={(e) =>
-                      updateExercise(currentSet.rowIndex, "notes", e.target.value)
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "notes",
+                        e.target.value,
+                      )
                     }
                     placeholder="How did it feel? Any adjustments needed?"
                     className={styles.notesTextarea}
@@ -685,7 +682,11 @@ const ActiveWorkout = () => {
                   <textarea
                     value={getRow(currentSet.rowIndex)?.notes || ""}
                     onChange={(e) =>
-                      updateExercise(currentSet.rowIndex, "notes", e.target.value)
+                      updateExercise(
+                        currentSet.rowIndex,
+                        "notes",
+                        e.target.value,
+                      )
                     }
                     placeholder="How did it feel? Any adjustments needed?"
                     className={`${styles.notesTextarea} ${!showNotes ? styles.notesHidden : ""}`}

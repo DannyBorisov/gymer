@@ -5,18 +5,17 @@ import {
   LogOut,
   Scale,
   User,
-  BarChart3,
-  Play,
   ClipboardList,
   Volume2,
   Pause,
+  Home,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
-import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import { formatTime } from "../../lib/time";
 import styles from "./Layout.module.css";
+import useClickOutside from "../../hooks/useClickOutside";
 
 const getInitials = (name: string) => {
   return name
@@ -27,14 +26,12 @@ const getInitials = (name: string) => {
     .slice(0, 2);
 };
 
-const navItemsLeft = [
+const navItems = [
+  { to: "/home", label: "Home", icon: Home },
   { to: "/programs", label: "Programs", icon: Dumbbell },
-  { to: "/workouts", label: "Workouts", icon: ClipboardList },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/history", label: "History", icon: ClipboardList },
+  { to: "/profile", label: "Profile", icon: User },
 ];
-
-const navItemsRight: { to: string; label: string; icon: typeof Dumbbell }[] =
-  [];
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -49,16 +46,15 @@ const Layout = ({ children }: LayoutProps) => {
     setRestTimerAnnounceInterval,
   } = useSettings();
   const { activeWorkout, timer } = useWorkout();
-  const { floatingAction } = useQuickWorkout();
   const location = useLocation();
   const navigate = useNavigate();
   const [showPopover, setShowPopover] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  const hasFloatingAction = floatingAction !== null;
   const isOnWorkoutPage = location.pathname === "/workout";
   const hasMinimizedWorkout = activeWorkout && !isOnWorkoutPage;
+  const needsDrawerPadding = isOnWorkoutPage || hasMinimizedWorkout;
 
   useEffect(() => {
     const checkMobile = () => {
@@ -69,25 +65,18 @@ const Layout = ({ children }: LayoutProps) => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node)
-      ) {
-        setShowPopover(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside(popoverRef.current, setShowPopover);
 
   const isActiveRoute = (path: string) => {
-    if (path === "/programs")
+    if (path === "/home") {
+      return location.pathname === "/home" || location.pathname === "/";
+    }
+    if (path === "/programs") {
       return (
         location.pathname === "/programs" ||
         location.pathname.startsWith("/programs/")
       );
+    }
     return location.pathname.startsWith(path);
   };
 
@@ -101,20 +90,18 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
 
         <nav className={styles.nav}>
-          {[...navItemsLeft, ...navItemsRight].map(
-            ({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `${styles.navLink} ${isActive ? styles.active : ""}`
-                }
-              >
-                <Icon size={18} />
-                <span>{label}</span>
-              </NavLink>
-            ),
-          )}
+          {navItems.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `${styles.navLink} ${isActive ? styles.active : ""}`
+              }
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
         </nav>
 
         {user && (
@@ -189,72 +176,43 @@ const Layout = ({ children }: LayoutProps) => {
         )}
       </aside>
 
-      <main className={`${styles.main} ${isOnWorkoutPage ? styles.mainWorkout : ''}`}>{children}</main>
+      <main
+        className={`${styles.main} ${needsDrawerPadding ? styles.mainWithDrawer : ""}`}
+      >
+        {children}
+      </main>
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
         <nav className={styles.bottomNav}>
-          <NavLink
-            to="/programs"
-            className={`${styles.bottomNavItem} ${isActiveRoute("/programs") ? styles.bottomNavActive : ""}`}
-          >
-            <div className={styles.navIconWrapper}>
-              <Dumbbell size={22} />
-            </div>
-            <span>Programs</span>
-          </NavLink>
-
-          <NavLink
-            to="/workouts"
-            className={`${styles.bottomNavItem} ${isActiveRoute("/workouts") ? styles.bottomNavActive : ""}`}
-          >
-            <div className={styles.navIconWrapper}>
-              <ClipboardList size={22} />
-            </div>
-            <span>Workouts</span>
-          </NavLink>
-
-          {/* Center Button - shows timer when workout is minimized */}
-          <div className={styles.centerBtnWrapper}>
-            <button
-              className={`${styles.centerBtn} ${hasMinimizedWorkout ? styles.centerBtnActive : ''} ${hasFloatingAction ? styles.centerBtnLifted : ''} ${hasFloatingAction && !floatingAction?.enabled ? styles.centerBtnDisabled : ''}`}
-              onClick={() => {
-                if (hasMinimizedWorkout) {
-                  navigate("/workout");
-                } else if (hasFloatingAction && floatingAction?.enabled) {
-                  floatingAction.handler();
-                } else if (!hasFloatingAction) {
-                  navigate("/start-workout");
-                }
-              }}
-            >
-              {hasMinimizedWorkout ? <Pause size={22} /> : <Play size={22} />}
-              <span className={styles.centerBtnText}>
-                {hasMinimizedWorkout ? formatTime(timer) : (floatingAction?.label || "Start Workout")}
-              </span>
-            </button>
-          </div>
-
-          <NavLink
-            to="/analytics"
-            className={`${styles.bottomNavItem} ${isActiveRoute("/analytics") ? styles.bottomNavActive : ""}`}
-          >
-            <div className={styles.navIconWrapper}>
-              <BarChart3 size={22} />
-            </div>
-            <span>Analytics</span>
-          </NavLink>
-
-          {user && (
+          {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
-              to="/profile"
-              className={`${styles.bottomNavItem} ${isActiveRoute("/profile") ? styles.bottomNavActive : ""}`}
+              key={to}
+              to={to}
+              className={`${styles.bottomNavItem} ${isActiveRoute(to) ? styles.bottomNavActive : ""}`}
             >
               <div className={styles.navIconWrapper}>
-                <User size={22} />
+                <Icon size={22} />
               </div>
-              <span>Profile</span>
+              <span>{label}</span>
             </NavLink>
+          ))}
+
+          {/* Floating workout indicator when workout is minimized */}
+          {hasMinimizedWorkout && (
+            <button
+              className={styles.workoutIndicator}
+              onClick={() => navigate("/workout")}
+              style={{
+                position: "absolute",
+                top: "-48px",
+                left: "50%",
+                transform: "translateX(-50%)",
+              }}
+            >
+              <Pause size={18} className={styles.pulseIcon} />
+              <span>{formatTime(timer)}</span>
+            </button>
           )}
         </nav>
       )}
