@@ -93,9 +93,11 @@ export const createProgram: RouteHandler<{
 };
 
 export const listPrograms: RouteHandler = async function (request, reply) {
+  const { tokens } = getAuthSession(request);
+
   try {
     const files = await this.sheets.listFiles(
-      request.session.tokens,
+      tokens,
       buildQuery("program"),
     );
 

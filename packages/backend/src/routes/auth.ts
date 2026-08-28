@@ -12,7 +12,7 @@ import { decrypt, encrypt, SessionData } from "../lib/encryption.js";
 export function getSession(request: {
   cookies: Record<string, string | undefined>;
   headers: { authorization?: string | string[] };
-}) {
+}): SessionData {
   // Check for Authorization header first (native app)
   const authHeader = request.headers.authorization;
   const authValue = Array.isArray(authHeader) ? authHeader[0] : authHeader;
