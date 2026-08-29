@@ -31,6 +31,16 @@ export const handleCallback: RouteHandler<{
   // For web, exchange code here
   try {
     const { tokens, user } = await this.sheets.handleCallback(code);
+
+    try {
+      await this.firestore.upsertUser(user);
+    } catch (firestoreError) {
+      this.log.warn(
+        { err: firestoreError },
+        "Failed to upsert user to Firestore",
+      );
+    }
+
     setSession(reply, { tokens, user });
     return reply.redirect(config.env.FRONTEND_URL);
   } catch (error) {
@@ -62,8 +72,16 @@ export const handleNativeAuth: RouteHandler<{
   }
 
   try {
-    // Use the same method as web callback - gets tokens AND user info
     const { tokens, user } = await this.sheets.handleCallback(code);
+    try {
+      await this.firestore.upsertUser(user);
+    } catch (firestoreError) {
+      this.log.warn(
+        { err: firestoreError },
+        "Failed to upsert user to Firestore",
+      );
+    }
+
     const sessionToken = encrypt({ tokens, user });
 
     return { success: true, user, sessionToken };

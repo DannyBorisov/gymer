@@ -21,11 +21,10 @@ const EnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string(),
   GOOGLE_CLIENT_SECRET: z.string(),
   GOOGLE_REDIRECT_URI: z.string(),
-  SESSION_SECRET: z
-    .string()
-    .min(32)
-    .default("change-this-to-a-secure-secret-in-production-32chars"),
+  SESSION_SECRET: z.string().min(32),
+  FIREBASE_SERVICE_ACCOUNT: z.string(),
   FRONTEND_URL: z.string().default("http://localhost:5173"),
+  FIRESTORE_DATABASE_ID: z.string().default("default"),
 });
 
 const env = EnvSchema.parse(process.env);
