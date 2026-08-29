@@ -6,7 +6,7 @@ import {
   Timestamp,
   type Firestore,
 } from "firebase-admin/firestore";
-import config from "../config";
+import config from "../config.js";
 
 function initializeFirebase(): Firestore {
   if (getApps().length > 0) {
