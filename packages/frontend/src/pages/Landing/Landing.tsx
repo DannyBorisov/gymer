@@ -18,7 +18,7 @@ const Landing = () => {
 
   useEffect(() => {
     if (!isLoading && user) {
-      navigate("/programs", { replace: true });
+      navigate("/home", { replace: true });
     }
   }, [user, isLoading, navigate]);
 

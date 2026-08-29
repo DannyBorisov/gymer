@@ -25,7 +25,7 @@ export interface RowUpdate {
 export const programsApi = {
   list: () => request<{ programs: ProgramSummary[] }>("/api/programs"),
   get: <T = unknown>(id: string) => request<ProgramResponse<T>>(`/api/programs/${id}`),
-  create: <T>(program: T) => request<{ success: boolean; url?: string }>("/api/program/create", {
+  create: <T>(program: T) => request<{ success: boolean; url?: string }>("/api/programs/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(program),

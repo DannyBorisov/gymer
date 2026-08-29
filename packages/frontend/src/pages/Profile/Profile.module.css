@@ -1,7 +1,8 @@
 .container {
   width: 100%;
-  max-width: 500px;
+  max-width: 560px;
   margin: 0 auto;
+  padding-bottom: calc(3rem + env(safe-area-inset-bottom, 0px));
 }
 
 .header {
@@ -55,16 +56,18 @@
   gap: 1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
+  border-radius: 16px;
   padding: 1.25rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 
 .avatar {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--bg-interactive);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-emphasis);
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -100,7 +103,7 @@
 
 /* Section */
 .section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .sectionTitle {
@@ -108,7 +111,7 @@
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   margin: 0 0 0.75rem 0;
 }
 
@@ -116,7 +119,8 @@
 .settingsCard {
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
 
@@ -127,6 +131,7 @@
   gap: 1rem;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-default);
+  min-height: 68px;
 }
 
 .settingsRow:last-child {
@@ -167,7 +172,7 @@
 }
 
 .unitBtnActive {
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-hover);
   color: var(--text-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
@@ -328,10 +333,11 @@
 
 /* Weight card */
 .weightCard {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
-  padding: 1rem 1.25rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), var(--bg-elevated));
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
 }
 
 .weightLoading {
@@ -340,18 +346,13 @@
   justify-content: center;
   padding: 1rem;
   color: var(--text-secondary);
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  margin-bottom: 0.75rem;
 }
 
 .weightMain {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
   margin-bottom: 0.75rem;
 }
 
@@ -362,7 +363,7 @@
 }
 
 .weightValue {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
@@ -424,7 +425,7 @@
   flex: 1;
   padding: 0.625rem 0.875rem;
   background: var(--bg-interactive);
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: 0.9375rem;
@@ -436,7 +437,7 @@
 
 .weightInput:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--border-emphasis);
+  border-color: var(--border-emphasis);
 }
 
 .weightSaveBtn {
@@ -479,7 +480,7 @@
   background: none;
   border: none;
   border-top: 1px solid var(--border-default);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
@@ -522,16 +523,33 @@
   gap: 0.625rem;
   width: 100%;
   padding: 1rem;
-  background: var(--bg-elevated);
-  border: 1px solid rgba(248, 113, 113, 0.3);
+  background: transparent;
+  border: 1px solid rgba(248, 113, 113, 0.38);
   border-radius: var(--radius-lg);
   color: var(--accent-red);
   font-size: 0.9375rem;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
+  margin-top: 0.5rem;
 }
 
 .signOutButton:active {
   background: rgba(248, 113, 113, 0.1);
+}
+
+.signOutButton:focus-visible,
+.weightSaveBtn:focus-visible,
+.toggleBtn:focus-visible,
+.unitBtn:focus-visible,
+.alertBtn:focus-visible,
+.historyToggle:focus-visible {
+  outline: 2px solid var(--accent-orange);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
+  }
 }
