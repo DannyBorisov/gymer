@@ -168,8 +168,8 @@ export const getExerciseProgression: RouteHandler = async function (
                 const weightStr = String(row[7] || "").trim();
                 const repsStr = String(row[8] || "").trim();
 
-                // Check if this is a date (DD/MM/YYYY format) vs duration (H:MM:SS)
-                const isDate = /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateCell);
+                // Check if this is a date (DD/MM/YYYY or DD/MM/YYYY, HH:MM format) vs duration (H:MM:SS)
+                const isDate = /^\d{1,2}\/\d{1,2}\/\d{4}(, \d{2}:\d{2})?$/.test(dateCell);
                 if (isDate) {
                   currentWorkoutDate = dateCell;
                   currentWorkout = workout;

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Loader2, TrendingUp, ChevronDown, ChevronUp, Trophy, Plus, Check, BarChart3, ArrowUp, ArrowDown } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Loader2, TrendingUp, ChevronDown, ChevronUp, Trophy, Plus, Check, BarChart3, ArrowUp, ArrowDown, Search, X } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -31,6 +31,14 @@ const Analytics = () => {
   const { data: progressionData, isLoading: isLoadingProgression } = useGetAnalyticsProgression();
   const exercises = progressionData?.exercises || [];
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter exercises based on search
+  const filteredExercises = useMemo(() => {
+    if (!searchQuery.trim()) return exercises;
+    const query = searchQuery.toLowerCase();
+    return exercises.filter((ex) => ex.exercise.toLowerCase().includes(query));
+  }, [exercises, searchQuery]);
 
   // 1RM state
   const { data: oneRmData, isLoading: isLoading1RM } = useGetOneRepMaxRecords();
@@ -201,6 +209,29 @@ const Analytics = () => {
       {/* Progression Tab */}
       {activeTab === "progression" && (
         <>
+          {/* Search Input */}
+          {!isLoadingProgression && exercises.length > 0 && (
+            <div className={styles.searchContainer}>
+              <Search size={18} className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search exercises..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={styles.searchInput}
+              />
+              {searchQuery && (
+                <button
+                  className={styles.searchClear}
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          )}
+
           {isLoadingProgression ? (
             <div className={styles.loadingState}>
               <Loader2 size={24} className={styles.spinner} />
@@ -214,9 +245,14 @@ const Analytics = () => {
                 Complete some workouts to see your progression.
               </p>
             </div>
+          ) : filteredExercises.length === 0 ? (
+            <div className={styles.emptyState}>
+              <Search size={48} className={styles.emptyIcon} />
+              <p>No exercises match "{searchQuery}"</p>
+            </div>
           ) : (
             <div className={styles.exerciseList}>
-              {exercises.map((ex) => {
+              {filteredExercises.map((ex) => {
                 const progress = getProgressChange(ex.entries);
                 const isExpanded = expandedExercise === ex.exercise;
                 const chartData = ex.entries.map((e) => ({

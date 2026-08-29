@@ -20,9 +20,11 @@ export const formatDateWithDay = (dateStr: string): string => {
 };
 
 /**
- * Format today's date as DD/MM/YYYY
+ * Format today's date and time as DD/MM/YYYY, HH:MM
  */
 export const formatTodayDDMMYYYY = (): string => {
   const today = new Date();
-  return `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+  const date = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+  const time = `${String(today.getHours()).padStart(2, "0")}:${String(today.getMinutes()).padStart(2, "0")}`;
+  return `${date}, ${time}`;
 };

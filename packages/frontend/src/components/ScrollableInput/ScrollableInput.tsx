@@ -125,7 +125,8 @@ export function ScrollableInput({
             onChange("");
             onInputActivity?.();
           }
-        } else if (Math.abs(selectedValue - numericValue) >= step / 2) {
+        } else if (isEmpty || isNaN(numericValue) || Math.abs(selectedValue - numericValue) >= step / 2) {
+          // Fire onChange when: current is empty/NaN, or value changed significantly
           onChange(formatValue(selectedValue));
           onInputActivity?.();
         }
