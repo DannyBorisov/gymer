@@ -51,7 +51,7 @@ export interface Week {
 export interface PreviousStats {
   week: number;
   workout: string;
-  sets: { weight: string; reps: string; rir: string }[];
+  sets: { weight: string; reps: string; rir: string; notes?: string }[];
 }
 
 export interface ExerciseBest {
@@ -391,6 +391,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
               weight: e.weight,
               reps: e.repsAchieved,
               rir: e.rirAchieved,
+              notes: e.notes || undefined,
             })),
           };
           break;

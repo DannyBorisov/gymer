@@ -11,7 +11,6 @@ import {
   SkipForward,
   History,
   Clock,
-  Trophy,
   TrendingUp,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -27,6 +26,7 @@ import { formatTime, formatRestTimer } from "../../lib/time";
 import { updateExerciseName } from "../../utils/liveActivity";
 import { announceTime } from "../../utils/speech";
 import { Haptics, NotificationType } from "@capacitor/haptics";
+import { parseExerciseName } from "../../types/shared";
 import styles from "./ActiveWorkout.module.css";
 import useClickOutside from "../../hooks/useClickOutside";
 
@@ -42,7 +42,6 @@ const ActiveWorkout = () => {
     currentExerciseIndex,
     currentSetIndex,
     previousStats,
-    exerciseBests,
     isQuickWorkout,
     restTimer,
     isRestTimerActive,
@@ -60,12 +59,12 @@ const ActiveWorkout = () => {
 
   const [showNotes, setShowNotes] = useState(false);
   const [showSetComplete, setShowSetComplete] = useState(false);
-  const [isPR, setIsPR] = useState(false);
+  const [isProgression, setIsProgression] = useState(false);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showPreviousWorkout, setShowPreviousWorkout] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const celebratedPRExercises = useRef(new Set<string>());
+  const celebratedProgressionExercises = useRef(new Set<string>());
 
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -83,7 +82,7 @@ const ActiveWorkout = () => {
   }, [activeWorkout, navigate]);
 
   useEffect(() => {
-    celebratedPRExercises.current.clear();
+    celebratedProgressionExercises.current.clear();
   }, [activeWorkout?.programId, activeWorkout?.workout.name]);
 
   // Wrapper to handle UI state when starting rest timer
@@ -172,83 +171,76 @@ const ActiveWorkout = () => {
     }
   }, [currentExerciseIndex, activeWorkout, isRestTimerActive, workoutData]);
 
-  // Calculate estimated 1RM using Epley formula
-  const calculateE1RM = (weight: number, reps: number): number => {
-    if (reps <= 0 || weight <= 0) return 0;
-    if (reps === 1) return weight;
-    return weight * (1 + reps / 30);
-  };
-
-  // Check for PR using estimated 1RM comparison against all-time bests
-  const checkForPR = (rowIndex: number): boolean => {
-    const row = workoutData.find((r) => r.rowIndex === rowIndex);
-    if (!row) return false;
-
-    const exerciseName = row.exercise;
-    const exerciseBest = workoutData
-      .filter((exerciseRow) => exerciseRow.exercise === exerciseName)
-      .reduce((bestE1RM, exerciseRow) => {
-        const weight = parseFloat(exerciseRow.weight) || 0;
-        const reps = parseFloat(exerciseRow.repsAchieved) || 0;
-        return Math.max(bestE1RM, calculateE1RM(weight, reps));
-      }, 0);
-
-    if (exerciseBest <= 0) return false;
-
-    const best = exerciseBests[exerciseName];
-
-    if (celebratedPRExercises.current.has(exerciseName)) {
+  // Check for progression (beating previous workout's weight or reps)
+  const checkForProgression = (exerciseName: string): boolean => {
+    // Already celebrated this exercise
+    if (celebratedProgressionExercises.current.has(exerciseName)) {
       return false;
     }
 
-    // No previous data means this is the first recorded best for the exercise.
-    if (!best) {
-      celebratedPRExercises.current.add(exerciseName);
-      return true;
-    }
+    const prevStats = previousStats[exerciseName];
+    if (!prevStats) return false; // No previous data to compare
 
-    // Compare the best set in this exercise against the historical best.
-    if (exerciseBest > best.e1rm) {
-      celebratedPRExercises.current.add(exerciseName);
-      return true;
+    // Get current exercise sets
+    const currentSets = workoutData.filter((r) => r.exercise === exerciseName);
+
+    // Check if any set shows progression
+    for (let i = 0; i < currentSets.length; i++) {
+      const currentSet = currentSets[i];
+      const prevSet = prevStats.sets[i];
+      if (!prevSet) continue;
+
+      const currentWeight = parseFloat(currentSet.weight) || 0;
+      const currentReps = parseFloat(currentSet.repsAchieved) || 0;
+      const prevWeight = parseFloat(prevSet.weight) || 0;
+      const prevReps = parseFloat(prevSet.reps) || 0;
+
+      // Progression: more weight OR (same weight AND more reps)
+      if (currentWeight > prevWeight || (currentWeight === prevWeight && currentReps > prevReps)) {
+        celebratedProgressionExercises.current.add(exerciseName);
+        return true;
+      }
     }
 
     return false;
   };
 
-  // Handle completing a set, celebrating only at the end of an exercise.
+  // Handle completing a set, celebrating progression at the end of an exercise.
   const handleCompleteSet = (rowIndex: number, isExerciseComplete: boolean) => {
+    completeSet(rowIndex);
+
     if (!isExerciseComplete) {
-      setIsPR(false);
+      setIsProgression(false);
       setShowSetComplete(true);
-      completeSet(rowIndex);
       setTimeout(() => setShowSetComplete(false), 400);
       return;
     }
 
-    const pr = checkForPR(rowIndex);
-    setIsPR(pr);
+    // Check progression at end of exercise
+    const row = workoutData.find((r) => r.rowIndex === rowIndex);
+    const progression = row ? checkForProgression(row.exercise) : false;
+    setIsProgression(progression);
     setShowSetComplete(true);
-    if (pr) {
+    if (progression) {
       void Haptics.notification({ type: NotificationType.Success });
     }
-    completeSet(rowIndex);
 
     setTimeout(
       () => {
         setShowSetComplete(false);
-        setIsPR(false);
+        setIsProgression(false);
       },
-      pr ? 1800 : 400,
+      progression ? 1500 : 400,
     );
   };
 
   // Handle complete workout (last set)
   const handleCompleteWorkout = async (rowIndex: number) => {
-    const pr = checkForPR(rowIndex);
-    setIsPR(pr);
+    const row = workoutData.find((r) => r.rowIndex === rowIndex);
+    const progression = row ? checkForProgression(row.exercise) : false;
+    setIsProgression(progression);
     setShowSetComplete(true);
-    if (pr) {
+    if (progression) {
       void Haptics.notification({ type: NotificationType.Success });
     }
     await completeWorkout(rowIndex);
@@ -256,9 +248,9 @@ const ActiveWorkout = () => {
     setTimeout(
       () => {
         setShowSetComplete(false);
-        setIsPR(false);
+        setIsProgression(false);
       },
-      pr ? 1800 : 400,
+      progression ? 1500 : 400,
     );
   };
 
@@ -352,35 +344,8 @@ const ActiveWorkout = () => {
   // Calculate workout summary stats
   const workoutSummary = isWorkoutComplete
     ? (() => {
-        // Total volume (weight × reps)
-        const totalVolume = workoutData.reduce((sum, row) => {
-          const weight = parseFloat(row.weight) || 0;
-          const reps = parseFloat(row.repsAchieved) || 0;
-          return sum + weight * reps;
-        }, 0);
-
-        // Count PRs using e1RM comparison
-        // Track best e1RM per exercise within this workout to avoid counting multiple PRs for same exercise
-        const workoutBests = new Map<string, number>();
-        let prCount = 0;
-
-        workoutData.forEach((row) => {
-          const currentWeight = parseFloat(row.weight) || 0;
-          const currentReps = parseFloat(row.repsAchieved) || 0;
-          const currentE1RM = calculateE1RM(currentWeight, currentReps);
-
-          if (currentE1RM <= 0) return;
-
-          const exerciseName = row.exercise;
-          const historicalBest = exerciseBests[exerciseName]?.e1rm || 0;
-          const workoutBest = workoutBests.get(exerciseName) || 0;
-
-          // Only count PR once per exercise (the best set)
-          if (currentE1RM > historicalBest && currentE1RM > workoutBest) {
-            if (workoutBest === 0) prCount++; // First PR for this exercise
-            workoutBests.set(exerciseName, currentE1RM);
-          }
-        });
+        // Count progressions from celebrated exercises
+        const progressionCount = celebratedProgressionExercises.current.size;
 
         // Average reps in reserve across completed sets.
         const rirsWithData = workoutData
@@ -393,7 +358,7 @@ const ActiveWorkout = () => {
             : null;
         const averageRir = avgRir !== null ? avgRir.toFixed(1) : null;
 
-        return { totalVolume, prCount, averageRir };
+        return { progressionCount, averageRir };
       })()
     : null;
 
@@ -502,29 +467,26 @@ const ActiveWorkout = () => {
                 <span className={styles.summaryStatLabel}>Duration</span>
               </div>
             </div>
-            <div className={styles.summaryStat}>
-              <TrendingUp size={20} />
-              <div className={styles.summaryStatContent}>
-                <span className={styles.summaryStatValue}>
-                  {workoutSummary.totalVolume.toLocaleString()} {weightUnit}
-                </span>
-                <span className={styles.summaryStatLabel}>Total Volume</span>
-              </div>
-            </div>
-            {workoutSummary.prCount > 0 && (
-              <div className={`${styles.summaryStat} ${styles.summaryStatPr}`}>
-                <Trophy size={20} />
+            {workoutSummary.progressionCount > 0 && (
+              <div className={`${styles.summaryStat} ${styles.summaryStatProgression}`}>
+                <TrendingUp size={20} />
                 <div className={styles.summaryStatContent}>
                   <span className={styles.summaryStatValue}>
-                    {workoutSummary.prCount} PR
-                    {workoutSummary.prCount > 1 ? "s" : ""}
+                    {workoutSummary.progressionCount}
                   </span>
                   <span className={styles.summaryStatLabel}>
-                    Personal Records
+                    Progression{workoutSummary.progressionCount > 1 ? "s" : ""}
                   </span>
                 </div>
               </div>
             )}
+            <div className={styles.summaryStat}>
+              <span className={styles.setsIcon}>#</span>
+              <div className={styles.summaryStatContent}>
+                <span className={styles.summaryStatValue}>{completedCount}</span>
+                <span className={styles.summaryStatLabel}>Sets</span>
+              </div>
+            </div>
             {workoutSummary.averageRir && (
               <div className={styles.summaryStat}>
                 <span className={styles.rirIcon}>RIR</span>
@@ -535,14 +497,14 @@ const ActiveWorkout = () => {
               </div>
             )}
           </div>
-          <div className={styles.summaryMeta}>{totalSets} sets completed</div>
         </div>
       )}
 
       {/* Exercise tabs */}
       <div className={styles.exerciseTabsWrapper}>
         <div className={styles.exerciseTabs} ref={exerciseTabsRef}>
-          {groupedByExercise.map(([name, sets], idx) => {
+          {groupedByExercise.map(([fullName, sets], idx) => {
+            const { name, variant } = parseExerciseName(fullName);
             const completedInExercise = sets.filter((s) => {
               const data = getRow(s.rowIndex);
               return data?.weight && data?.repsAchieved;
@@ -551,7 +513,7 @@ const ActiveWorkout = () => {
             const isCurrent = idx === currentExerciseIndex;
             return (
               <button
-                key={name}
+                key={fullName}
                 onClick={() => {
                   setCurrentExerciseIndex(idx);
                   setCurrentSetIndex(0);
@@ -560,6 +522,7 @@ const ActiveWorkout = () => {
                 className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
               >
                 <span className={styles.exerciseTabName}>{name}</span>
+                {variant && <span className={styles.exerciseVariant}>{variant}</span>}
               </button>
             );
           })}
@@ -597,20 +560,18 @@ const ActiveWorkout = () => {
             {/* Set complete animation overlay */}
             {showSetComplete && (
               <div
-                className={`${styles.setCompleteOverlay} ${isPR ? styles.prOverlay : ""}`}
+                className={`${styles.setCompleteOverlay} ${isProgression ? styles.progressionOverlay : ""}`}
               >
                 <div className={styles.setCompleteIcon}>
-                  {isPR ? (
+                  {isProgression ? (
                     <>
-                      <Trophy
+                      <TrendingUp
                         size={48}
-                        strokeWidth={2}
-                        className={styles.prTrophy}
+                        strokeWidth={2.5}
+                        className={styles.progressionIcon}
                       />
-                      <span className={styles.prBadge}>
-                        New Personal Best in <br />
-                        <br />
-                        {previousExercise?.[0]}!
+                      <span className={styles.progressionBadge}>
+                        Progression!
                       </span>
                     </>
                   ) : (
@@ -855,30 +816,36 @@ const ActiveWorkout = () => {
         </div>
         <div className={styles.prevWorkoutContent}>
           <div className={styles.prevExerciseList}>
-            {Object.entries(previousStats).map(([exerciseName, stats]) => (
-              <div key={exerciseName} className={styles.prevExerciseCard}>
-                <h3 className={styles.prevExerciseName}>{exerciseName}</h3>
+            {Object.entries(previousStats).map(([fullName, stats]) => {
+              const { name, variant } = parseExerciseName(fullName);
+              return (
+              <div key={fullName} className={styles.prevExerciseCard}>
+                <h3 className={styles.prevExerciseName}>
+                  {name}
+                  {variant && <span className={styles.prevExerciseVariant}>{variant}</span>}
+                </h3>
                 <div className={styles.prevSetsList}>
                   {stats.sets.map((set, idx) => (
                     <div key={idx} className={styles.prevSetRow}>
                       <span className={styles.prevSetNumber}>{idx + 1}</span>
-                      <div className={styles.prevSetDetails}>
-                        <span className={styles.prevSetData}>
-                          {set.weight}
-                          {weightUnit} × {set.reps}
-                          {set.rir && (
-                            <span className={styles.prevSetRir}>
-                              {" "}
-                              @ {set.rir} RIR
-                            </span>
-                          )}
-                        </span>
-                      </div>
+                      <span className={styles.prevSetData}>
+                        {set.weight}
+                        {weightUnit} × {set.reps}
+                        {set.rir && (
+                          <span className={styles.prevSetRir}>
+                            {" "}
+                            @ {set.rir} RIR
+                          </span>
+                        )}
+                        {set.notes && (
+                          <span className={styles.prevSetNotes}> · {set.notes}</span>
+                        )}
+                      </span>
                     </div>
                   ))}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </SwipeableDrawer>

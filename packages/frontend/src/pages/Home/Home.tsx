@@ -191,7 +191,7 @@ const Home = () => {
               <span className={styles.progressStatus}>IN PROGRESS</span>
             </div>
             <span className={styles.progressCount}>
-              {weekProgress.completed} of {weekProgress.total} workouts
+              {weekProgress.completed} of {weekProgress.total} sessions
             </span>
           </div>
           <div className={styles.progressBar}>
@@ -229,17 +229,27 @@ const Home = () => {
             <ChevronRight size={20} />
           </button>
         ) : activeProgram && nextWorkout ? (
-          // Start next program workout
-          <button className={styles.primaryBtn} onClick={handleStartWorkout}>
-            <Play size={22} />
-            <div className={styles.primaryBtnText}>
-              <span className={styles.primaryBtnTitle}>Start Workout</span>
-              <span className={styles.primaryBtnSubtitle}>
-                {nextWorkout.workout.name}
-              </span>
-            </div>
-            <ChevronRight size={20} />
-          </button>
+          // Start next program workout OR quick workout
+          <div className={styles.workoutOptions}>
+            <button className={styles.primaryBtn} onClick={handleStartWorkout}>
+              <Dumbbell size={22} />
+              <div className={styles.primaryBtnText}>
+                <span className={styles.primaryBtnTitle}>{nextWorkout.workout.name}</span>
+                <span className={styles.primaryBtnSubtitle}>
+                  Week {nextWorkout.week}
+                </span>
+              </div>
+              <ChevronRight size={20} />
+            </button>
+            <span className={styles.orDivider}>or</span>
+            <button
+              className={styles.quickWorkoutBtn}
+              onClick={() => navigate("/quick-workout")}
+            >
+              <Zap size={16} />
+              <span>Quick Workout</span>
+            </button>
+          </div>
         ) : activeProgram ? (
           // Program complete
           <div className={styles.completeState}>

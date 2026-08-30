@@ -9,17 +9,19 @@ export const getBodyWeight: RouteHandler = async function (request, reply) {
   const { tokens } = getAuthSession(request);
 
   try {
-    const files = await this.sheets.listFiles(tokens, buildQuery("bodyWeight"));
+    const [file] = await this.sheets.listFiles(
+      tokens,
+      buildQuery("bodyWeight"),
+    );
 
-    if (files.length === 0) {
+    if (!file) {
       return { entries: [], spreadsheetId: null };
     }
 
-    const spreadsheetId = files[0].id;
-    const data = await this.sheets.get(tokens, spreadsheetId, "Sheet1!A:B");
+    const data = await this.sheets.get(tokens, file.id, "Sheet1!A:B");
 
     if (!data || data.length < 2) {
-      return { entries: [], spreadsheetId };
+      return { entries: [], spreadsheetId: file.id };
     }
 
     // Get last 30 entries (most recent first)
@@ -30,7 +32,7 @@ export const getBodyWeight: RouteHandler = async function (request, reply) {
       .reverse()
       .slice(0, 30);
 
-    return { entries, spreadsheetId };
+    return { entries, spreadsheetId: file.id };
   } catch (error) {
     this.log.error(error);
     return reply.status(500).send({ error: "Failed to fetch body weight" });

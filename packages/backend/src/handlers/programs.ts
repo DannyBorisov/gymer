@@ -48,7 +48,9 @@ export const createProgram: RouteHandler<{
           : workout.name;
 
       for (const exercise of workout.exercises) {
-        const targetRir = dynamicRir ? weekRir : exercise.rir;
+        // Use exercise's custom RIR if set, otherwise use dynamic/manual RIR
+        const targetRir =
+          dynamicRir && !exercise.customRir ? weekRir : exercise.rir;
         const rirDisplay =
           targetRir === 0 ? "To Failure" : targetRir.toString();
 
@@ -96,11 +98,7 @@ export const listPrograms: RouteHandler = async function (request, reply) {
   const { tokens } = getAuthSession(request);
 
   try {
-    const files = await this.sheets.listFiles(
-      tokens,
-      buildQuery("program"),
-    );
-
+    const files = await this.sheets.listFiles(tokens, buildQuery("program"));
     return { programs: files };
   } catch (error) {
     this.log.error(error);
@@ -174,15 +172,18 @@ export const getProgram: RouteHandler<{
       week: weekNum,
       workouts: Array.from(workouts.entries()).map(([name, exercises]) => {
         const [{ date: date }, { date: duration }] = exercises;
+        const isComplete = exercises.every(
+          (e) => e.repsAchieved !== "" && e.weight !== "",
+        );
 
         return {
           name,
           exercises,
-          isComplete: exercises.every(
-            (e) => e.repsAchieved !== "" && e.weight !== "",
-          ),
+          isComplete,
           completedDate: date,
-          duration: isDurationFormat("" + duration),
+          duration: isDurationFormat("" + duration)
+            ? String(duration)
+            : undefined,
         };
       }),
     }));

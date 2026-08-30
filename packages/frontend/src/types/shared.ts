@@ -1,9 +1,28 @@
 // Program creation types
 export interface Exercise {
   name: string;
+  variant?: string; // e.g., "Wide Grip", "Machine", "Dumbbell"
   sets: number;
   reps: number;
   rir: number;
+  customRir?: boolean; // Override dynamic RIR with manual value
+}
+
+// Utility to parse exercise name with variant: "Lat Pulldown (Wide Grip)" → { name, variant }
+export function parseExerciseName(fullName: string): { name: string; variant?: string } {
+  const match = fullName.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+  if (match) {
+    return { name: match[1].trim(), variant: match[2].trim() };
+  }
+  return { name: fullName };
+}
+
+// Combine exercise name with variant for storage
+export function formatExerciseName(name: string, variant?: string): string {
+  if (variant?.trim()) {
+    return `${name} (${variant.trim()})`;
+  }
+  return name;
 }
 
 export interface ProgramWorkout {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Program, Workout, Exercise, Frequency } from "../types/program";
+import { formatExerciseName } from "../types/shared";
 
 const createEmptyWorkout = (): Workout => ({
   name: "",
@@ -93,7 +94,7 @@ export const useCreateProgram = () => {
     workoutIndex: number,
     exerciseIndex: number,
     field: keyof Exercise,
-    value: string | number
+    value: string | number | boolean
   ) => {
     setProgram((prev) => ({
       ...prev,
@@ -118,8 +119,22 @@ export const useCreateProgram = () => {
     setProgram(preset);
   };
 
+  // Get program with combined exercise names (name + variant) for submission
+  const getProgramForSubmit = (): Program => ({
+    ...program,
+    workouts: program.workouts.map((w) => ({
+      ...w,
+      exercises: w.exercises.map((e) => ({
+        ...e,
+        name: formatExerciseName(e.name, e.variant),
+        variant: undefined, // Remove variant field for submission
+      })),
+    })),
+  });
+
   return {
     program,
+    getProgramForSubmit,
     updateProgramName,
     updateDuration,
     updateFrequency,

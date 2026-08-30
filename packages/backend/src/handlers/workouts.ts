@@ -255,7 +255,7 @@ export const getWorkoutDetail: RouteHandler<{
       }
     } else if (type === "program" && programId && date && week && workout) {
       // Fetch from program sheet
-      const data = await this.sheets.get(tokens, programId, "Sheet1!A:J");
+      const data = await this.sheets.get(tokens, programId, "Sheet1!A:K");
       if (data && data.length > 1) {
         let inTargetWorkout = false;
         const isDurationFormat = (str: string) =>
@@ -284,7 +284,7 @@ export const getWorkoutDetail: RouteHandler<{
                   weight: String(row[7] || ""),
                   reps: String(row[8] || ""),
                   rir: String(row[9] || ""),
-                  notes: "",
+                  notes: String(row[10] || ""),
                 });
               }
             }

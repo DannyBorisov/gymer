@@ -4,6 +4,7 @@ export interface Exercise {
   sets: number;
   reps: number;
   rir: number;
+  customRir?: boolean;
 }
 
 export interface ProgramWorkout {

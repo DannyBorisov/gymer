@@ -26,7 +26,6 @@ export const AppProperties = {
     title: "Quick Workouts",
   },
   bodyWeight: { key: "gymerrBodyWeight", value: "true", title: "Body Weight" },
-  oneRepMax: { key: "gymerrOneRepMax", value: "true", title: "One Rep Max" },
 } as const;
 
 export type AppPropertyType = keyof typeof AppProperties;

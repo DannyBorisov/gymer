@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Loader2, TrendingUp, ChevronDown, ChevronUp, Trophy, Plus, Check, BarChart3, ArrowUp, ArrowDown, Search, X } from "lucide-react";
+import { Loader2, TrendingUp, ChevronDown, ChevronUp, BarChart3, ArrowUp, ArrowDown, Search, X } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -12,16 +12,12 @@ import {
 } from "recharts";
 import {
   useGetAnalyticsProgression,
-  useGetOneRepMaxRecords,
-  useSaveOneRepMax,
   type ProgressionEntry,
 } from "../../api/analytics";
 import { useSettings } from "../../contexts/SettingsContext";
-import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
-import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import styles from "./Analytics.module.css";
 
-type TabType = "progression" | "1rm" | "volume";
+type TabType = "progression" | "volume";
 
 const Analytics = () => {
   const { weightUnit } = useSettings();
@@ -40,32 +36,9 @@ const Analytics = () => {
     return exercises.filter((ex) => ex.exercise.toLowerCase().includes(query));
   }, [exercises, searchQuery]);
 
-  // 1RM state
-  const { data: oneRmData, isLoading: isLoading1RM } = useGetOneRepMaxRecords();
-  const oneRmRecords = oneRmData?.records || [];
-  const bestByExercise = oneRmData?.bestByExercise || [];
-  const saveOneRepMax = useSaveOneRepMax();
-  const [expanded1RM, setExpanded1RM] = useState<string | null>(null);
-
-  // 1RM drawer state
-  const [showExerciseDrawer, setShowExerciseDrawer] = useState(false);
-  const [showWeightDrawer, setShowWeightDrawer] = useState(false);
-  const [selected1RMExercise, setSelected1RMExercise] = useState<string | null>(null);
-  const [oneRMWeight, setOneRMWeight] = useState("");
-
   const formatDate = (dateStr: string) => {
     const [day, month] = dateStr.split("/");
     return `${day}/${month}`;
-  };
-
-  const formatFullDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split("/");
-    const date = new Date(Number(year), Number(month) - 1, Number(day));
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
   };
 
   const getProgressChange = (entries: ProgressionEntry[]) => {
@@ -79,46 +52,6 @@ const Analytics = () => {
 
   const toggleExercise = (exercise: string) => {
     setExpandedExercise(expandedExercise === exercise ? null : exercise);
-  };
-
-  const toggle1RM = (exercise: string) => {
-    setExpanded1RM(expanded1RM === exercise ? null : exercise);
-  };
-
-  const get1RMHistory = (exercise: string) => {
-    return oneRmRecords
-      .filter((r) => r.exercise === exercise)
-      .slice(0, 10);
-  };
-
-  // Handle exercise selection for 1RM
-  const handleExerciseSelect = (exerciseName: string) => {
-    setSelected1RMExercise(exerciseName);
-    setShowExerciseDrawer(false);
-    setShowWeightDrawer(true);
-  };
-
-  // Handle 1RM save
-  const handleSave1RM = async () => {
-    if (!selected1RMExercise || !oneRMWeight) return;
-
-    try {
-      await saveOneRepMax.mutateAsync({
-        exercise: selected1RMExercise,
-        weight: parseFloat(oneRMWeight),
-      });
-      setShowWeightDrawer(false);
-      setSelected1RMExercise(null);
-      setOneRMWeight("");
-    } catch (err) {
-      console.error("Failed to save 1RM:", err);
-    }
-  };
-
-  const handleWeightDrawerClose = () => {
-    setShowWeightDrawer(false);
-    setSelected1RMExercise(null);
-    setOneRMWeight("");
   };
 
   const parseDate = (dateStr: string) => {
@@ -189,13 +122,6 @@ const Analytics = () => {
         >
           <TrendingUp size={16} />
           <span>Progression</span>
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === "1rm" ? styles.tabActive : ""}`}
-          onClick={() => setActiveTab("1rm")}
-        >
-          <Trophy size={16} />
-          <span>1RM Records</span>
         </button>
         <button
           className={`${styles.tab} ${activeTab === "volume" ? styles.tabActive : ""}`}
@@ -382,95 +308,6 @@ const Analytics = () => {
         </>
       )}
 
-      {/* 1RM Tab */}
-      {activeTab === "1rm" && (
-        <>
-          {/* Log 1RM Button */}
-          <button
-            className={styles.log1RMButton}
-            onClick={() => setShowExerciseDrawer(true)}
-          >
-            <Plus size={18} />
-            <span>Log 1RM Attempt</span>
-          </button>
-
-          {isLoading1RM ? (
-            <div className={styles.loadingState}>
-              <Loader2 size={24} className={styles.spinner} />
-              <span>Loading 1RM records...</span>
-            </div>
-          ) : bestByExercise.length === 0 ? (
-            <div className={styles.emptyState}>
-              <Trophy size={48} className={styles.emptyIcon} />
-              <p>No 1RM records yet.</p>
-              <p className={styles.emptySubtext}>
-                Tap the button above to log your first 1RM.
-              </p>
-            </div>
-          ) : (
-            <div className={styles.exerciseList}>
-              {bestByExercise.map((record) => {
-                const isExpanded = expanded1RM === record.exercise;
-                const history = get1RMHistory(record.exercise);
-
-                return (
-                  <div key={record.exercise} className={styles.exerciseCard}>
-                    <button
-                      className={styles.exerciseHeader}
-                      onClick={() => toggle1RM(record.exercise)}
-                    >
-                      <div className={styles.exerciseInfo}>
-                        <span className={styles.exerciseName}>{record.exercise}</span>
-                        <div className={styles.exerciseMeta}>
-                          <span className={styles.prWeight}>
-                            <Trophy size={14} className={styles.trophyIcon} />
-                            {record.weight} {weightUnit}
-                          </span>
-                          <span className={styles.prDate}>
-                            {formatFullDate(record.date)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className={styles.expandIcon}>
-                        {isExpanded ? (
-                          <ChevronUp size={20} />
-                        ) : (
-                          <ChevronDown size={20} />
-                        )}
-                      </div>
-                    </button>
-
-                    {isExpanded && history.length > 1 && (
-                      <div className={styles.exerciseContent}>
-                        <div className={styles.historyLabel}>Attempt History</div>
-                        <div className={styles.entryList}>
-                          {history.map((entry, idx) => (
-                            <div
-                              key={idx}
-                              className={`${styles.entryRow} ${entry.weight === record.weight ? styles.entryRowBest : ""}`}
-                            >
-                              <span className={styles.entryDate}>
-                                {formatFullDate(entry.date)}
-                              </span>
-                              <span className={styles.entryData}>
-                                {entry.weight} {weightUnit}
-                                {entry.weight === record.weight && (
-                                  <Trophy size={12} className={styles.trophySmall} />
-                                )}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-
       {activeTab === "volume" && (
         <div className={styles.volumePanel}>
           <div className={styles.volumeHeader}>
@@ -502,65 +339,6 @@ const Analytics = () => {
           )}
         </div>
       )}
-
-      {/* Exercise Selection Drawer */}
-      <ExerciseDrawer
-        isOpen={showExerciseDrawer}
-        onClose={() => setShowExerciseDrawer(false)}
-        onSelect={handleExerciseSelect}
-        multiSelect={false}
-      />
-
-      {/* Weight Input Drawer */}
-      <SwipeableDrawer
-        isOpen={showWeightDrawer}
-        onClose={handleWeightDrawerClose}
-        maxHeight="50vh"
-      >
-        <div className={styles.weightDrawer}>
-          <div className={styles.weightHeader}>
-            <Trophy size={24} className={styles.weightTrophy} />
-            <h2 className={styles.weightTitle}>{selected1RMExercise}</h2>
-            <p className={styles.weightSubtitle}>Enter your 1RM weight</p>
-          </div>
-
-          <div className={styles.weightInputContainer}>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={oneRMWeight}
-              onChange={(e) => setOneRMWeight(e.target.value)}
-              placeholder="0"
-              className={styles.weightInput}
-              autoFocus
-            />
-            <span className={styles.weightUnitLabel}>{weightUnit}</span>
-          </div>
-
-          <div className={styles.weightActions}>
-            <button
-              className={styles.weightCancelBtn}
-              onClick={handleWeightDrawerClose}
-            >
-              Cancel
-            </button>
-            <button
-              className={styles.weightSaveBtn}
-              onClick={handleSave1RM}
-              disabled={!oneRMWeight || saveOneRepMax.isPending}
-            >
-              {saveOneRepMax.isPending ? (
-                <Loader2 size={18} className={styles.spinner} />
-              ) : (
-                <>
-                  <Check size={18} />
-                  Save
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </SwipeableDrawer>
     </div>
   );
 };

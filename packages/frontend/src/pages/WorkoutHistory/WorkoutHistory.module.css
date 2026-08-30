@@ -384,10 +384,22 @@
 }
 
 .exerciseName {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 0.625rem 0;
+}
+
+.exerciseVariant {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-interactive);
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
 }
 
 .setsList {

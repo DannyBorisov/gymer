@@ -34,11 +34,7 @@ class FirestoreService {
     this.db = initializeFirebase();
   }
 
-  async upsertUser(user: {
-    email: string;
-    name: string;
-    picture: string;
-  }): Promise<UserDocument> {
+  async upsertUser(user: { email: string; name: string; picture: string }) {
     const userRef = this.db.collection(this.USERS_COLLECTION).doc(user.email);
     const now = Timestamp.now();
     const doc = await userRef.get();
@@ -55,23 +51,21 @@ class FirestoreService {
         lastLogin: now,
         name: user.name,
         picture: user.picture,
-      } as UserDocument;
-    } else {
-      // New user - create document
-      const userData: UserDocument = {
-        email: user.email,
-        name: user.name,
-        picture: user.picture,
-        createdAt: now,
-        lastLogin: now,
       };
-
-      await userRef.set(userData);
-      return userData;
     }
+    const userData = {
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
+      createdAt: now,
+      lastLogin: now,
+    };
+
+    await userRef.set(userData);
+    return userData;
   }
 
-  async getUser(email: string): Promise<UserDocument | null> {
+  async getUser(email: string) {
     const doc = await this.db
       .collection(this.USERS_COLLECTION)
       .doc(email)

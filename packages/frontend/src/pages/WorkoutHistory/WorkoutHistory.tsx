@@ -3,6 +3,7 @@ import { Loader2, Dumbbell, Zap, Clock, TrendingUp, ChevronDown, ChevronUp } fro
 import { useGetWorkout, useGetWorkoutHistory, type WorkoutHistoryItem } from '../../api/workouts'
 import { useSettings } from '../../contexts/SettingsContext'
 import { SwipeableDrawer } from '../../components/SwipeableDrawer'
+import { parseExerciseName } from '../../types/shared'
 import styles from './WorkoutHistory.module.css'
 
 type Workout = WorkoutHistoryItem & { programName?: string }
@@ -277,25 +278,28 @@ const WorkoutHistory = () => {
                 </div>
               ) : workoutDetail ? (
                 <div className={styles.exerciseList}>
-                  {workoutDetail.exercises.map((exercise) => (
+                  {workoutDetail.exercises.map((exercise) => {
+                    const { name, variant } = parseExerciseName(exercise.name)
+                    return (
                     <div key={exercise.name} className={styles.exerciseCard}>
-                      <h3 className={styles.exerciseName}>{exercise.name}</h3>
+                      <h3 className={styles.exerciseName}>
+                        {name}
+                        {variant && <span className={styles.exerciseVariant}>{variant}</span>}
+                      </h3>
                       <div className={styles.setsList}>
                         {exercise.sets.map((set, idx) => (
                           <div key={idx} className={styles.setRow}>
                             <span className={styles.setNumber}>{set.set}</span>
-                            <div className={styles.setDetails}>
-                              <span className={styles.setData}>
-                                {set.weight}{weightUnit} × {set.reps}
-                                {set.rir && <span className={styles.setRir}> @ {set.rir} RIR</span>}
-                              </span>
-                              {set.notes && <span className={styles.setNotes}>{set.notes}</span>}
-                            </div>
+                            <span className={styles.setData}>
+                              {set.weight}{weightUnit} × {set.reps}
+                              {set.rir && <span className={styles.setRir}> @ {set.rir} RIR</span>}
+                              {set.notes && <span className={styles.setNotes}> · {set.notes}</span>}
+                            </span>
                           </div>
                         ))}
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               ) : (
                 <div className={styles.emptyState}>

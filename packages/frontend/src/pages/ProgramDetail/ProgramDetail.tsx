@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Loader2, ChevronLeft, Trophy, Check, PartyPopper } from "lucide-react";
+import { Loader2, ChevronLeft, Trophy, PartyPopper } from "lucide-react";
 import { useWorkout, type Week } from "../../contexts/WorkoutContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { WeeksList } from "../../components/WeeksList/WeeksList";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import { useGetProgram } from "../../api/programs";
-import { useSaveOneRepMax } from "../../api/analytics";
 import styles from "./ProgramDetail.module.css";
 
 const ProgramDetail = () => {
@@ -23,10 +22,11 @@ const ProgramDetail = () => {
   // 1RM prompt state
   const [showExerciseDrawer, setShowExerciseDrawer] = useState(false);
   const [showWeightDrawer, setShowWeightDrawer] = useState(false);
-  const [selected1RMExercise, setSelected1RMExercise] = useState<string | null>(null);
+  const [selected1RMExercise, setSelected1RMExercise] = useState<string | null>(
+    null,
+  );
   const [oneRMWeight, setOneRMWeight] = useState("");
   const [has1RMBeenPrompted, setHas1RMBeenPrompted] = useState(false);
-  const saveOneRepMax = useSaveOneRepMax();
 
   // Check if there's an active workout for a different program
   const isWorkoutActiveForDifferentProgram = !!(
@@ -37,7 +37,7 @@ const ProgramDetail = () => {
   const isProgramComplete = useMemo(() => {
     if (program.length === 0) return false;
     return program.every((week) =>
-      week.workouts.every((workout) => workout.isComplete)
+      week.workouts.every((workout) => workout.isComplete),
     );
   }, [program]);
 
@@ -73,23 +73,6 @@ const ProgramDetail = () => {
     setShowWeightDrawer(true);
   };
 
-  // Handle 1RM save
-  const handleSave1RM = async () => {
-    if (!selected1RMExercise || !oneRMWeight) return;
-
-    try {
-      await saveOneRepMax.mutateAsync({
-        exercise: selected1RMExercise,
-        weight: parseFloat(oneRMWeight),
-      });
-      setShowWeightDrawer(false);
-      setSelected1RMExercise(null);
-      setOneRMWeight("");
-    } catch (err) {
-      console.error("Failed to save 1RM:", err);
-    }
-  };
-
   const handleWeightDrawerClose = () => {
     setShowWeightDrawer(false);
     setSelected1RMExercise(null);
@@ -118,7 +101,9 @@ const ProgramDetail = () => {
     return (
       <div className={styles.container}>
         <div className={styles.errorState}>
-          <p>{error instanceof Error ? error.message : "Failed to load program"}</p>
+          <p>
+            {error instanceof Error ? error.message : "Failed to load program"}
+          </p>
           <Link to="/programs" className={styles.backLink}>
             Back to Programs
           </Link>
@@ -154,7 +139,9 @@ const ProgramDetail = () => {
           <div className={styles.completeBannerContent}>
             <PartyPopper size={24} />
             <div className={styles.completeBannerText}>
-              <span className={styles.completeBannerTitle}>Program Complete!</span>
+              <span className={styles.completeBannerTitle}>
+                Program Complete!
+              </span>
               <span className={styles.completeBannerSubtitle}>
                 Great job finishing all {program.length} weeks
               </span>
@@ -218,20 +205,6 @@ const ProgramDetail = () => {
               onClick={handleWeightDrawerClose}
             >
               Cancel
-            </button>
-            <button
-              className={styles.weightSaveBtn}
-              onClick={handleSave1RM}
-              disabled={!oneRMWeight || saveOneRepMax.isPending}
-            >
-              {saveOneRepMax.isPending ? (
-                <Loader2 size={18} className={styles.spinner} />
-              ) : (
-                <>
-                  <Check size={18} />
-                  Save
-                </>
-              )}
             </button>
           </div>
         </div>

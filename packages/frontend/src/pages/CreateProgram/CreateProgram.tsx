@@ -11,6 +11,7 @@ import {
   Calendar,
   Clock,
   Gauge,
+  Tag,
 } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
@@ -23,10 +24,11 @@ import styles from "./CreateProgram.module.css";
 interface ExerciseRowProps {
   exercise: Exercise;
   index: number;
-  onUpdate: (field: keyof Exercise, value: string | number) => void;
+  onUpdate: (field: keyof Exercise, value: string | number | boolean) => void;
   onRemove: () => void;
   onOpenDrawer: () => void;
   showRir: boolean;
+  dynamicRir: boolean;
 }
 
 const ExerciseRow = ({
@@ -36,20 +38,55 @@ const ExerciseRow = ({
   onRemove,
   onOpenDrawer,
   showRir,
+  dynamicRir,
 }: ExerciseRowProps) => {
+  const [showVariant, setShowVariant] = useState(!!exercise.variant);
+
   return (
     <div className={styles.exerciseRow}>
       <div className={styles.exerciseHeader}>
         <span className={styles.exerciseIndex}>{index + 1}</span>
-        <input
-          type="text"
-          value={exercise.name}
-          onFocus={onOpenDrawer}
-          onChange={(e) => onUpdate("name", e.target.value)}
-          className={styles.exerciseNameInput}
-          placeholder="Exercise name"
-          readOnly
-        />
+        <div className={styles.exerciseNameGroup}>
+          <input
+            type="text"
+            value={exercise.name}
+            onFocus={onOpenDrawer}
+            onChange={(e) => onUpdate("name", e.target.value)}
+            className={styles.exerciseNameInput}
+            placeholder="Exercise name"
+            readOnly
+          />
+          {exercise.variant && !showVariant && (
+            <button
+              type="button"
+              className={styles.variantBadge}
+              onClick={() => setShowVariant(true)}
+            >
+              {exercise.variant}
+            </button>
+          )}
+          {showVariant && (
+            <input
+              type="text"
+              value={exercise.variant || ""}
+              onChange={(e) => onUpdate("variant", e.target.value)}
+              onBlur={() => !exercise.variant && setShowVariant(false)}
+              className={styles.variantInput}
+              placeholder="e.g. Wide Grip"
+              autoFocus
+            />
+          )}
+          {!showVariant && !exercise.variant && (
+            <button
+              type="button"
+              className={styles.addVariantBtn}
+              onClick={() => setShowVariant(true)}
+              title="Add variant"
+            >
+              <Tag size={12} />
+            </button>
+          )}
+        </div>
         <button type="button" onClick={onRemove} className={styles.removeBtn}>
           <Trash2 size={14} />
         </button>
@@ -94,6 +131,32 @@ const ExerciseRow = ({
             />
           </div>
         )}
+        {dynamicRir && (
+          <div className={styles.inputGroup}>
+            <label className={styles.inputLabel}>Custom</label>
+            <div className={styles.customRirRow}>
+              <button
+                type="button"
+                onClick={() => onUpdate("customRir", !exercise.customRir)}
+                className={`${styles.customRirToggle} ${exercise.customRir ? styles.customRirToggleActive : ""}`}
+              >
+                {exercise.customRir ? "On" : "Off"}
+              </button>
+              {exercise.customRir && (
+                <input
+                  type="number"
+                  value={exercise.rir || ""}
+                  onChange={(e) => onUpdate("rir", Number(e.target.value))}
+                  className={styles.numberInput}
+                  placeholder="0"
+                  min={0}
+                  max={10}
+                  inputMode="numeric"
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -109,11 +172,12 @@ interface WorkoutSectionProps {
   onUpdateExercise: (
     exerciseIndex: number,
     field: keyof Exercise,
-    value: string | number,
+    value: string | number | boolean,
   ) => void;
   canRemove: boolean;
   onOpenEditDrawer: (exerciseIndex: number) => void;
   showRir: boolean;
+  dynamicRir: boolean;
 }
 
 const WorkoutSection = ({
@@ -127,6 +191,7 @@ const WorkoutSection = ({
   canRemove,
   onOpenEditDrawer,
   showRir,
+  dynamicRir,
 }: WorkoutSectionProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -143,7 +208,7 @@ const WorkoutSection = ({
             className={`${styles.chevron} ${!isCollapsed ? styles.chevronOpen : ""}`}
           />
         </button>
-        <span className={styles.workoutLabel}>Day {workoutIndex + 1}</span>
+        <span className={styles.workoutLabel}>Session {workoutIndex + 1}</span>
         <input
           type="text"
           value={workout.name}
@@ -188,6 +253,7 @@ const WorkoutSection = ({
                   onRemove={() => onRemoveExercise(exerciseIndex)}
                   onOpenDrawer={() => onOpenEditDrawer(exerciseIndex)}
                   showRir={showRir}
+                  dynamicRir={dynamicRir}
                 />
               ))}
             </>
@@ -215,6 +281,7 @@ const CreateProgram = () => {
   const navigate = useNavigate();
   const {
     program,
+    getProgramForSubmit,
     updateProgramName,
     updateDuration,
     updateFrequency,
@@ -320,7 +387,7 @@ const CreateProgram = () => {
     setResult(null);
 
     try {
-      const data = await createProgram.mutateAsync(program);
+      const data = await createProgram.mutateAsync(getProgramForSubmit());
       setResult({ success: true, url: data.url });
     } catch (error) {
       setResult({
@@ -365,7 +432,7 @@ const CreateProgram = () => {
                 <div className={styles.templateMeta}>
                   <span className={styles.metaItem}>
                     <Dumbbell size={14} />
-                    {preset.program.workouts.length} workouts
+                    {preset.program.workouts.length} sessions
                   </span>
                   <span className={styles.metaItem}>
                     <Clock size={14} />
@@ -498,14 +565,14 @@ const CreateProgram = () => {
 
         <div className={styles.workoutsContainer}>
           <div className={styles.workoutsHeader}>
-            <span className={styles.workoutsTitle}>Workouts</span>
+            <span className={styles.workoutsTitle}>Sessions</span>
             <button
               type="button"
               onClick={addWorkout}
               className={styles.addWorkoutBtn}
             >
               <Plus size={14} />
-              Add Day
+              Add Session
             </button>
           </div>
 
@@ -529,6 +596,7 @@ const CreateProgram = () => {
                   handleOpenEditDrawer(workoutIndex, exerciseIndex)
                 }
                 showRir={!program.dynamicRir}
+                dynamicRir={program.dynamicRir}
               />
             ))}
           </div>
