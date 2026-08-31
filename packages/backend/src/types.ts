@@ -12,7 +12,7 @@ export interface ProgramWorkout {
   exercises: Exercise[];
 }
 
-export type Frequency = 1 | 2 | 3 | 4 | 5 | 6 | 'every-other-day';
+export type Frequency = 1 | 2 | 3 | 4 | 5 | 6 | "every-other-day";
 
 export interface Program {
   name: string;
@@ -52,18 +52,8 @@ export interface WeekData {
 }
 
 // API types
-export interface UpdateRowsRequest {
-  updates: {
-    rowIndex: number;
-    weight: string;
-    repsAchieved: string;
-    rirAchieved: string;
-    notes: string;
-  }[];
-  completedDate?: string;
-  dateRowIndex?: number;
-  duration?: string;
-}
+import type { ProgramUpdateInput } from "./dal/types.js";
+export type UpdateProgramRequest = ProgramUpdateInput | ProgramUpdateInput[];
 
 export interface CreateProgramRequest {
   name: string;
@@ -110,5 +100,5 @@ export interface BodyWeightEntry {
 }
 
 export interface SaveBodyWeightRequest {
-  weight: string;
+  weight: number;
 }

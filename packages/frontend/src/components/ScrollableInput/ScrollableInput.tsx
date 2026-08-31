@@ -1,5 +1,6 @@
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { Plus, Minus } from "lucide-react";
+import { hapticSelection, hapticMedium } from "../../utils/haptics";
 import styles from "./ScrollableInput.module.css";
 
 interface ScrollableInputProps {
@@ -18,6 +19,12 @@ interface ScrollableInputProps {
   target?: string | number;
   dark?: boolean;
 }
+
+const ITEM_HEIGHT = 40;
+const VELOCITY_THRESHOLD = 0.5; // Min velocity to trigger momentum
+const FRICTION = 0.92; // Momentum decay factor
+const SNAP_DURATION = 200; // ms for snap animation
+const BUTTON_SCROLL_DURATION = 80; // ms for fast button scroll
 
 export function ScrollableInput({
   label,
@@ -39,22 +46,28 @@ export function ScrollableInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Scroll state refs
   const isScrolling = useRef(false);
-  const shouldAnimate = useRef(false);
-  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const isButtonScroll = useRef(false);
+  const lastScrollTop = useRef(0);
+  const lastScrollTime = useRef(0);
+  const velocity = useRef(0);
+  const momentumRaf = useRef<number>();
+  const snapTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastHapticIndex = useRef(-1);
 
   const numericValue = parseFloat(value);
   const isEmpty = value === "" || value === "-";
 
-  // Generate fixed list of values based on step (reversed - higher values at top)
-  // Include "-" (empty) and 0 (bodyweight) at the beginning
+  // Generate fixed list of values (reversed - higher values at top)
   const values = useMemo(() => {
     const result: (number | "-")[] = [];
     const effectiveMax = Math.min(max, step < 1 ? 500 : 200);
     for (let v = effectiveMax; v > 0; v -= step) {
       result.push(Math.round(v * 1000) / 1000);
     }
-    // Add 0 (bodyweight) and "-" (empty) at the end (which appears at bottom when scrolling)
     result.push(0);
     result.push("-");
     return result;
@@ -73,74 +86,180 @@ export function ScrollableInput({
   }, [values, numericValue, isEmpty, step]);
 
   // Format value for display
-  const formatValue = (val: number | "-") => {
+  const formatValue = useCallback((val: number | "-") => {
     if (val === "-") return "-";
     if (step % 1 === 0) {
       return val.toString();
     }
     return val.toFixed(2).replace(/\.?0+$/, "");
-  };
+  }, [step]);
 
-  // Scroll to current value
-  useEffect(() => {
-    if (scrollRef.current && !isScrolling.current && !isEditing) {
-      const itemHeight = 40;
-      const targetScroll = currentIndex * itemHeight;
+  // Get current scroll index
+  const getScrollIndex = useCallback(() => {
+    if (!scrollRef.current) return 0;
+    return Math.round(scrollRef.current.scrollTop / ITEM_HEIGHT);
+  }, []);
 
-      if (shouldAnimate.current) {
-        scrollRef.current.scrollTo({
-          top: targetScroll,
-          behavior: 'smooth'
-        });
-        shouldAnimate.current = false;
+  // Smooth scroll to index with animation
+  const smoothScrollToIndex = useCallback((targetIndex: number, duration = SNAP_DURATION, onComplete?: () => void) => {
+    if (!scrollRef.current) {
+      onComplete?.();
+      return;
+    }
+
+    const startScroll = scrollRef.current.scrollTop;
+    const targetScroll = targetIndex * ITEM_HEIGHT;
+    const distance = targetScroll - startScroll;
+
+    if (Math.abs(distance) < 1) {
+      onComplete?.();
+      return;
+    }
+
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      if (!scrollRef.current) {
+        onComplete?.();
+        return;
+      }
+
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease out cubic for smooth deceleration
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+
+      scrollRef.current.scrollTop = startScroll + distance * easeOut;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
       } else {
         scrollRef.current.scrollTop = targetScroll;
+        isScrolling.current = false;
+        onComplete?.();
       }
-    }
-  }, [currentIndex, isEditing]);
+    };
 
-  // Handle scroll end
-  const handleScroll = () => {
-    if (!scrollRef.current || isEditing) return;
+    requestAnimationFrame(animate);
+  }, []);
 
-    isScrolling.current = true;
+  // Apply momentum and snap
+  const applyMomentum = useCallback(() => {
+    if (!scrollRef.current) return;
 
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
+    const currentVelocity = velocity.current;
 
-    scrollTimeoutRef.current = setTimeout(() => {
-      if (!scrollRef.current) return;
+    // If velocity is low enough, snap to nearest
+    if (Math.abs(currentVelocity) < VELOCITY_THRESHOLD) {
+      const snapIndex = getScrollIndex();
+      const clampedIndex = Math.max(0, Math.min(values.length - 1, snapIndex));
 
-      const itemHeight = 40;
-      const scrollTop = scrollRef.current.scrollTop;
-      const selectedIndex = Math.round(scrollTop / itemHeight);
-      const clampedIndex = Math.max(0, Math.min(values.length - 1, selectedIndex));
+      // Always update value when snap completes
       const selectedValue = values[clampedIndex];
-
       if (selectedValue !== undefined) {
-        // Handle "-" (empty) case
         if (selectedValue === "-") {
           if (!isEmpty) {
             onChange("");
             onInputActivity?.();
           }
         } else if (isEmpty || isNaN(numericValue) || Math.abs(selectedValue - numericValue) >= step / 2) {
-          // Fire onChange when: current is empty/NaN, or value changed significantly
           onChange(formatValue(selectedValue));
           onInputActivity?.();
         }
       }
 
-      scrollRef.current.scrollTop = clampedIndex * itemHeight;
-      isScrolling.current = false;
-    }, 80);
-  };
+      // Haptic on final snap
+      if (clampedIndex !== lastHapticIndex.current) {
+        hapticMedium();
+      }
+      lastHapticIndex.current = clampedIndex;
+
+      smoothScrollToIndex(clampedIndex);
+      return;
+    }
+
+    // Apply friction
+    velocity.current *= FRICTION;
+
+    // Move scroll position
+    scrollRef.current.scrollTop += currentVelocity;
+
+    // Check for haptic feedback on value change
+    const newIndex = getScrollIndex();
+    if (newIndex !== lastHapticIndex.current && newIndex >= 0 && newIndex < values.length) {
+      hapticSelection();
+      lastHapticIndex.current = newIndex;
+    }
+
+    // Continue momentum
+    momentumRaf.current = requestAnimationFrame(applyMomentum);
+  }, [values, isEmpty, numericValue, step, onChange, onInputActivity, formatValue, getScrollIndex, smoothScrollToIndex]);
+
+  // Handle scroll event
+  const handleScroll = useCallback(() => {
+    if (!scrollRef.current || isEditing) return;
+
+    const now = performance.now();
+    const currentScroll = scrollRef.current.scrollTop;
+    const timeDelta = now - lastScrollTime.current;
+
+    // Calculate velocity (pixels per frame, roughly)
+    if (timeDelta > 0 && timeDelta < 100) {
+      const scrollDelta = currentScroll - lastScrollTop.current;
+      velocity.current = scrollDelta * (16 / timeDelta); // Normalize to ~60fps
+    }
+
+    lastScrollTop.current = currentScroll;
+    lastScrollTime.current = now;
+    isScrolling.current = true;
+
+    // Haptic feedback when crossing value boundaries
+    const currentIdx = getScrollIndex();
+    if (currentIdx !== lastHapticIndex.current && currentIdx >= 0 && currentIdx < values.length) {
+      hapticSelection();
+      lastHapticIndex.current = currentIdx;
+    }
+
+    // Clear any pending snap/momentum
+    if (snapTimeoutRef.current) {
+      clearTimeout(snapTimeoutRef.current);
+    }
+    if (momentumRaf.current) {
+      cancelAnimationFrame(momentumRaf.current);
+    }
+
+    // Start momentum after scroll ends
+    snapTimeoutRef.current = setTimeout(() => {
+      applyMomentum();
+    }, 50);
+  }, [isEditing, values.length, getScrollIndex, applyMomentum]);
+
+  // Scroll to current value on mount and value change
+  useEffect(() => {
+    // Skip if button is handling the scroll animation
+    if (isButtonScroll.current) return;
+
+    if (scrollRef.current && !isEditing) {
+      const targetScroll = currentIndex * ITEM_HEIGHT;
+      scrollRef.current.scrollTop = targetScroll;
+      lastHapticIndex.current = currentIndex;
+    }
+  }, [currentIndex, isEditing]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
+      if (momentumRaf.current) cancelAnimationFrame(momentumRaf.current);
+    };
+  }, []);
 
   // Handle tap to enter value
   const handleTap = () => {
     setEditValue(value || "");
     setIsEditing(true);
+    hapticMedium();
     setTimeout(() => {
       inputRef.current?.focus();
       inputRef.current?.select();
@@ -153,6 +272,7 @@ export function ScrollableInput({
     if (!isNaN(parsed) && parsed >= min && parsed <= max) {
       onChange(formatValue(parsed));
       onInputActivity?.();
+      hapticMedium();
     }
     setIsEditing(false);
   };
@@ -164,19 +284,69 @@ export function ScrollableInput({
   };
 
   const handleIncrement = () => {
-    shouldAnimate.current = true;
-    onAdjust(step);
+    if (isAnimating) return;
+
+    hapticMedium();
+    // Stop any ongoing animations
+    if (momentumRaf.current) cancelAnimationFrame(momentumRaf.current);
+    if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
+
+    // Calculate new value
+    const currentVal = parseFloat(value) || 0;
+    const newVal = Math.min(max, Math.round((currentVal + step) * 1000) / 1000);
+
+    // Find and scroll to new index
+    const newIndex = values.findIndex(v => typeof v === "number" && Math.abs(v - newVal) < step / 2);
+    if (newIndex >= 0 && scrollRef.current) {
+      isButtonScroll.current = true;
+      setIsAnimating(true);
+      smoothScrollToIndex(newIndex, BUTTON_SCROLL_DURATION, () => {
+        isButtonScroll.current = false;
+        setIsAnimating(false);
+      });
+      lastHapticIndex.current = newIndex;
+    }
+
+    // Update value
+    onChange(formatValue(newVal));
     onInputActivity?.();
   };
 
   const handleDecrement = () => {
-    shouldAnimate.current = true;
-    onAdjust(-step);
+    if (isAnimating) return;
+
+    hapticMedium();
+    // Stop any ongoing animations
+    if (momentumRaf.current) cancelAnimationFrame(momentumRaf.current);
+    if (snapTimeoutRef.current) clearTimeout(snapTimeoutRef.current);
+
+    // Calculate new value
+    const currentVal = parseFloat(value) || 0;
+    const newVal = Math.max(min, Math.round((currentVal - step) * 1000) / 1000);
+
+    // Find and scroll to new index
+    const newIndex = newVal === 0
+      ? values.findIndex(v => v === 0)
+      : values.findIndex(v => typeof v === "number" && Math.abs(v - newVal) < step / 2);
+
+    if (newIndex >= 0 && scrollRef.current) {
+      isButtonScroll.current = true;
+      setIsAnimating(true);
+      smoothScrollToIndex(newIndex, BUTTON_SCROLL_DURATION, () => {
+        isButtonScroll.current = false;
+        setIsAnimating(false);
+      });
+      lastHapticIndex.current = newIndex;
+    }
+
+    // Update value
+    onChange(formatValue(newVal));
     onInputActivity?.();
   };
 
   const handleHintClick = () => {
     if (hint !== undefined) {
+      hapticMedium();
       onChange(String(hint));
       onInputActivity?.();
     }
@@ -190,6 +360,7 @@ export function ScrollableInput({
           type="button"
           onClick={handleIncrement}
           className={styles.stepperBtn}
+          disabled={isAnimating}
           aria-label={`Increase ${label}`}
         >
           <Plus size={18} />
@@ -215,7 +386,16 @@ export function ScrollableInput({
               ref={scrollRef}
               className={styles.pickerScroll}
               onScroll={handleScroll}
-              onTouchStart={(e) => e.stopPropagation()}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                // Reset velocity tracking
+                lastScrollTime.current = performance.now();
+                lastScrollTop.current = scrollRef.current?.scrollTop || 0;
+                velocity.current = 0;
+                if (momentumRaf.current) {
+                  cancelAnimationFrame(momentumRaf.current);
+                }
+              }}
               onTouchMove={(e) => e.stopPropagation()}
               onTouchEnd={(e) => e.stopPropagation()}
             >
@@ -238,6 +418,7 @@ export function ScrollableInput({
           type="button"
           onClick={handleDecrement}
           className={styles.stepperBtn}
+          disabled={isAnimating}
           aria-label={`Decrease ${label}`}
         >
           <Minus size={18} />

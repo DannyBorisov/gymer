@@ -33,14 +33,11 @@ export const authApi = {
       "/api/auth/google/status",
     ),
   native: (code: string) =>
-    request<NativeAuthResponse>(
-      "/api/auth/google/native",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      },
-    ),
+    request<NativeAuthResponse>("/api/auth/google/native", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    }),
   logout: () =>
     request<{ success: boolean }>("/api/auth/logout", { method: "POST" }),
   login: openAuth,
@@ -48,13 +45,9 @@ export const authApi = {
     apiUrl(`/auth/google${native ? "?native=true" : ""}`),
 };
 
-export const authQueryKeys = {
-  status: ["auth", "status"] as const,
-};
-
 export function useGetAuthStatus() {
   return useQuery({
-    queryKey: authQueryKeys.status,
+    queryKey: ["auth", "status"],
     queryFn: authApi.status,
   });
 }
@@ -64,7 +57,7 @@ export function useNativeAuth() {
   return useMutation({
     mutationFn: authApi.native,
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: authQueryKeys.status }),
+      queryClient.invalidateQueries({ queryKey: ["auth", "status"] }),
   });
 }
 
@@ -73,6 +66,6 @@ export function useLogout() {
   return useMutation({
     mutationFn: authApi.logout,
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: authQueryKeys.status }),
+      queryClient.invalidateQueries({ queryKey: ["auth", "status"] }),
   });
 }

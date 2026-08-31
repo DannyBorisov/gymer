@@ -4,9 +4,9 @@ import {
   createProgram,
   listPrograms,
   getProgram,
-  updateProgramRows,
+  updateProgram,
 } from "../handlers/programs.js";
-import type { CreateProgramRequest, UpdateRowsRequest } from "../types.js";
+import type { CreateProgramRequest, UpdateProgramRequest } from "../types.js";
 
 const ProgramsRoutes: FastifyPluginAsync = async (server) => {
   server.get("/", { preHandler: requireAuth }, listPrograms);
@@ -23,10 +23,10 @@ const ProgramsRoutes: FastifyPluginAsync = async (server) => {
     getProgram,
   );
 
-  server.patch<{ Params: { id: string }; Body: UpdateRowsRequest }>(
-    "/:id/rows",
+  server.patch<{ Params: { id: string }; Body: UpdateProgramRequest }>(
+    "/:id",
     { preHandler: requireAuth },
-    updateProgramRows,
+    updateProgram,
   );
 };
 

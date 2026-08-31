@@ -2,8 +2,8 @@ import { request } from "./index";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface WeightEntry {
-  date: string;
-  weight: string;
+  date: string; // ISO date string from server
+  weight: number;
 }
 
 export const profileApi = {

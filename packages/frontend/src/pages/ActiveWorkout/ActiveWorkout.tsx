@@ -83,7 +83,7 @@ const ActiveWorkout = () => {
 
   useEffect(() => {
     celebratedProgressionExercises.current.clear();
-  }, [activeWorkout?.programId, activeWorkout?.workout.name]);
+  }, [activeWorkout?.programId, activeWorkout?.workoutName]);
 
   // Wrapper to handle UI state when starting rest timer
   const handleStartRestTimer = (exerciseName: string) => {
@@ -166,7 +166,7 @@ const ActiveWorkout = () => {
       const exerciseNames = [...new Set(workoutData.map((e) => e.exercise))];
       const exerciseName = exerciseNames[currentExerciseIndex];
       if (exerciseName) {
-        updateExerciseName(exerciseName, activeWorkout.workout.name);
+        updateExerciseName(exerciseName, activeWorkout.workoutName);
       }
     }
   }, [currentExerciseIndex, activeWorkout, isRestTimerActive, workoutData]);
@@ -196,7 +196,10 @@ const ActiveWorkout = () => {
       const prevReps = parseFloat(prevSet.reps) || 0;
 
       // Progression: more weight OR (same weight AND more reps)
-      if (currentWeight > prevWeight || (currentWeight === prevWeight && currentReps > prevReps)) {
+      if (
+        currentWeight > prevWeight ||
+        (currentWeight === prevWeight && currentReps > prevReps)
+      ) {
         celebratedProgressionExercises.current.add(exerciseName);
         return true;
       }
@@ -363,7 +366,6 @@ const ActiveWorkout = () => {
     : null;
 
   const currentExercise = groupedByExercise[currentExerciseIndex];
-  const previousExercise = groupedByExercise[currentExerciseIndex - 1];
   const currentExerciseName = currentExercise?.[0] || "";
   const currentExerciseSets = currentExercise?.[1] || [];
   const currentSet = currentExerciseSets[currentSetIndex];
@@ -468,7 +470,9 @@ const ActiveWorkout = () => {
               </div>
             </div>
             {workoutSummary.progressionCount > 0 && (
-              <div className={`${styles.summaryStat} ${styles.summaryStatProgression}`}>
+              <div
+                className={`${styles.summaryStat} ${styles.summaryStatProgression}`}
+              >
                 <TrendingUp size={20} />
                 <div className={styles.summaryStatContent}>
                   <span className={styles.summaryStatValue}>
@@ -483,7 +487,9 @@ const ActiveWorkout = () => {
             <div className={styles.summaryStat}>
               <span className={styles.setsIcon}>#</span>
               <div className={styles.summaryStatContent}>
-                <span className={styles.summaryStatValue}>{completedCount}</span>
+                <span className={styles.summaryStatValue}>
+                  {completedCount}
+                </span>
                 <span className={styles.summaryStatLabel}>Sets</span>
               </div>
             </div>
@@ -491,7 +497,9 @@ const ActiveWorkout = () => {
               <div className={styles.summaryStat}>
                 <span className={styles.rirIcon}>RIR</span>
                 <div className={styles.summaryStatContent}>
-                  <span className={styles.summaryStatValue}>{workoutSummary.averageRir}</span>
+                  <span className={styles.summaryStatValue}>
+                    {workoutSummary.averageRir}
+                  </span>
                   <span className={styles.summaryStatLabel}>Avg RIR</span>
                 </div>
               </div>
@@ -522,7 +530,9 @@ const ActiveWorkout = () => {
                 className={`${styles.exerciseTab} ${isCurrent ? styles.exerciseTabActive : ""} ${isComplete ? styles.exerciseTabDone : ""}`}
               >
                 <span className={styles.exerciseTabName}>{name}</span>
-                {variant && <span className={styles.exerciseVariant}>{variant}</span>}
+                {variant && (
+                  <span className={styles.exerciseVariant}>{variant}</span>
+                )}
               </button>
             );
           })}
@@ -819,33 +829,41 @@ const ActiveWorkout = () => {
             {Object.entries(previousStats).map(([fullName, stats]) => {
               const { name, variant } = parseExerciseName(fullName);
               return (
-              <div key={fullName} className={styles.prevExerciseCard}>
-                <h3 className={styles.prevExerciseName}>
-                  {name}
-                  {variant && <span className={styles.prevExerciseVariant}>{variant}</span>}
-                </h3>
-                <div className={styles.prevSetsList}>
-                  {stats.sets.map((set, idx) => (
-                    <div key={idx} className={styles.prevSetRow}>
-                      <span className={styles.prevSetNumber}>{idx + 1}</span>
-                      <span className={styles.prevSetData}>
-                        {set.weight}
-                        {weightUnit} × {set.reps}
-                        {set.rir && (
-                          <span className={styles.prevSetRir}>
-                            {" "}
-                            @ {set.rir} RIR
-                          </span>
-                        )}
-                        {set.notes && (
-                          <span className={styles.prevSetNotes}> · {set.notes}</span>
-                        )}
+                <div key={fullName} className={styles.prevExerciseCard}>
+                  <h3 className={styles.prevExerciseName}>
+                    {name}
+                    {variant && (
+                      <span className={styles.prevExerciseVariant}>
+                        {variant}
                       </span>
-                    </div>
-                  ))}
+                    )}
+                  </h3>
+                  <div className={styles.prevSetsList}>
+                    {stats.sets.map((set, idx) => (
+                      <div key={idx} className={styles.prevSetRow}>
+                        <span className={styles.prevSetNumber}>{idx + 1}</span>
+                        <span className={styles.prevSetData}>
+                          {set.weight}
+                          {weightUnit} × {set.reps}
+                          {set.rir && (
+                            <span className={styles.prevSetRir}>
+                              {" "}
+                              @ {set.rir} RIR
+                            </span>
+                          )}
+                          {set.notes && (
+                            <span className={styles.prevSetNotes}>
+                              {" "}
+                              · {set.notes}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )})}
+              );
+            })}
           </div>
         </div>
       </SwipeableDrawer>

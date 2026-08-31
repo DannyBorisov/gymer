@@ -10,21 +10,20 @@ export const formatDate = (dateString: string): string => {
 };
 
 /**
- * Format DD/MM/YYYY date string to include day name (e.g., "Mon, 25/12/2024")
+ * Format ISO date string to include day name (e.g., "Mon, Dec 25")
  */
 export const formatDateWithDay = (dateStr: string): string => {
-  const [day, month, year] = dateStr.split("/").map(Number);
-  const date = new Date(year, month - 1, day);
-  const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-  return `${dayName}, ${dateStr}`;
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 };
 
 /**
- * Format today's date and time as DD/MM/YYYY, HH:MM
+ * Format today's date as ISO string (e.g., "2024-12-25T10:30:00.000Z")
  */
-export const formatTodayDDMMYYYY = (): string => {
-  const today = new Date();
-  const date = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
-  const time = `${String(today.getHours()).padStart(2, "0")}:${String(today.getMinutes()).padStart(2, "0")}`;
-  return `${date}, ${time}`;
+export const formatTodayISO = (): string => {
+  return new Date().toISOString();
 };

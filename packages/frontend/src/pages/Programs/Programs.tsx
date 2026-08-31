@@ -3,23 +3,23 @@ import { Link, useNavigate } from "react-router-dom";
 import { ChevronRight, Loader2, Plus, Play, CheckCircle2 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useGetProgram, useGetPrograms, type ProgramSummary } from "../../api/programs";
+import type { Workout } from "../../api/workouts";
 import { formatDate } from "../../lib/date";
 import styles from "./Programs.module.css";
 
-interface Week {
-  week: number;
-  workouts: {
-    name: string;
-    isComplete?: boolean;
-    completedDate?: string;
-  }[];
+interface Program {
+  id: string;
+  name: string;
+  numberOfWeeks: number;
+  isComplete: boolean;
+  workouts: Workout[];
 }
 
 const Programs = () => {
   const navigate = useNavigate();
   const { activeProgram, setActiveProgram } = useSettings();
   const { data: programsData, isLoading, error } = useGetPrograms();
-  const { data: activeProgramResponse } = useGetProgram<Week[]>(activeProgram?.id);
+  const { data: activeProgramResponse } = useGetProgram<Program>(activeProgram?.id);
   const programs = programsData?.programs || [];
   const activeProgramData = activeProgramResponse?.program || null;
 
@@ -27,34 +27,34 @@ const Programs = () => {
   const activeProgress = useMemo(() => {
     if (!activeProgramData) return null;
 
-    let totalWorkouts = 0;
-    let completedWorkouts = 0;
+    const totalWorkouts = activeProgramData.workouts.length;
+    const completedWorkouts = activeProgramData.workouts.filter((w) => w.date).length;
 
-    activeProgramData.forEach((week) => {
-      week.workouts.forEach((workout) => {
-        totalWorkouts++;
-        if (workout.isComplete || workout.completedDate) {
-          completedWorkouts++;
-        }
-      });
-    });
+    // Find current week (first week with incomplete workouts)
+    const byWeek = new Map<number, { completed: number; total: number }>();
+    for (const workout of activeProgramData.workouts) {
+      const entry = byWeek.get(workout.week) || { completed: 0, total: 0 };
+      entry.total++;
+      if (workout.date) entry.completed++;
+      byWeek.set(workout.week, entry);
+    }
 
-    // Find current week
-    let currentWeek = 1;
-    for (const week of activeProgramData) {
-      const weekComplete = week.workouts.every((w) => w.isComplete || w.completedDate);
-      if (!weekComplete) {
-        currentWeek = week.week;
+    const weeks = [...byWeek.keys()].sort((a, b) => a - b);
+    let currentWeek = weeks[0] || 1;
+    for (const week of weeks) {
+      const { completed, total } = byWeek.get(week)!;
+      if (completed < total) {
+        currentWeek = week;
         break;
       }
-      currentWeek = week.week;
+      currentWeek = week;
     }
 
     return {
       completed: completedWorkouts,
       total: totalWorkouts,
       currentWeek,
-      totalWeeks: activeProgramData.length,
+      totalWeeks: activeProgramData.numberOfWeeks,
       percent: totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0,
     };
   }, [activeProgramData]);

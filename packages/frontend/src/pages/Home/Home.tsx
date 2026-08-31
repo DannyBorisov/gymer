@@ -11,40 +11,69 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
-import { useWorkout, type Week, type Workout } from "../../contexts/WorkoutContext";
+import { useWorkout } from "../../contexts/WorkoutContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useGetProgram } from "../../api/programs";
-import { useGetWorkoutHistory } from "../../api/workouts";
+import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
 import styles from "./Home.module.css";
+
+interface Program {
+  id: string;
+  name: string;
+  numberOfWeeks: number;
+  isComplete: boolean;
+  workouts: Workout[];
+}
 
 const Home = () => {
   const navigate = useNavigate();
   const { activeProgram } = useSettings();
-  const { startWorkout, activeWorkout } = useWorkout();
+  const { activeWorkout } = useWorkout();
   const { user } = useAuth();
 
-  const { data: programResponse, isLoading: isLoadingProgram } = useGetProgram<Week[]>(activeProgram?.id);
-  const { data: historyResponse, isLoading: isLoadingHistory } = useGetWorkoutHistory();
-  const programData = programResponse?.program || [];
-  const programName = programResponse?.name || activeProgram?.name || "";
-  const workouts = historyResponse?.workouts || [];
-  const lastWorkout = workouts[0] || null;
+  const { data: programResponse, isLoading: isLoadingProgram } =
+    useGetProgram<Program>(activeProgram?.id);
+  const { data: historyResponse, isLoading: isLoadingHistory } =
+    useGetWorkoutHistory();
+  const program = programResponse?.program;
+  const programWorkouts = program?.workouts || [];
+
+  // Flatten and filter completed workouts from history
+  const completedWorkouts = useMemo(() => {
+    const all = (historyResponse?.workouts || [])
+      .flat()
+      .filter((w): w is Workout => w !== null && w.date !== undefined);
+    return all.sort(
+      (a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime(),
+    );
+  }, [historyResponse]);
+  const lastWorkout = completedWorkouts[0] || null;
 
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
     const rawFirstName = user?.name?.split(" ")[0];
-    const firstName = rawFirstName ? rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase() : null;
-    const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    const firstName = rawFirstName
+      ? rawFirstName.charAt(0).toUpperCase() +
+        rawFirstName.slice(1).toLowerCase()
+      : null;
+    const timeGreeting =
+      hour < 12
+        ? "Good morning"
+        : hour < 17
+          ? "Good afternoon"
+          : "Good evening";
     return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
   };
 
   const { workoutCount, streak } = useMemo(() => {
     const now = new Date();
-    const workoutCount = workouts.filter((workout) => {
-      const [day, month, year] = workout.date.split("/");
-      const date = new Date(Number(year), Number(month) - 1, Number(day));
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    const workoutCount = completedWorkouts.filter((workout) => {
+      const date = new Date(workout.date!);
+      return (
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear()
+      );
     }).length;
 
     const getWeekStart = (date: Date) => {
@@ -53,10 +82,11 @@ const Home = () => {
       result.setDate(result.getDate() - result.getDay());
       return result.getTime();
     };
-    const workoutWeeks = new Set(workouts.map((workout) => {
-      const [day, month, year] = workout.date.split("/");
-      return getWeekStart(new Date(Number(year), Number(month) - 1, Number(day)));
-    }));
+    const workoutWeeks = new Set(
+      completedWorkouts.map((workout) => {
+        return getWeekStart(new Date(workout.date!));
+      }),
+    );
     const weekLength = 7 * 24 * 60 * 60 * 1000;
     let checkWeek = getWeekStart(now);
     if (!workoutWeeks.has(checkWeek)) checkWeek -= weekLength;
@@ -66,15 +96,15 @@ const Home = () => {
       checkWeek -= weekLength;
     }
     return { workoutCount, streak };
-  }, [workouts]);
+  }, [completedWorkouts]);
 
-  // Find next incomplete workout
+  // Find next incomplete workout (first workout without a date)
   const getNextWorkout = (): { week: number; workout: Workout } | null => {
-    for (const weekData of programData) {
-      for (const workout of weekData.workouts) {
-        if (!workout.isComplete && !workout.completedDate) {
-          return { week: weekData.week, workout };
-        }
+    // Sort by week to find the earliest incomplete
+    const sorted = [...programWorkouts].sort((a, b) => a.week - b.week);
+    for (const workout of sorted) {
+      if (!workout.date) {
+        return { week: workout.week, workout };
       }
     }
     return null;
@@ -82,26 +112,33 @@ const Home = () => {
 
   // Calculate week progress
   const getWeekProgress = () => {
-    if (programData.length === 0) return { completed: 0, total: 0 };
+    if (programWorkouts.length === 0) return { completed: 0, total: 0 };
 
-    // Find current week (first week with incomplete workouts)
-    for (const weekData of programData) {
-      const completed = weekData.workouts.filter(
-        (w) => w.isComplete || w.completedDate
-      ).length;
-      const total = weekData.workouts.length;
+    // Group by week
+    const byWeek = new Map<number, { completed: number; total: number }>();
+    for (const workout of programWorkouts) {
+      const entry = byWeek.get(workout.week) || { completed: 0, total: 0 };
+      entry.total++;
+      if (workout.date) entry.completed++;
+      byWeek.set(workout.week, entry);
+    }
 
+    // Find first incomplete week
+    const weeks = [...byWeek.keys()].sort((a, b) => a - b);
+    for (const week of weeks) {
+      const { completed, total } = byWeek.get(week)!;
       if (completed < total) {
-        return { completed, total, week: weekData.week };
+        return { completed, total, week };
       }
     }
 
     // All complete - return last week
-    const lastWeek = programData[programData.length - 1];
+    const lastWeek = weeks[weeks.length - 1];
+    const lastWeekData = byWeek.get(lastWeek)!;
     return {
-      completed: lastWeek.workouts.length,
-      total: lastWeek.workouts.length,
-      week: lastWeek.week,
+      completed: lastWeekData.total,
+      total: lastWeekData.total,
+      week: lastWeek,
     };
   };
 
@@ -114,21 +151,14 @@ const Home = () => {
       return;
     }
 
+    // Navigate to program detail page where workout can be started
     if (nextWorkout && activeProgram) {
-      startWorkout(
-        activeProgram.id,
-        nextWorkout.week,
-        nextWorkout.workout,
-        programData,
-        programName
-      );
-      navigate("/workout");
+      navigate(`/programs/${activeProgram.id}`);
     }
   };
 
   const formatDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split("/");
-    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    const date = new Date(dateStr);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -141,7 +171,7 @@ const Home = () => {
     }
 
     const diffDays = Math.floor(
-      (today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+      (today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
     );
     if (diffDays < 7) {
       return `${diffDays} days ago`;
@@ -177,17 +207,21 @@ const Home = () => {
         {streak > 0 && (
           <div className={styles.streakBadge}>
             <Flame size={16} />
-            <span>{streak} week{streak !== 1 ? "s" : ""}</span>
+            <span>
+              {streak} week{streak !== 1 ? "s" : ""}
+            </span>
           </div>
         )}
       </div>
 
       {/* Week Progress - only show if has active program */}
-      {activeProgram && programData.length > 0 && (
+      {activeProgram && programWorkouts.length > 0 && (
         <div className={styles.progressCard}>
           <div className={styles.progressHeader}>
             <div className={styles.progressTitle}>
-              <span className={styles.progressLabel}>Week {weekProgress.week}</span>
+              <span className={styles.progressLabel}>
+                Week {weekProgress.week}
+              </span>
               <span className={styles.progressStatus}>IN PROGRESS</span>
             </div>
             <span className={styles.progressCount}>
@@ -204,7 +238,9 @@ const Home = () => {
           </div>
           <div className={styles.progressFooter}>
             <span>Keep the streak alive</span>
-            <span>{Math.round((weekProgress.completed / weekProgress.total) * 100)}%</span>
+            <span>
+              {Math.round((weekProgress.completed / weekProgress.total) * 100)}%
+            </span>
           </div>
         </div>
       )}
@@ -218,12 +254,15 @@ const Home = () => {
           </div>
         ) : activeWorkout ? (
           // Resume active workout
-          <button className={styles.primaryBtn} onClick={() => navigate("/workout")}>
+          <button
+            className={styles.primaryBtn}
+            onClick={() => navigate("/workout")}
+          >
             <Play size={22} />
             <div className={styles.primaryBtnText}>
               <span className={styles.primaryBtnTitle}>Resume Workout</span>
               <span className={styles.primaryBtnSubtitle}>
-                {activeWorkout.workout.name}
+                {activeWorkout.workoutName}
               </span>
             </div>
             <ChevronRight size={20} />
@@ -234,7 +273,9 @@ const Home = () => {
             <button className={styles.primaryBtn} onClick={handleStartWorkout}>
               <Dumbbell size={22} />
               <div className={styles.primaryBtnText}>
-                <span className={styles.primaryBtnTitle}>{nextWorkout.workout.name}</span>
+                <span className={styles.primaryBtnTitle}>
+                  {nextWorkout.workout.name}
+                </span>
                 <span className={styles.primaryBtnSubtitle}>
                   Week {nextWorkout.week}
                 </span>
@@ -295,17 +336,14 @@ const Home = () => {
             onClick={() => navigate("/history")}
           >
             <div className={styles.workoutIcon}>
-              {lastWorkout.type === "quick" ? (
-                <Zap size={20} />
-              ) : (
-                <Dumbbell size={20} />
-              )}
+              <Dumbbell size={20} />
             </div>
             <div className={styles.workoutInfo}>
               <span className={styles.workoutName}>{lastWorkout.name}</span>
               <span className={styles.workoutMeta}>
-                {formatDate(lastWorkout.date)}
-                {lastWorkout.duration && ` · ${formatDuration(lastWorkout.duration)}`}
+                {formatDate(lastWorkout.date!)}
+                {lastWorkout.duration &&
+                  ` · ${formatDuration(lastWorkout.duration)}`}
               </span>
             </div>
             <ChevronRight size={18} className={styles.chevron} />

@@ -7,8 +7,8 @@ import {
   type ReactNode,
 } from "react";
 import { analyticsApi, programsApi, workoutsApi } from "../api";
+import type { Workout as ApiWorkout } from "../api/workouts";
 import { formatDuration } from "../lib/time";
-import { formatTodayDDMMYYYY } from "../lib/date";
 import {
   startWorkoutLiveActivity,
   endWorkoutLiveActivity,
@@ -20,11 +20,9 @@ import {
   cancelRestTimerNotification,
 } from "../utils/sound";
 
+// Internal row-based format for UI
 export interface ExerciseRow {
   rowIndex: number;
-  date: string;
-  week: number;
-  workout: string;
   exercise: string;
   set: number;
   targetReps: number;
@@ -35,18 +33,8 @@ export interface ExerciseRow {
   notes: string;
 }
 
-export interface Workout {
-  name: string;
-  exercises: ExerciseRow[];
-  isComplete: boolean;
-  completedDate?: string;
-  duration?: string;
-}
-
-export interface Week {
-  week: number;
-  workouts: Workout[];
-}
+// Re-export API Workout type for external use
+export type { Workout as ApiWorkout } from "../api/workouts";
 
 export interface PreviousStats {
   week: number;
@@ -70,7 +58,7 @@ export interface QuickExercise {
 interface ActiveWorkout {
   programId: string;
   week: number;
-  workout: Workout;
+  workoutName: string;
 }
 
 interface WorkoutContextType {
@@ -85,7 +73,7 @@ interface WorkoutContextType {
   currentExerciseIndex: number;
   currentSetIndex: number;
   completedSets: Set<number>;
-  program: Week[];
+  allWorkouts: ApiWorkout[];
   programName: string;
   previousStats: Record<string, PreviousStats>;
   exerciseBests: Record<string, ExerciseBest>;
@@ -101,9 +89,8 @@ interface WorkoutContextType {
   // Actions
   startWorkout: (
     programId: string,
-    week: number,
-    workout: Workout,
-    program: Week[],
+    workout: ApiWorkout,
+    allWorkouts: ApiWorkout[],
     programName: string
   ) => void;
   startQuickWorkout: (exercises: QuickExercise[]) => void;
@@ -142,7 +129,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [completedSets, setCompletedSets] = useState<Set<number>>(new Set());
-  const [program, setProgram] = useState<Week[]>([]);
+  const [allWorkouts, setAllWorkouts] = useState<ApiWorkout[]>([]);
   const [programName, setProgramName] = useState<string>("");
   const [previousStats, setPreviousStats] = useState<Record<string, PreviousStats>>({});
   const [exerciseBests, setExerciseBests] = useState<Record<string, ExerciseBest>>({});
@@ -252,27 +239,45 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     setIsSaving(true);
     try {
-      const updates = workoutData.map((row) => ({
-        rowIndex: row.rowIndex,
-        weight: row.weight,
-        repsAchieved: row.repsAchieved,
-        rirAchieved: row.rirAchieved,
-        notes: row.notes,
-      }));
+      // Build batch updates using Prisma-like where clauses
+      const updates = workoutData
+        .filter((row) => row.weight || row.repsAchieved) // Only save rows with data
+        .map((row) => ({
+          where: {
+            week: activeWorkout.week,
+            workout: {
+              name: activeWorkout.workoutName,
+              exercise: {
+                name: row.exercise,
+                set: row.set - 1, // Convert to 0-based index
+              },
+            },
+          },
+          data: {
+            achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
+            achievedReps: row.repsAchieved ? parseInt(row.repsAchieved, 10) : undefined,
+            achievedRir: row.rirAchieved || undefined,
+            notes: row.notes || undefined,
+          },
+        }));
 
-      // Get the first row index (smallest rowIndex in workout) for the date
-      const dateRowIndex = Math.min(...workoutData.map((r) => r.rowIndex));
+      // Add workout completion (date/duration) if needed
+      if (includeDate) {
+        updates.push({
+          where: {
+            week: activeWorkout.week,
+            workout: { name: activeWorkout.workoutName },
+          },
+          data: {
+            date: new Date(),
+            duration: formatDuration(timer),
+          },
+        } as any); // Type assertion needed for different data shape
+      }
 
-      const completedDate = includeDate ? formatTodayDDMMYYYY() : undefined;
-      const durationVal = includeDate ? formatDuration(timer) : undefined;
-
-      await programsApi.updateRows(
-        activeWorkout.programId,
-        updates,
-        completedDate,
-        dateRowIndex,
-        durationVal,
-      );
+      if (updates.length > 0) {
+        await programsApi.update(activeWorkout.programId, updates);
+      }
 
       setHasUnsavedChanges(false);
       hasUnsavedChangesRef.current = false;
@@ -310,7 +315,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     if (activeWorkout) {
       updateRestTimerLiveActivity(
         true,
-        activeWorkout.workout.name,
+        activeWorkout.workoutName,
         exerciseName,
         startTime,
       );
@@ -328,28 +333,52 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
     // Update Live Activity to hide rest timer
     if (activeWorkout) {
-      updateRestTimerLiveActivity(false, activeWorkout.workout.name, exerciseName);
+      updateRestTimerLiveActivity(false, activeWorkout.workoutName, exerciseName);
     }
+  };
+
+  // Convert API Workout to internal ExerciseRow[] format
+  const convertToExerciseRows = (workout: ApiWorkout): ExerciseRow[] => {
+    const rows: ExerciseRow[] = [];
+    let rowIndex = 0;
+
+    for (const exercise of workout.exercises) {
+      for (let setIdx = 0; setIdx < exercise.sets.length; setIdx++) {
+        const set = exercise.sets[setIdx];
+        rows.push({
+          rowIndex: rowIndex++,
+          exercise: exercise.name,
+          set: setIdx + 1,
+          targetReps: set.targetReps,
+          rir: set.targetRir,
+          weight: set.achievedWeight?.toString() || "",
+          repsAchieved: set.achievedReps?.toString() || "",
+          rirAchieved: set.achievedRir || "",
+          notes: set.notes || "",
+        });
+      }
+    }
+
+    return rows;
   };
 
   const startWorkout = (
     programId: string,
-    week: number,
-    workout: Workout,
-    programData: Week[],
+    workout: ApiWorkout,
+    programWorkouts: ApiWorkout[],
     name: string
   ) => {
-    const exercises = workout.exercises.map((ex) => ({ ...ex }));
+    const exercises = convertToExerciseRows(workout);
     workoutDataRef.current = exercises;
     setWorkoutData(exercises);
-    setActiveWorkout({ programId, week, workout });
-    setProgram(programData);
+    setActiveWorkout({ programId, week: workout.week, workoutName: workout.name });
+    setAllWorkouts(programWorkouts);
     setProgramName(name);
     setCurrentExerciseIndex(0);
     setCurrentSetIndex(0);
 
-    // Check if workout was already completed (based on server data, not field values)
-    if (workout.isComplete || workout.completedDate) {
+    // Check if workout was already completed (has a date)
+    if (workout.date) {
       // Workout already complete from server - don't start timer
       setTimer(0);
       setDuration(0); // Mark as complete
@@ -367,31 +396,33 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     // Calculate previous stats for each exercise from the SAME workout type only
     const stats: Record<string, PreviousStats> = {};
-    const exerciseNames = [...new Set(workout.exercises.map((e) => e.exercise))];
+    const exerciseNames = [...new Set(workout.exercises.map((e) => e.name))];
     const currentWorkoutName = workout.name;
+    const currentWeek = workout.week;
 
     for (const exerciseName of exerciseNames) {
-      for (let w = week - 1; w >= 1; w--) {
-        const prevWeek = programData.find((p) => p.week === w);
-        if (!prevWeek) continue;
+      // Find previous weeks with same workout name
+      const prevWorkouts = programWorkouts
+        .filter((w) => w.name === currentWorkoutName && w.week < currentWeek && w.date)
+        .sort((a, b) => b.week - a.week);
 
-        // Only look at the same workout type (same name)
-        const prevWorkout = prevWeek.workouts.find((pw) => pw.name === currentWorkoutName);
-        if (!prevWorkout) continue;
+      for (const prevWorkout of prevWorkouts) {
+        const prevExercise = prevWorkout.exercises.find((e) => e.name === exerciseName);
+        if (!prevExercise) continue;
 
-        const prevExercises = prevWorkout.exercises.filter(
-          (e) => e.exercise === exerciseName && e.weight && e.repsAchieved,
+        const completedSets = prevExercise.sets.filter(
+          (s) => s.achievedWeight !== undefined && s.achievedReps !== undefined
         );
 
-        if (prevExercises.length > 0) {
+        if (completedSets.length > 0) {
           stats[exerciseName] = {
-            week: w,
+            week: prevWorkout.week,
             workout: prevWorkout.name,
-            sets: prevExercises.map((e) => ({
-              weight: e.weight,
-              reps: e.repsAchieved,
-              rir: e.rirAchieved,
-              notes: e.notes || undefined,
+            sets: completedSets.map((s) => ({
+              weight: s.achievedWeight?.toString() || "",
+              reps: s.achievedReps?.toString() || "",
+              rir: s.achievedRir || "",
+              notes: s.notes || undefined,
             })),
           };
           break;
@@ -412,8 +443,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       });
 
     // Only start Live Activity if workout is not already complete
-    if (!workout.isComplete && !workout.completedDate) {
-      const firstExercise = workout.exercises[0]?.exercise || "";
+    if (!workout.date) {
+      const firstExercise = workout.exercises[0]?.name || "";
       startWorkoutLiveActivity(workout.name, firstExercise);
     }
     setIsQuickWorkout(false);
@@ -428,9 +459,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       for (let setNum = 1; setNum <= ex.sets; setNum++) {
         exerciseRows.push({
           rowIndex: rowIndex++,
-          date: "",
-          week: 1,
-          workout: "Quick Workout",
           exercise: ex.name,
           set: setNum,
           targetReps: ex.reps,
@@ -443,16 +471,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    const quickWorkout: Workout = {
-      name: "Quick Workout",
-      exercises: exerciseRows,
-      isComplete: false,
-    };
-
     workoutDataRef.current = exerciseRows;
     setWorkoutData(exerciseRows);
-    setActiveWorkout({ programId: "quick", week: 1, workout: quickWorkout });
-    setProgram([]);
+    setActiveWorkout({ programId: "quick", week: 1, workoutName: "Quick Workout" });
+    setAllWorkouts([]);
     setProgramName("Quick Workout");
     setCurrentExerciseIndex(0);
     setCurrentSetIndex(0);
@@ -489,9 +511,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     for (let setNum = 1; setNum <= exercise.sets; setNum++) {
       newRows.push({
         rowIndex: currentMaxRowIndex + setNum,
-        date: "",
-        week: 1,
-        workout: activeWorkout.workout.name,
         exercise: exercise.name,
         set: setNum,
         targetReps: exercise.reps,
@@ -541,7 +560,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setCompletedSets(new Set());
     setCurrentExerciseIndex(0);
     setCurrentSetIndex(0);
-    setProgram([]);
+    setAllWorkouts([]);
     setProgramName("");
     setPreviousStats({});
     setExerciseBests({});
@@ -615,16 +634,31 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             });
           }
         } else {
-          // Save program workout
-          const updates = newData.map((r) => ({
-            rowIndex: r.rowIndex,
-            weight: r.weight,
-            repsAchieved: r.repsAchieved,
-            rirAchieved: r.rirAchieved,
-            notes: r.notes,
-          }));
+          // Save program workout using Prisma-like where clauses
+          const updates = newData
+            .filter((row) => row.weight || row.repsAchieved)
+            .map((row) => ({
+              where: {
+                week: activeWorkout.week,
+                workout: {
+                  name: activeWorkout.workoutName,
+                  exercise: {
+                    name: row.exercise,
+                    set: row.set - 1,
+                  },
+                },
+              },
+              data: {
+                achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
+                achievedReps: row.repsAchieved ? parseInt(row.repsAchieved, 10) : undefined,
+                achievedRir: row.rirAchieved || undefined,
+                notes: row.notes || undefined,
+              },
+            }));
 
-          await programsApi.updateRows(activeWorkout.programId, updates);
+          if (updates.length > 0) {
+            await programsApi.update(activeWorkout.programId, updates);
+          }
         }
 
         setHasUnsavedChanges(false);
@@ -675,14 +709,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     if (!activeWorkout) return;
 
-    const updates = newData.map((r) => ({
-      rowIndex: r.rowIndex,
-      weight: r.weight,
-      repsAchieved: r.repsAchieved,
-      rirAchieved: r.rirAchieved,
-      notes: r.notes,
-    }));
-
     if (isQuickWorkout) {
       // Save quick workout
       const validSets = newData.filter((s) => s.weight || s.repsAchieved);
@@ -708,20 +734,49 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } else {
-      // Save program workout with data, date, and duration in a single call
+      // Save program workout with data, date, and duration
       setIsSaving(true);
       try {
-        const firstRowIndex = Math.min(...newData.map((r) => r.rowIndex));
-        const completedDate = formatTodayDDMMYYYY();
         const durationStr = formatDuration(timer);
 
-        await programsApi.updateRows(
-          activeWorkout.programId,
-          updates,
-          completedDate,
-          firstRowIndex,
-          durationStr,
-        );
+        // Build batch updates for all sets
+        const setUpdates = newData
+          .filter((row) => row.weight || row.repsAchieved)
+          .map((row) => ({
+            where: {
+              week: activeWorkout.week,
+              workout: {
+                name: activeWorkout.workoutName,
+                exercise: {
+                  name: row.exercise,
+                  set: row.set - 1,
+                },
+              },
+            },
+            data: {
+              achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
+              achievedReps: row.repsAchieved ? parseInt(row.repsAchieved, 10) : undefined,
+              achievedRir: row.rirAchieved || undefined,
+              notes: row.notes || undefined,
+            },
+          }));
+
+        // Add workout completion update
+        const allUpdates = [
+          ...setUpdates,
+          {
+            where: {
+              week: activeWorkout.week,
+              workout: { name: activeWorkout.workoutName },
+            },
+            data: {
+              date: new Date(),
+              duration: durationStr,
+            },
+          },
+        ];
+
+        await programsApi.update(activeWorkout.programId, allUpdates as any);
 
         setHasUnsavedChanges(false);
         hasUnsavedChangesRef.current = false;
@@ -746,7 +801,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         currentExerciseIndex,
         currentSetIndex,
         completedSets,
-        program,
+        allWorkouts,
         programName,
         previousStats,
         exerciseBests,

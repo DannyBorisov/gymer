@@ -1,0 +1,26 @@
+export const QuickWorkoutSchema = {
+  appProperty: { key: 'quickWorkouts', value: 'gymerr' },
+  sheetName: 'Gymerr Quick Workouts',
+  columns: {
+    date: { index: 0, column: 'A' },
+    workoutId: { index: 1, column: 'B' },
+    exercise: { index: 2, column: 'C' },
+    set: { index: 3, column: 'D' },
+    weight: { index: 4, column: 'E' },
+    reps: { index: 5, column: 'F' },
+    rir: { index: 6, column: 'G' },
+    notes: { index: 7, column: 'H' },
+    duration: { index: 8, column: 'I' },
+  },
+  headers: [
+    'Date',
+    'WorkoutId',
+    'Exercise',
+    'Set',
+    'Weight',
+    'Reps',
+    'RIR',
+    'Notes',
+    'Duration',
+  ],
+} as const;

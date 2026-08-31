@@ -14,12 +14,38 @@ export interface ProgramResponse<T = unknown> {
   name?: string;
 }
 
-export interface RowUpdate {
-  rowIndex: number;
-  weight: string;
-  repsAchieved: string;
-  rirAchieved: string;
-  notes: string;
+// Prisma-like where clauses
+export interface ExerciseWhere {
+  name: string;
+  set?: number; // 0-based set index
+}
+
+export interface WorkoutWhere {
+  name: string;
+  exercise?: ExerciseWhere;
+}
+
+export interface ProgramWhere {
+  week: number;
+  workout?: WorkoutWhere;
+}
+
+// Update data types
+export interface SetUpdateData {
+  achievedWeight?: number;
+  achievedReps?: number;
+  achievedRir?: string;
+  notes?: string;
+}
+
+export interface WorkoutUpdateData {
+  date?: string; // ISO date
+  duration?: string;
+}
+
+export interface ProgramUpdateInput {
+  where: ProgramWhere;
+  data: SetUpdateData | WorkoutUpdateData;
 }
 
 export const programsApi = {
@@ -30,10 +56,10 @@ export const programsApi = {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(program),
   }),
-  updateRows: (id: string, updates: RowUpdate[], completedDate?: string, dateRowIndex?: number, duration?: string) => request<void>(`/api/programs/${id}/rows`, {
+  update: (id: string, input: ProgramUpdateInput | ProgramUpdateInput[]) => request<{ success: boolean }>(`/api/programs/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ updates, ...(completedDate && { completedDate, dateRowIndex, duration }) }),
+    body: JSON.stringify(input),
   }),
 };
 
@@ -63,16 +89,11 @@ export function useCreateProgram<T>() {
   });
 }
 
-export function useUpdateProgramRows() {
+export function useUpdateProgram() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, updates, completedDate, dateRowIndex, duration }: {
-      id: string;
-      updates: RowUpdate[];
-      completedDate?: string;
-      dateRowIndex?: number;
-      duration?: string;
-    }) => programsApi.updateRows(id, updates, completedDate, dateRowIndex, duration),
+    mutationFn: ({ id, input }: { id: string; input: ProgramUpdateInput }) =>
+      programsApi.update(id, input),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: programQueryKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: programQueryKeys.list });

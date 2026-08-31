@@ -25,6 +25,8 @@ const EnvSchema = z.object({
   FIREBASE_SERVICE_ACCOUNT: z.string(),
   FRONTEND_URL: z.string().default("http://localhost:5173"),
   FIRESTORE_DATABASE_ID: z.string().default("default"),
+  GOOGLE_CLOUD_PROJECT_ID: z.string(),
+  GOOGLE_CLOUD_LOCATION: z.string().default("global"),
 });
 
 const env = EnvSchema.parse(process.env);

@@ -14,6 +14,7 @@ Workout: {
     name: String
     date?: Date
     duration?: String
+    week: Number
     exercises: Exercise[]
     
 }
@@ -48,5 +49,6 @@ gsql.bodyWeight.update(date, { data:{ weight } })
 Usully the date is the unqie identifier or name (or spreadsheet id). be smart and decide for each entity in database we should get.
 
 for now lets ignore quick workouts layer as we dont use it yet.
-ill figure it out later. Lets create a detailed plan to implement only the dal. dont apply it to the existing code
+ill figure it out later. Lets create a detailed plan to implement only the dal. dont apply it to the existing code. just create dal/ and the logic needs for that.
+ask me anything that is not clear!
 

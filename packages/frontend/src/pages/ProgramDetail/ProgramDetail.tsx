@@ -1,13 +1,22 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Loader2, ChevronLeft, Trophy, PartyPopper } from "lucide-react";
-import { useWorkout, type Week } from "../../contexts/WorkoutContext";
+import { useWorkout } from "../../contexts/WorkoutContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { WeeksList } from "../../components/WeeksList/WeeksList";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import { useGetProgram } from "../../api/programs";
+import type { Workout } from "../../api/workouts";
 import styles from "./ProgramDetail.module.css";
+
+interface Program {
+  id: string;
+  name: string;
+  numberOfWeeks: number;
+  isComplete: boolean;
+  workouts: Workout[];
+}
 
 const ProgramDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,9 +24,11 @@ const ProgramDetail = () => {
   const { activeWorkout } = useWorkout();
   const { weightUnit } = useSettings();
 
-  const { data: programResponse, isLoading, error } = useGetProgram<Week[]>(id);
-  const program = programResponse?.program || [];
-  const programName = programResponse?.name || "Program";
+  const { data: programResponse, isLoading, error } = useGetProgram<Program>(id);
+  const program = programResponse?.program;
+  const programWorkouts = program?.workouts || [];
+  const programName = program?.name || "Program";
+  const numberOfWeeks = program?.numberOfWeeks || 0;
 
   // 1RM prompt state
   const [showExerciseDrawer, setShowExerciseDrawer] = useState(false);
@@ -33,26 +44,22 @@ const ProgramDetail = () => {
     activeWorkout && activeWorkout.programId !== id
   );
 
-  // Check if entire program is complete
+  // Check if entire program is complete (all workouts have a date)
   const isProgramComplete = useMemo(() => {
-    if (program.length === 0) return false;
-    return program.every((week) =>
-      week.workouts.every((workout) => workout.isComplete),
-    );
-  }, [program]);
+    if (programWorkouts.length === 0) return false;
+    return programWorkouts.every((workout) => workout.date !== undefined);
+  }, [programWorkouts]);
 
   // Get all unique exercises from the program for 1RM selection
   const allExercises = useMemo(() => {
     const exercises = new Set<string>();
-    program.forEach((week) => {
-      week.workouts.forEach((workout) => {
-        workout.exercises.forEach((ex) => {
-          exercises.add(ex.exercise);
-        });
+    programWorkouts.forEach((workout) => {
+      workout.exercises.forEach((ex) => {
+        exercises.add(ex.name);
       });
     });
     return Array.from(exercises).sort();
-  }, [program]);
+  }, [programWorkouts]);
 
   // Show 1RM prompt when program is first completed
   useEffect(() => {
@@ -143,7 +150,7 @@ const ProgramDetail = () => {
                 Program Complete!
               </span>
               <span className={styles.completeBannerSubtitle}>
-                Great job finishing all {program.length} weeks
+                Great job finishing all {numberOfWeeks} weeks
               </span>
             </div>
           </div>
@@ -160,7 +167,7 @@ const ProgramDetail = () => {
       <WeeksList
         programId={id!}
         programName={programName}
-        weeks={program}
+        workouts={programWorkouts}
         disabled={isWorkoutActiveForDifferentProgram}
       />
 

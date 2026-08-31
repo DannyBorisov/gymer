@@ -83,13 +83,11 @@ const Profile = () => {
   const weightEntries = weightData?.entries || [];
   const isSavingWeight = saveBodyWeight.isPending;
 
-  const getTodayStr = () => {
-    const today = new Date();
-    return `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
-  };
-
-  const hasLoggedToday = weightEntries[0]?.date === getTodayStr();
-  const latestWeight = weightEntries[0];
+  // Entries are sorted ascending, so latest is last
+  const latestWeight = weightEntries[weightEntries.length - 1];
+  const hasLoggedToday = latestWeight
+    ? new Date(latestWeight.date).toDateString() === new Date().toDateString()
+    : false;
 
   const handleSaveWeight = () => {
     if (!weightInput.trim()) return;
@@ -100,31 +98,31 @@ const Profile = () => {
   };
 
   const formatDisplayDate = (dateStr: string) => {
-    const [day, month, year] = dateStr.split("/");
-    const date = new Date(Number(year), Number(month) - 1, Number(day));
+    const date = new Date(dateStr);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (dateStr === getTodayStr()) return "Today";
+    if (date.toDateString() === today.toDateString()) return "Today";
     if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  // Prepare chart data (last 14 entries)
+  // Prepare chart data with formatted dates for display
   const chartData = useMemo(() => {
     if (weightEntries.length === 0) return [];
+    return weightEntries.map((entry) => ({
+      ...entry,
+      displayDate: new Date(entry.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
+    }));
+  }, [weightEntries]);
 
-    return weightEntries
-      .slice(0, 14)
-      .map((entry) => {
-        const [day, month] = entry.date.split("/");
-        return {
-          date: `${day}/${month}`,
-          weight: parseFloat(entry.weight),
-        };
-      })
-      .reverse();
+  // Recent entries for history (most recent first)
+  const recentEntries = useMemo(() => {
+    return [...weightEntries].reverse().slice(0, 7);
   }, [weightEntries]);
 
   const avgWeight = useMemo(() => {
@@ -241,7 +239,7 @@ const Profile = () => {
                       margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                     >
                       <XAxis
-                        dataKey="date"
+                        dataKey="displayDate"
                         axisLine={false}
                         tickLine={false}
                         tick={{ fontSize: 10, fill: "#71717a" }}
@@ -319,7 +317,7 @@ const Profile = () => {
 
                   {showWeightHistory && (
                     <div className={styles.weightHistory}>
-                      {weightEntries.slice(0, 7).map((entry, idx) => (
+                      {recentEntries.map((entry, idx) => (
                         <div
                           key={`${entry.date}-${idx}`}
                           className={styles.historyRow}

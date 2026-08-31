@@ -30,11 +30,6 @@ export const AppProperties = {
 
 export type AppPropertyType = keyof typeof AppProperties;
 
-export function buildQuery(type: AppPropertyType): string {
-  const { key, value } = AppProperties[type];
-  return `${BASE_QUERY} and appProperties has { key='${key}' and value='${value}' }`;
-}
-
 export class GoogleSheets {
   private oauth2Client;
 
