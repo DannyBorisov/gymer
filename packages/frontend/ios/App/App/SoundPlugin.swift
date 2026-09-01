@@ -28,24 +28,14 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
 
     public override func load() {
         synthesizer.delegate = self
-        // Warm up audio system on startup without playing sound
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.warmUpAudio()
-        }
+        // Just preload the voice, don't activate audio session yet
+        _ = AVSpeechSynthesisVoice(language: "en-US")
+        isAudioReady = true
     }
 
-    private func warmUpAudio() {
-        // Configure audio session
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-            try session.setActive(true)
-        } catch {
-            print("Audio session error: \(error)")
-        }
-
-        // Preload voice
-        _ = AVSpeechSynthesisVoice(language: "en-US")
+    private func setupBackgroundAudio() {
+        // Only setup audio engine if not already running
+        guard audioEngine == nil else { return }
 
         // Setup audio engine for background support
         let engine = AVAudioEngine()
@@ -75,27 +65,35 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
             player.scheduleBuffer(buffer, at: nil, options: .loops)
             player.play()
 
-            DispatchQueue.main.async {
-                self.audioEngine = engine
-                self.playerNode = player
-                self.isAudioReady = true
-            }
+            self.audioEngine = engine
+            self.playerNode = player
         } catch {
             print("Audio engine error: \(error)")
-            DispatchQueue.main.async {
-                self.isAudioReady = true
-            }
         }
     }
 
-    private func configureAudioSession() {
-        guard !isAudioReady else { return }
+    private func activateAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            // Use duckOthers to lower other audio (like YouTube) instead of stopping it
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers, .duckOthers])
             try session.setActive(true)
+            // Setup background audio engine when activating
+            setupBackgroundAudio()
         } catch {
             print("Audio session error: \(error)")
+        }
+    }
+
+    private func deactivateAudioSession() {
+        // Stop audio engine
+        stopAudioEngine()
+        // Deactivate session to let other apps resume
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Audio session deactivation error: \(error)")
         }
     }
 
@@ -134,6 +132,9 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
             // Always stop first to prevent duplicates
             self.stopTimer()
 
+            // Activate audio session when rest timer starts
+            self.activateAudioSession()
+
             self.announceInterval = interval
             self.isVoiceMode = mode == "voice"
             self.startTime = jsStartTime
@@ -170,7 +171,8 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     private func stopEverything() {
         stopTimer()
         isRunning = false
-        // Keep audio engine running for next use
+        // Deactivate audio session to let other apps resume
+        deactivateAudioSession()
     }
 
     private func stopAudioEngine() {
@@ -214,11 +216,10 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
             synthesizer.stopSpeaking(at: .immediate)
         }
 
-        // Configure audio session for speech with mixWithOthers to not interrupt other apps
-        // Keep audio engine running - don't pause it
+        // Configure audio session for speech - duck others to lower YouTube/video volume
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
+            try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
             try session.setActive(true, options: [])
         } catch {
             print("SoundPlugin: Failed to configure audio session for speech: \(error)")
@@ -272,9 +273,11 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
 
     private func restoreBackgroundAudioSession() {
         // Restore audio session to background mode after speech
+        // Only if still running (rest timer active)
+        guard isRunning else { return }
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers, .duckOthers])
         } catch {
             print("SoundPlugin: Failed to restore audio session: \(error)")
         }

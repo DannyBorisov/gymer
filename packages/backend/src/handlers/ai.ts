@@ -31,7 +31,6 @@ export const getWorkoutTip: RouteHandler<{
       return reply.status(404).send({ error: "Program not found" });
     }
 
-    // Find the current workout
     const currentWorkout = program.workouts.find(
       (w) => w.week === week && w.name === workoutName,
     );
@@ -40,11 +39,9 @@ export const getWorkoutTip: RouteHandler<{
       return reply.status(404).send({ error: "Workout not found" });
     }
 
-    // Helper to format exercise name with variant
     const formatExerciseName = (ex: { name: string; variant?: string }) =>
       ex.variant ? `${ex.name} (${ex.variant})` : ex.name;
 
-    // 1. All workouts in the current week (for context on what else is planned)
     const currentWeekWorkouts = program.workouts
       .filter((w) => w.week === week)
       .map((w) => ({
@@ -54,7 +51,6 @@ export const getWorkoutTip: RouteHandler<{
         exercises: w.exercises.map(formatExerciseName),
       }));
 
-    // 2. Last 4 instances of today's workout (deeper history)
     const workoutHistory = program.workouts
       .filter((w) => w.name === workoutName && w.week < week && w.date)
       .sort((a, b) => b.week - a.week)

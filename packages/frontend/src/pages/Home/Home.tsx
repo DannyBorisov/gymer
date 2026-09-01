@@ -28,7 +28,7 @@ interface Program {
 const Home = () => {
   const navigate = useNavigate();
   const { activeProgram } = useSettings();
-  const { activeWorkout } = useWorkout();
+  const { activeWorkout, startWorkout } = useWorkout();
   const { user } = useAuth();
 
   const { data: programResponse, isLoading: isLoadingProgram } =
@@ -151,9 +151,15 @@ const Home = () => {
       return;
     }
 
-    // Navigate to program detail page where workout can be started
-    if (nextWorkout && activeProgram) {
-      navigate(`/programs/${activeProgram.id}`);
+    // Start the workout directly
+    if (nextWorkout && activeProgram && program) {
+      startWorkout(
+        activeProgram.id,
+        nextWorkout.workout,
+        programWorkouts,
+        program.name,
+      );
+      navigate("/workout");
     }
   };
 
