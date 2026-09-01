@@ -30,7 +30,6 @@ export function ScrollableInput({
   label,
   value,
   onChange,
-  onAdjust,
   step,
   placeholder = "0",
   inputMode = "numeric",
@@ -76,23 +75,28 @@ export function ScrollableInput({
   // Find index of current value
   const currentIndex = useMemo(() => {
     if (isEmpty) {
-      return values.findIndex(v => v === "-");
+      return values.findIndex((v) => v === "-");
     }
     if (numericValue === 0) {
-      return values.findIndex(v => v === 0);
+      return values.findIndex((v) => v === 0);
     }
-    const idx = values.findIndex(v => typeof v === "number" && Math.abs(v - numericValue) < step / 2);
+    const idx = values.findIndex(
+      (v) => typeof v === "number" && Math.abs(v - numericValue) < step / 2,
+    );
     return idx >= 0 ? idx : 0;
   }, [values, numericValue, isEmpty, step]);
 
   // Format value for display
-  const formatValue = useCallback((val: number | "-") => {
-    if (val === "-") return "-";
-    if (step % 1 === 0) {
-      return val.toString();
-    }
-    return val.toFixed(2).replace(/\.?0+$/, "");
-  }, [step]);
+  const formatValue = useCallback(
+    (val: number | "-") => {
+      if (val === "-") return "-";
+      if (step % 1 === 0) {
+        return val.toString();
+      }
+      return val.toFixed(2).replace(/\.?0+$/, "");
+    },
+    [step],
+  );
 
   // Get current scroll index
   const getScrollIndex = useCallback(() => {
@@ -101,48 +105,55 @@ export function ScrollableInput({
   }, []);
 
   // Smooth scroll to index with animation
-  const smoothScrollToIndex = useCallback((targetIndex: number, duration = SNAP_DURATION, onComplete?: () => void) => {
-    if (!scrollRef.current) {
-      onComplete?.();
-      return;
-    }
-
-    const startScroll = scrollRef.current.scrollTop;
-    const targetScroll = targetIndex * ITEM_HEIGHT;
-    const distance = targetScroll - startScroll;
-
-    if (Math.abs(distance) < 1) {
-      onComplete?.();
-      return;
-    }
-
-    const startTime = performance.now();
-
-    const animate = (currentTime: number) => {
+  const smoothScrollToIndex = useCallback(
+    (
+      targetIndex: number,
+      duration = SNAP_DURATION,
+      onComplete?: () => void,
+    ) => {
       if (!scrollRef.current) {
         onComplete?.();
         return;
       }
 
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+      const startScroll = scrollRef.current.scrollTop;
+      const targetScroll = targetIndex * ITEM_HEIGHT;
+      const distance = targetScroll - startScroll;
 
-      // Ease out cubic for smooth deceleration
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-
-      scrollRef.current.scrollTop = startScroll + distance * easeOut;
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        scrollRef.current.scrollTop = targetScroll;
-        isScrolling.current = false;
+      if (Math.abs(distance) < 1) {
         onComplete?.();
+        return;
       }
-    };
 
-    requestAnimationFrame(animate);
-  }, []);
+      const startTime = performance.now();
+
+      const animate = (currentTime: number) => {
+        if (!scrollRef.current) {
+          onComplete?.();
+          return;
+        }
+
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Ease out cubic for smooth deceleration
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+
+        scrollRef.current.scrollTop = startScroll + distance * easeOut;
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          scrollRef.current.scrollTop = targetScroll;
+          isScrolling.current = false;
+          onComplete?.();
+        }
+      };
+
+      requestAnimationFrame(animate);
+    },
+    [],
+  );
 
   // Apply momentum and snap
   const applyMomentum = useCallback(() => {
@@ -163,7 +174,11 @@ export function ScrollableInput({
             onChange("");
             onInputActivity?.();
           }
-        } else if (isEmpty || isNaN(numericValue) || Math.abs(selectedValue - numericValue) >= step / 2) {
+        } else if (
+          isEmpty ||
+          isNaN(numericValue) ||
+          Math.abs(selectedValue - numericValue) >= step / 2
+        ) {
           onChange(formatValue(selectedValue));
           onInputActivity?.();
         }
@@ -187,14 +202,28 @@ export function ScrollableInput({
 
     // Check for haptic feedback on value change
     const newIndex = getScrollIndex();
-    if (newIndex !== lastHapticIndex.current && newIndex >= 0 && newIndex < values.length) {
+    if (
+      newIndex !== lastHapticIndex.current &&
+      newIndex >= 0 &&
+      newIndex < values.length
+    ) {
       hapticSelection();
       lastHapticIndex.current = newIndex;
     }
 
     // Continue momentum
     momentumRaf.current = requestAnimationFrame(applyMomentum);
-  }, [values, isEmpty, numericValue, step, onChange, onInputActivity, formatValue, getScrollIndex, smoothScrollToIndex]);
+  }, [
+    values,
+    isEmpty,
+    numericValue,
+    step,
+    onChange,
+    onInputActivity,
+    formatValue,
+    getScrollIndex,
+    smoothScrollToIndex,
+  ]);
 
   // Handle scroll event
   const handleScroll = useCallback(() => {
@@ -216,7 +245,11 @@ export function ScrollableInput({
 
     // Haptic feedback when crossing value boundaries
     const currentIdx = getScrollIndex();
-    if (currentIdx !== lastHapticIndex.current && currentIdx >= 0 && currentIdx < values.length) {
+    if (
+      currentIdx !== lastHapticIndex.current &&
+      currentIdx >= 0 &&
+      currentIdx < values.length
+    ) {
       hapticSelection();
       lastHapticIndex.current = currentIdx;
     }
@@ -296,7 +329,9 @@ export function ScrollableInput({
     const newVal = Math.min(max, Math.round((currentVal + step) * 1000) / 1000);
 
     // Find and scroll to new index
-    const newIndex = values.findIndex(v => typeof v === "number" && Math.abs(v - newVal) < step / 2);
+    const newIndex = values.findIndex(
+      (v) => typeof v === "number" && Math.abs(v - newVal) < step / 2,
+    );
     if (newIndex >= 0 && scrollRef.current) {
       isButtonScroll.current = true;
       setIsAnimating(true);
@@ -325,9 +360,12 @@ export function ScrollableInput({
     const newVal = Math.max(min, Math.round((currentVal - step) * 1000) / 1000);
 
     // Find and scroll to new index
-    const newIndex = newVal === 0
-      ? values.findIndex(v => v === 0)
-      : values.findIndex(v => typeof v === "number" && Math.abs(v - newVal) < step / 2);
+    const newIndex =
+      newVal === 0
+        ? values.findIndex((v) => v === 0)
+        : values.findIndex(
+            (v) => typeof v === "number" && Math.abs(v - newVal) < step / 2,
+          );
 
     if (newIndex >= 0 && scrollRef.current) {
       isButtonScroll.current = true;
