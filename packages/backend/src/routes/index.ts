@@ -4,6 +4,7 @@ import ProgramsRoutes from "./programs.js";
 import { quickWorkoutRoutes, workoutRoutes } from "./workouts.js";
 import AnalyticsRoutes from "./analytics.js";
 import ProfileRoutes from "./profile.js";
+import AiRoutes from "./ai.js";
 import { SessionData } from "../lib/encryption.js";
 
 declare module "fastify" {
@@ -19,6 +20,7 @@ const routes: FastifyPluginAsync = async (server) => {
   server.register(workoutRoutes, { prefix: "/workouts" });
   server.register(ProfileRoutes);
   server.register(AnalyticsRoutes, { prefix: "/analytics" });
+  server.register(AiRoutes, { prefix: "/ai" });
 };
 
 export default routes;

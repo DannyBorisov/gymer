@@ -12,7 +12,9 @@ import {
   History,
   Clock,
   TrendingUp,
+  Lightbulb,
 } from "lucide-react";
+import { useGetWorkoutTip } from "../../api/ai";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
   useWorkout,
@@ -63,8 +65,52 @@ const ActiveWorkout = () => {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showPreviousWorkout, setShowPreviousWorkout] = useState(false);
+  const [workoutTip, setWorkoutTip] = useState<string | null>(null);
+  const [displayedTip, setDisplayedTip] = useState("");
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const celebratedProgressionExercises = useRef(new Set<string>());
+
+  const workoutTipMutation = useGetWorkoutTip();
+
+  const handleGetWorkoutTip = async () => {
+    if (!activeWorkout?.programId || !activeWorkout?.workoutName) return;
+
+    setWorkoutTip(null);
+    setDisplayedTip("");
+
+    try {
+      const result = await workoutTipMutation.mutateAsync({
+        programId: activeWorkout.programId,
+        week: activeWorkout.week,
+        workoutName: activeWorkout.workoutName,
+      });
+      setWorkoutTip(result.tip);
+    } catch (error) {
+      console.error("Failed to get workout tip:", error);
+    }
+  };
+
+  // Typewriter effect for tip
+  useEffect(() => {
+    if (!workoutTip) {
+      setDisplayedTip("");
+      return;
+    }
+
+    let index = 0;
+    setDisplayedTip("");
+
+    const interval = setInterval(() => {
+      if (index < workoutTip.length) {
+        setDisplayedTip(workoutTip.slice(0, index + 1));
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 20);
+
+    return () => clearInterval(interval);
+  }, [workoutTip]);
 
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -401,53 +447,63 @@ const ActiveWorkout = () => {
               {completedCount}/{totalSets}
             </span>
           </div>
-          {/* More options menu */}
-          <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
+          {/* Header buttons */}
+          <div className={styles.headerButtons}>
             <button
-              className={styles.moreBtn}
-              onClick={() => setShowMoreMenu(!showMoreMenu)}
-              aria-label="More options"
+              className={`${styles.tipBtn} ${workoutTipMutation.isPending ? styles.tipBtnLoading : ""}`}
+              onClick={handleGetWorkoutTip}
+              disabled={workoutTipMutation.isPending}
+              aria-label="Get AI tip"
             >
-              <MoreVertical size={20} />
+              <Lightbulb size={20} />
             </button>
-            {showMoreMenu && (
-              <div className={styles.moreMenu}>
-                {Object.keys(previousStats).length > 0 && (
+            <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
+              <button
+                className={styles.moreBtn}
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
+                aria-label="More options"
+              >
+                <MoreVertical size={20} />
+              </button>
+              {showMoreMenu && (
+                <div className={styles.moreMenu}>
+                  {Object.keys(previousStats).length > 0 && (
+                    <button
+                      className={styles.moreMenuItem}
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        setShowPreviousWorkout(true);
+                      }}
+                    >
+                      <History size={16} />
+                      <span>Previous workout</span>
+                    </button>
+                  )}
+                  {currentSetIndex < currentExerciseSets.length - 1 && (
+                    <button
+                      className={styles.moreMenuItem}
+                      onClick={() => {
+                        setShowMoreMenu(false);
+                        setCurrentSetIndex(currentSetIndex + 1);
+                      }}
+                    >
+                      <SkipForward size={16} />
+                      <span>Skip set</span>
+                    </button>
+                  )}
                   <button
-                    className={styles.moreMenuItem}
+                    className={`${styles.moreMenuItem} ${styles.moreMenuItemDanger}`}
                     onClick={() => {
                       setShowMoreMenu(false);
-                      setShowPreviousWorkout(true);
+                      handleStopWorkout();
                     }}
                   >
-                    <History size={16} />
-                    <span>Previous workout</span>
+                    <Square size={16} />
+                    <span>End workout</span>
                   </button>
-                )}
-                {currentSetIndex < currentExerciseSets.length - 1 && (
-                  <button
-                    className={styles.moreMenuItem}
-                    onClick={() => {
-                      setShowMoreMenu(false);
-                      setCurrentSetIndex(currentSetIndex + 1);
-                    }}
-                  >
-                    <SkipForward size={16} />
-                    <span>Skip set</span>
-                  </button>
-                )}
-                <button
-                  className={`${styles.moreMenuItem} ${styles.moreMenuItemDanger}`}
-                  onClick={() => {
-                    setShowMoreMenu(false);
-                    handleStopWorkout();
-                  }}
-                >
-                  <Square size={16} />
-                  <span>End workout</span>
-                </button>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -553,6 +609,19 @@ const ActiveWorkout = () => {
           <span className={styles.targetText}>
             {currentSet.targetReps} reps @ {currentSet.rir} RIR
           </span>
+        </div>
+      )}
+
+      {/* AI Tip */}
+      {(displayedTip || workoutTipMutation.isPending) && (
+        <div className={styles.tipContainer}>
+          <Lightbulb size={16} className={styles.tipIcon} />
+          <p className={styles.tipText}>
+            {workoutTipMutation.isPending ? "Thinking..." : displayedTip}
+            {displayedTip && displayedTip.length < (workoutTip?.length || 0) && (
+              <span className={styles.tipCursor}>|</span>
+            )}
+          </p>
         </div>
       )}
 

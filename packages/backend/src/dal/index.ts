@@ -3,6 +3,7 @@ import { BodyWeightModel } from './models/BodyWeightModel.js';
 import { ProgramModel } from './models/ProgramModel.js';
 import { QuickWorkoutModel } from './models/QuickWorkoutModel.js';
 import { AnalyticsModel } from './models/AnalyticsModel.js';
+import { AiTipsModel } from './models/AiTipsModel.js';
 import type { AuthTokens } from './models/BaseModel.js';
 
 /**
@@ -35,12 +36,14 @@ export class GSQL {
   public readonly programs: ProgramModel;
   public readonly quickWorkouts: QuickWorkoutModel;
   public readonly analytics: AnalyticsModel;
+  public readonly aiTips: AiTipsModel;
 
   constructor(tokens: AuthTokens, sheets: GoogleSheets) {
     this.bodyWeight = new BodyWeightModel(sheets, tokens);
     this.programs = new ProgramModel(sheets, tokens);
     this.quickWorkouts = new QuickWorkoutModel(sheets, tokens);
     this.analytics = new AnalyticsModel(sheets, tokens);
+    this.aiTips = new AiTipsModel(sheets, tokens);
   }
 }
 
@@ -83,4 +86,7 @@ export type {
   ExerciseBest,
   ExerciseProgression,
   ExerciseProgressionEntry,
+  // AI Tips
+  AiTip,
+  CreateAiTipInput,
 } from './types.js';

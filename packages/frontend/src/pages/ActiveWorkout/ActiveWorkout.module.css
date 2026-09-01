@@ -56,6 +56,41 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Header buttons */
+.headerButtons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tipBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tipBtn:active {
+  background: var(--bg-interactive);
+}
+
+.tipBtnLoading {
+  color: #eab308;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* More menu */
 .moreMenuWrapper {
   position: relative;
@@ -798,10 +833,45 @@
   font-style: italic;
 }
 
+/* AI Tip */
+.tipContainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  margin: 0 1rem 0.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.tipIcon {
+  flex-shrink: 0;
+  color: #eab308;
+  margin-top: 3px;
+}
+
+.tipText {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.tipCursor {
+  color: var(--text-muted);
+  animation: blink 0.8s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 /* Target info under exercise tabs */
 .targetInfo {
   text-align: center;
-  padding: 0 1rem 0.75rem;
+  padding: 0.75rem 1rem;
   flex-shrink: 0;
 }
 

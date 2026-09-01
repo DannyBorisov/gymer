@@ -11,9 +11,7 @@ export enum NodeEnv {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load .env - try backend package first, then monorepo root
-dotenv.config({ path: path.resolve(__dirname, "../.env") }); // packages/backend/.env
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") }); // root .env
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum([NodeEnv.Development, NodeEnv.Production]),

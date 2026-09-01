@@ -11,7 +11,7 @@ class GenAIService {
     location = config.env.GOOGLE_CLOUD_LOCATION,
   ) {
     this.client = new GoogleGenAI({
-      vertexai: true,
+      enterprise: true,
       project: projectId,
       location: location,
     });

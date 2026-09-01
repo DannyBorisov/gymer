@@ -168,3 +168,18 @@ export interface ExerciseProgression {
   exercise: string;
   entries: ExerciseProgressionEntry[];
 }
+
+// ============ AI Tips ============
+
+export interface AiTip {
+  date: Date;
+  programName: string;
+  workoutName: string;
+  tip: string;
+}
+
+export interface CreateAiTipInput {
+  programName: string;
+  workoutName: string;
+  tip: string;
+}
