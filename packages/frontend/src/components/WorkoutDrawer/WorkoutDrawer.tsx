@@ -21,6 +21,8 @@ interface WorkoutDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  forceCollapsed?: boolean;
+  onPeekTap?: () => void;
   peekContent?: {
     timer: string;
     exerciseName: string;
@@ -31,22 +33,24 @@ export const WorkoutDrawer = ({
   isOpen,
   onClose: _onClose,
   children,
+  forceCollapsed,
+  onPeekTap,
   peekContent,
 }: WorkoutDrawerProps) => {
   void _onClose; // Kept for API compatibility
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(!forceCollapsed);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const touchStartY = useRef(0);
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Reset to expanded when opening
+  // Reset expanded state based on forceCollapsed
   useEffect(() => {
     if (isOpen) {
-      setIsExpanded(true);
+      setIsExpanded(!forceCollapsed);
     }
-  }, [isOpen]);
+  }, [isOpen, forceCollapsed]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
@@ -85,7 +89,11 @@ export const WorkoutDrawer = ({
 
   const handlePeekTap = () => {
     if (!isExpanded) {
-      setIsExpanded(true);
+      if (onPeekTap) {
+        onPeekTap();
+      } else {
+        setIsExpanded(true);
+      }
     }
   };
 

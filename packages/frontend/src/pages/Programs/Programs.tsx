@@ -126,7 +126,7 @@ const Programs = () => {
                     className={styles.continueBtn}
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate("/home");
+                      navigate(`/programs/${activeProgramInfo.id}`);
                     }}
                   >
                     <Play size={16} />

@@ -6,7 +6,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { workoutsApi } from "../api";
+import { workoutsApi } from "../api/workouts";
 import { type QuickExercise } from "./WorkoutContext";
 
 // Common preset exercises

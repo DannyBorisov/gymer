@@ -95,7 +95,9 @@
   overflow-y: auto;
   padding: 0 1rem 1rem;
   -webkit-overflow-scrolling: touch;
-  min-height: 50vh;
+  /* Keep the drawer pinned at its 85vh max height regardless of how many
+     results match the search, instead of shrinking to fit fewer rows. */
+  min-height: calc(85vh - 130px);
 }
 
 /* Add Custom Button */

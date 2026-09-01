@@ -46,6 +46,7 @@ export function ScrollableInput({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   // Scroll state refs
   const isScrolling = useRef(false);
@@ -270,14 +271,40 @@ export function ScrollableInput({
 
   // Scroll to current value on mount and value change
   useEffect(() => {
+    console.log(label, value);
     // Skip if button is handling the scroll animation
     if (isButtonScroll.current) return;
+    if (isEditing) return;
 
-    if (scrollRef.current && !isEditing) {
-      const targetScroll = currentIndex * ITEM_HEIGHT;
-      scrollRef.current.scrollTop = targetScroll;
+    const targetScroll = currentIndex * ITEM_HEIGHT;
+    let rafId: number;
+    let cancelled = false;
+
+    // The picker can mount while hidden (e.g. inside a collapsed drawer),
+    // in which case it has zero layout size and setting scrollTop is a
+    // no-op. Poll each frame until it actually has size before committing
+    // the scroll position, so it doesn't get stuck showing the default
+    // (top) item once revealed. ResizeObserver isn't reliable here since
+    // some WebKit versions don't report a resize on display:none -> visible.
+    const trySetScroll = () => {
+      if (cancelled) return;
+      const el = scrollRef.current;
+      if (!el) return;
+      if (el.scrollHeight <= el.clientHeight) {
+        rafId = requestAnimationFrame(trySetScroll);
+        return;
+      }
+      el.scrollTop = targetScroll;
       lastHapticIndex.current = currentIndex;
-    }
+      setIsReady(true);
+    };
+
+    trySetScroll();
+
+    return () => {
+      cancelled = true;
+      if (rafId) cancelAnimationFrame(rafId);
+    };
   }, [currentIndex, isEditing]);
 
   // Cleanup on unmount
@@ -423,6 +450,7 @@ export function ScrollableInput({
             <div
               ref={scrollRef}
               className={styles.pickerScroll}
+              style={{ opacity: isReady ? 1 : 0 }}
               onScroll={handleScroll}
               onTouchStart={(e) => {
                 e.stopPropagation();

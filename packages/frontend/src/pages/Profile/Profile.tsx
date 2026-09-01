@@ -19,6 +19,18 @@ import {
 } from "recharts";
 import { useGetBodyWeight, useSaveBodyWeight } from "../../api/profile";
 import { parseDate } from "../../lib/date";
+import { useAuth } from "../../contexts/AuthContext";
+import { useSettings } from "../../contexts/SettingsContext";
+import {
+  isWeightReminderEnabled,
+  setWeightReminderEnabled,
+  getWeightReminderTime,
+  setWeightReminderTime,
+  scheduleWeightReminder,
+  cancelWeightReminder,
+} from "../../utils/notifications";
+import { hapticSelection, hapticMedium } from "../../utils/haptics";
+import styles from "./Profile.module.css";
 
 const BodyScaleIcon = ({ size = 18 }: { size?: number }) => (
   <svg
@@ -37,17 +49,6 @@ const BodyScaleIcon = ({ size = 18 }: { size?: number }) => (
     <circle cx="12" cy="12" r="0.5" fill="currentColor" />
   </svg>
 );
-import { useAuth } from "../../contexts/AuthContext";
-import { useSettings } from "../../contexts/SettingsContext";
-import {
-  isWeightReminderEnabled,
-  setWeightReminderEnabled,
-  getWeightReminderTime,
-  setWeightReminderTime,
-  scheduleWeightReminder,
-  cancelWeightReminder,
-} from "../../utils/notifications";
-import styles from "./Profile.module.css";
 
 const getInitials = (name: string) => {
   return name
@@ -75,6 +76,8 @@ const Profile = () => {
     const { hour, minute } = getWeightReminderTime();
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   });
+
+  const [avatarError, setAvatarError] = useState(false);
 
   // Weight tracking state
   const [weightInput, setWeightInput] = useState("");
@@ -133,6 +136,7 @@ const Profile = () => {
   }, [chartData]);
 
   const handleWeightReminderToggle = async () => {
+    hapticMedium();
     const newValue = !weightReminderOn;
     setWeightReminderOn(newValue);
     setWeightReminderEnabled(newValue);
@@ -168,7 +172,16 @@ const Profile = () => {
 
       {/* User info card */}
       <div className={styles.userCard}>
-        <div className={styles.avatar}>{getInitials(user.name)}</div>
+        {user.picture && !avatarError ? (
+          <img
+            src={user.picture}
+            alt=""
+            className={styles.avatarImage}
+            onError={() => setAvatarError(true)}
+          />
+        ) : (
+          <div className={styles.avatar}>{getInitials(user.name)}</div>
+        )}
         <div className={styles.userInfo}>
           <span className={styles.userName}>{user.name}</span>
           <span className={styles.userEmail}>{user.email}</span>
@@ -353,13 +366,19 @@ const Profile = () => {
             <div className={styles.unitToggle}>
               <button
                 className={`${styles.unitBtn} ${weightUnit === "kg" ? styles.unitBtnActive : ""}`}
-                onClick={() => setWeightUnit("kg")}
+                onClick={() => {
+                  hapticSelection();
+                  setWeightUnit("kg");
+                }}
               >
                 kg
               </button>
               <button
                 className={`${styles.unitBtn} ${weightUnit === "lbs" ? styles.unitBtnActive : ""}`}
-                onClick={() => setWeightUnit("lbs")}
+                onClick={() => {
+                  hapticSelection();
+                  setWeightUnit("lbs");
+                }}
               >
                 lbs
               </button>
@@ -406,19 +425,28 @@ const Profile = () => {
             <div className={styles.alertToggle}>
               <button
                 className={`${styles.alertBtn} ${restTimerAnnounceInterval === 0 ? styles.alertBtnActive : ""}`}
-                onClick={() => setRestTimerAnnounceInterval(0)}
+                onClick={() => {
+                  hapticSelection();
+                  setRestTimerAnnounceInterval(0);
+                }}
               >
                 Off
               </button>
               <button
                 className={`${styles.alertBtn} ${restTimerAnnounceInterval === 30 ? styles.alertBtnActive : ""}`}
-                onClick={() => setRestTimerAnnounceInterval(30)}
+                onClick={() => {
+                  hapticSelection();
+                  setRestTimerAnnounceInterval(30);
+                }}
               >
                 30s
               </button>
               <button
                 className={`${styles.alertBtn} ${restTimerAnnounceInterval === 60 ? styles.alertBtnActive : ""}`}
-                onClick={() => setRestTimerAnnounceInterval(60)}
+                onClick={() => {
+                  hapticSelection();
+                  setRestTimerAnnounceInterval(60);
+                }}
               >
                 1m
               </button>

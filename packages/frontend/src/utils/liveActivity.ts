@@ -309,6 +309,7 @@ export const startWorkoutLiveActivity = async (
       dynamicIslandLayout: createDynamicIslandLayout(workoutStartTime),
       behavior: {
         widgetUrl: "gymerr://workout",
+        backgroundTint: "#0a0a0a",
       },
       data: {
         workoutName: workoutName,
@@ -355,6 +356,7 @@ export const updateRestTimer = async (
         dynamicIslandLayout: createDynamicIslandLayoutWithRest(workoutStartTime, restStartTime),
         behavior: {
           widgetUrl: "gymerr://workout",
+          backgroundTint: "#0a0a0a",
         },
         data: {
           workoutName: workoutName,
@@ -369,6 +371,7 @@ export const updateRestTimer = async (
         dynamicIslandLayout: createDynamicIslandLayout(workoutStartTime),
         behavior: {
           widgetUrl: "gymerr://workout",
+          backgroundTint: "#0a0a0a",
         },
         data: {
           workoutName: workoutName,

@@ -511,13 +511,21 @@ const ActiveWorkout = () => {
       {/* Workout complete summary */}
       {isWorkoutComplete && workoutSummary && (
         <div className={styles.workoutSummary}>
+          <div className={styles.summaryCheckWrapper}>
+            <div className={styles.summaryCheckCircle} />
+            <Check size={28} strokeWidth={3} className={styles.summaryCheck} />
+          </div>
           <div className={styles.summaryHeader}>
-            <Check size={28} className={styles.summaryCheck} />
             <h2 className={styles.summaryTitle}>Workout Complete!</h2>
+            {activeWorkout?.workoutName && (
+              <p className={styles.summarySubtitle}>{activeWorkout.workoutName}</p>
+            )}
           </div>
           <div className={styles.summaryStats}>
             <div className={styles.summaryStat}>
-              <Clock size={20} />
+              <div className={styles.summaryStatIcon}>
+                <Clock size={18} />
+              </div>
               <div className={styles.summaryStatContent}>
                 <span className={styles.summaryStatValue}>
                   {duration !== null ? formatTime(duration) : "—"}
@@ -525,23 +533,10 @@ const ActiveWorkout = () => {
                 <span className={styles.summaryStatLabel}>Duration</span>
               </div>
             </div>
-            {workoutSummary.progressionCount > 0 && (
-              <div
-                className={`${styles.summaryStat} ${styles.summaryStatProgression}`}
-              >
-                <TrendingUp size={20} />
-                <div className={styles.summaryStatContent}>
-                  <span className={styles.summaryStatValue}>
-                    {workoutSummary.progressionCount}
-                  </span>
-                  <span className={styles.summaryStatLabel}>
-                    Progression{workoutSummary.progressionCount > 1 ? "s" : ""}
-                  </span>
-                </div>
-              </div>
-            )}
             <div className={styles.summaryStat}>
-              <span className={styles.setsIcon}>#</span>
+              <div className={styles.summaryStatIcon}>
+                <span className={styles.setsIcon}>#</span>
+              </div>
               <div className={styles.summaryStatContent}>
                 <span className={styles.summaryStatValue}>
                   {completedCount}
@@ -549,14 +544,31 @@ const ActiveWorkout = () => {
                 <span className={styles.summaryStatLabel}>Sets</span>
               </div>
             </div>
-            {workoutSummary.averageRir && (
+            {workoutSummary.averageRir !== null && (
               <div className={styles.summaryStat}>
-                <span className={styles.rirIcon}>RIR</span>
+                <div className={styles.summaryStatIcon}>
+                  <span className={styles.rirIcon}>RIR</span>
+                </div>
                 <div className={styles.summaryStatContent}>
                   <span className={styles.summaryStatValue}>
                     {workoutSummary.averageRir}
                   </span>
-                  <span className={styles.summaryStatLabel}>Avg RIR</span>
+                  <span className={styles.summaryStatLabel}>Avg</span>
+                </div>
+              </div>
+            )}
+            {workoutSummary.progressionCount > 0 && (
+              <div
+                className={`${styles.summaryStat} ${styles.summaryStatProgression}`}
+              >
+                <div className={styles.summaryStatIcon}>
+                  <TrendingUp size={18} />
+                </div>
+                <div className={styles.summaryStatContent}>
+                  <span className={styles.summaryStatValue}>
+                    {workoutSummary.progressionCount}
+                  </span>
+                  <span className={styles.summaryStatLabel}>PR{workoutSummary.progressionCount > 1 ? "s" : ""}</span>
                 </div>
               </div>
             )}

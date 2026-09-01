@@ -7,7 +7,7 @@ class GenAIService {
   private client: GoogleGenAI;
 
   constructor(apiKey = config.env.GOOGLE_GEMINI_API_KEY) {
-    this.client = new GoogleGenAI({ apiKey });
+    this.client = new GoogleGenAI({ vertexai: true, apiKey });
   }
 
   async generateContent(

@@ -52,10 +52,3 @@ export async function request<T>(
   }
   return data;
 }
-
-export * from "./auth";
-export * from "./analytics";
-export * from "./profile";
-export * from "./programs";
-export * from "./workouts";
-export * from "./ai";

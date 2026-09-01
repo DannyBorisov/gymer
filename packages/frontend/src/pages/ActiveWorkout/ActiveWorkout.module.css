@@ -627,64 +627,182 @@
 
 /* Workout complete summary */
 .workoutSummary {
-  margin: 0.5rem 1rem 1rem;
-  padding: 1.25rem;
-  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-interactive) 100%);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem 1rem;
+  animation: summaryFadeIn 0.6s ease-out;
 }
 
-.summaryHeader {
+@keyframes summaryFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.summaryCheckWrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
   margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border-default);
+}
+
+.summaryCheckCircle {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
+  animation: circleGrow 0.5s ease-out;
+}
+
+@keyframes circleGrow {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.summaryCheckCircle::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-green);
+  opacity: 0.3;
 }
 
 .summaryCheck {
+  position: relative;
   color: var(--accent-green);
+  animation: checkPop 0.4s ease-out 0.2s both;
+}
+
+@keyframes checkPop {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.summaryHeader {
+  text-align: center;
+  margin-bottom: 1rem;
 }
 
 .summaryTitle {
   font-size: 1.25rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
+  margin: 0 0 0.125rem 0;
+  animation: titleFade 0.5s ease-out 0.3s both;
+}
+
+@keyframes titleFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.summarySubtitle {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
   margin: 0;
+  animation: titleFade 0.5s ease-out 0.4s both;
 }
 
 .summaryStats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 340px;
+  animation: statsFade 0.5s ease-out 0.5s both;
+}
+
+@keyframes statsFade {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .summaryStat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 0.375rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.summaryStatIcon {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: var(--text-secondary);
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--text-muted);
 }
 
 .summaryStatContent {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 1px;
 }
 
 .summaryStatValue {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.125rem;
+  font-weight: 700;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .summaryStatLabel {
-  font-size: 0.75rem;
+  font-size: 0.625rem;
+  font-weight: 600;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .summaryStatProgression {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.08) 100%);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.summaryStatProgression .summaryStatIcon {
   color: var(--accent-green);
 }
 
@@ -692,30 +810,21 @@
   color: var(--accent-green);
 }
 
+.summaryStatProgression .summaryStatLabel {
+  color: var(--accent-green);
+  opacity: 0.8;
+}
+
 .setsIcon {
   font-size: 0.875rem;
   font-weight: 700;
-  width: 20px;
-  text-align: center;
-  color: var(--text-secondary);
+  color: inherit;
 }
 
 .rirIcon {
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 700;
-  padding: 4px 6px;
-  background: var(--bg-secondary);
-  border-radius: 4px;
-  color: var(--text-secondary);
-}
-
-.summaryMeta {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--border-default);
-  font-size: 0.8125rem;
-  color: var(--text-muted);
-  text-align: center;
+  color: inherit;
 }
 
 /* Previous Workout Drawer */

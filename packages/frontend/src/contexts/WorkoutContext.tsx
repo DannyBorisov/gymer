@@ -6,7 +6,9 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { analyticsApi, programsApi, workoutsApi } from "../api";
+import { workoutsApi } from "../api/workouts";
+import { analyticsApi } from "../api/analytics";
+import { programsApi } from "../api/programs";
 import type { Workout as ApiWorkout } from "../api/workouts";
 import { formatDuration } from "../lib/time";
 import {
@@ -83,7 +85,11 @@ interface WorkoutContextType {
   restTimer: number;
   isRestTimerActive: boolean;
   restTimerStartTime: number | null;
-  startRestTimer: (exerciseName: string, duration: number, announceInterval: number) => void;
+  startRestTimer: (
+    exerciseName: string,
+    duration: number,
+    announceInterval: number,
+  ) => void;
   stopRestTimer: (exerciseName: string) => void;
 
   // Actions
@@ -91,7 +97,7 @@ interface WorkoutContextType {
     programId: string,
     workout: ApiWorkout,
     allWorkouts: ApiWorkout[],
-    programName: string
+    programName: string,
   ) => void;
   startQuickWorkout: (exercises: QuickExercise[]) => void;
   addExerciseToWorkout: (exercise: QuickExercise) => void;
@@ -131,15 +137,23 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [completedSets, setCompletedSets] = useState<Set<number>>(new Set());
   const [allWorkouts, setAllWorkouts] = useState<ApiWorkout[]>([]);
   const [programName, setProgramName] = useState<string>("");
-  const [previousStats, setPreviousStats] = useState<Record<string, PreviousStats>>({});
-  const [exerciseBests, setExerciseBests] = useState<Record<string, ExerciseBest>>({});
+  const [previousStats, setPreviousStats] = useState<
+    Record<string, PreviousStats>
+  >({});
+  const [exerciseBests, setExerciseBests] = useState<
+    Record<string, ExerciseBest>
+  >({});
   const [isQuickWorkout, setIsQuickWorkout] = useState(false);
 
   // Rest timer state (persisted across drawer collapse)
   const [restTimer, setRestTimer] = useState(0);
   const [isRestTimerActive, setIsRestTimerActive] = useState(false);
-  const [restTimerStartTime, setRestTimerStartTime] = useState<number | null>(null);
-  const restTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [restTimerStartTime, setRestTimerStartTime] = useState<number | null>(
+    null,
+  );
+  const restTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
@@ -255,7 +269,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           },
           data: {
             achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
-            achievedReps: row.repsAchieved ? parseInt(row.repsAchieved, 10) : undefined,
+            achievedReps: row.repsAchieved
+              ? parseInt(row.repsAchieved, 10)
+              : undefined,
             achievedRir: row.rirAchieved || undefined,
             notes: row.notes || undefined,
           },
@@ -304,7 +320,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   }, [activeWorkout, saveWorkout]);
 
   // Start rest timer
-  const startRestTimer = (exerciseName: string, duration: number, announceInterval: number) => {
+  const startRestTimer = (
+    exerciseName: string,
+    duration: number,
+    announceInterval: number,
+  ) => {
     const startTime = Date.now();
     setRestTimer(0);
     setRestTimerStartTime(startTime);
@@ -333,7 +353,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
     // Update Live Activity to hide rest timer
     if (activeWorkout) {
-      updateRestTimerLiveActivity(false, activeWorkout.workoutName, exerciseName);
+      updateRestTimerLiveActivity(
+        false,
+        activeWorkout.workoutName,
+        exerciseName,
+      );
     }
   };
 
@@ -366,12 +390,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     programId: string,
     workout: ApiWorkout,
     programWorkouts: ApiWorkout[],
-    name: string
+    name: string,
   ) => {
     const exercises = convertToExerciseRows(workout);
     workoutDataRef.current = exercises;
     setWorkoutData(exercises);
-    setActiveWorkout({ programId, week: workout.week, workoutName: workout.name });
+    setActiveWorkout({
+      programId,
+      week: workout.week,
+      workoutName: workout.name,
+    });
     setAllWorkouts(programWorkouts);
     setProgramName(name);
     setCurrentExerciseIndex(0);
@@ -403,15 +431,20 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     for (const exerciseName of exerciseNames) {
       // Find previous weeks with same workout name
       const prevWorkouts = programWorkouts
-        .filter((w) => w.name === currentWorkoutName && w.week < currentWeek && w.date)
+        .filter(
+          (w) =>
+            w.name === currentWorkoutName && w.week < currentWeek && w.date,
+        )
         .sort((a, b) => b.week - a.week);
 
       for (const prevWorkout of prevWorkouts) {
-        const prevExercise = prevWorkout.exercises.find((e) => e.name === exerciseName);
+        const prevExercise = prevWorkout.exercises.find(
+          (e) => e.name === exerciseName,
+        );
         if (!prevExercise) continue;
 
         const completedSets = prevExercise.sets.filter(
-          (s) => s.achievedWeight !== undefined && s.achievedReps !== undefined
+          (s) => s.achievedWeight !== undefined && s.achievedReps !== undefined,
         );
 
         if (completedSets.length > 0) {
@@ -432,7 +465,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setPreviousStats(stats);
 
     // Fetch exercise bests asynchronously for PR detection
-    analyticsApi.bests()
+    analyticsApi
+      .bests()
       .then((data) => {
         if (data.bests) {
           setExerciseBests(data.bests);
@@ -473,7 +507,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     workoutDataRef.current = exerciseRows;
     setWorkoutData(exerciseRows);
-    setActiveWorkout({ programId: "quick", week: 1, workoutName: "Quick Workout" });
+    setActiveWorkout({
+      programId: "quick",
+      week: 1,
+      workoutName: "Quick Workout",
+    });
     setAllWorkouts([]);
     setProgramName("Quick Workout");
     setCurrentExerciseIndex(0);
@@ -482,7 +520,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setIsQuickWorkout(true);
 
     // Fetch exercise bests asynchronously for PR detection
-    analyticsApi.bests()
+    analyticsApi
+      .bests()
       .then((data) => {
         if (data.bests) {
           setExerciseBests(data.bests);
@@ -505,7 +544,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const addExerciseToWorkout = (exercise: QuickExercise) => {
     if (!activeWorkout) return;
 
-    const currentMaxRowIndex = Math.max(...workoutData.map(r => r.rowIndex), -1);
+    const currentMaxRowIndex = Math.max(
+      ...workoutData.map((r) => r.rowIndex),
+      -1,
+    );
     const newRows: ExerciseRow[] = [];
 
     for (let setNum = 1; setNum <= exercise.sets; setNum++) {
@@ -547,7 +589,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     // Only save if workout is NOT complete (incomplete workouts get saved without date)
     // Complete workouts were already saved via auto-save during the workout
     const allComplete = workoutData.every(
-      (row) => row.weight && row.repsAchieved
+      (row) => row.weight && row.repsAchieved,
     );
     if (!allComplete) {
       await saveWorkout(false);
@@ -574,7 +616,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     // Update ref immediately to avoid race conditions
     workoutDataRef.current = workoutDataRef.current.map((row) =>
-      row.rowIndex === rowIndex ? { ...row, [field]: value } : row
+      row.rowIndex === rowIndex ? { ...row, [field]: value } : row,
     );
     setWorkoutData(workoutDataRef.current);
     setHasUnsavedChanges(true);
@@ -603,7 +645,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     const newData = workoutDataRef.current.map((row) =>
       row.rowIndex === rowIndex && !row.repsAchieved
         ? { ...row, repsAchieved: row.targetReps.toString() }
-        : row
+        : row,
     );
 
     // Update both ref and state
@@ -621,16 +663,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           const validSets = newData.filter((s) => s.weight || s.repsAchieved);
           if (validSets.length > 0) {
             await workoutsApi.saveQuick({
-                workoutId: `quick-${Date.now()}`,
-                duration: formatDuration(timer),
-                sets: validSets.map((s) => ({
-                  exercise: s.exercise,
-                  set: s.set,
-                  weight: s.weight,
-                  reps: s.repsAchieved,
-                  rir: s.rirAchieved,
-                  notes: s.notes,
-                })),
+              workoutId: `quick-${Date.now()}`,
+              duration: formatDuration(timer),
+              sets: validSets.map((s) => ({
+                exercise: s.exercise,
+                set: s.set,
+                weight: s.weight,
+                reps: s.repsAchieved,
+                rir: s.rirAchieved,
+                notes: s.notes,
+              })),
             });
           }
         } else {
@@ -650,7 +692,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
               },
               data: {
                 achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
-                achievedReps: row.repsAchieved ? parseInt(row.repsAchieved, 10) : undefined,
+                achievedReps: row.repsAchieved
+                  ? parseInt(row.repsAchieved, 10)
+                  : undefined,
                 achievedRir: row.rirAchieved || undefined,
                 notes: row.notes || undefined,
               },
@@ -697,7 +741,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     const newData = workoutDataRef.current.map((row) =>
       row.rowIndex === rowIndex && !row.repsAchieved
         ? { ...row, repsAchieved: row.targetReps.toString() }
-        : row
+        : row,
     );
 
     // Update both ref and state
@@ -716,16 +760,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setIsSaving(true);
         try {
           await workoutsApi.saveQuick({
-              workoutId: `quick-${Date.now()}`,
-              duration: formatDuration(timer),
-              sets: validSets.map((s) => ({
-                exercise: s.exercise,
-                set: s.set,
-                weight: s.weight,
-                reps: s.repsAchieved,
-                rir: s.rirAchieved,
-                notes: s.notes,
-              })),
+            workoutId: `quick-${Date.now()}`,
+            duration: formatDuration(timer),
+            sets: validSets.map((s) => ({
+              exercise: s.exercise,
+              set: s.set,
+              weight: s.weight,
+              reps: s.repsAchieved,
+              rir: s.rirAchieved,
+              notes: s.notes,
+            })),
           });
         } catch (error) {
           console.error("Failed to save quick workout:", error);
@@ -755,7 +799,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             },
             data: {
               achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
-              achievedReps: row.repsAchieved ? parseInt(row.repsAchieved, 10) : undefined,
+              achievedReps: row.repsAchieved
+                ? parseInt(row.repsAchieved, 10)
+                : undefined,
               achievedRir: row.rirAchieved || undefined,
               notes: row.notes || undefined,
             },

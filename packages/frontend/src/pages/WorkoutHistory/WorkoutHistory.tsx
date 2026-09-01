@@ -20,6 +20,9 @@ const WorkoutHistory = () => {
 
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [showStats, setShowStats] = useState(true);
+  const [groupMode, setGroupMode] = useState<
+    "none" | "week" | "month" | "workout"
+  >("none");
 
   const formatDateDisplay = (dateStr: string) => {
     const date = parseDate(dateStr);
@@ -58,29 +61,45 @@ const WorkoutHistory = () => {
     return `${mins} min`;
   };
 
-  const getDateKey = (dateStr: string) => {
-    const date = parseDate(dateStr);
-    return date.toISOString().split("T")[0];
-  };
-
-  // Group workouts by date
-  const groupedWorkouts = useMemo(() => {
-    return data.workouts.reduce(
-      (acc, workout) => {
-        const dateKey = getDateKey(workout.date!);
-        if (!acc[dateKey]) {
-          acc[dateKey] = [];
-        }
-        acc[dateKey].push(workout);
-        return acc;
-      },
-      {} as Record<string, Workout[]>,
-    );
-  }, [data.workouts]);
-
-  const sortedDates = Object.keys(groupedWorkouts).sort(
-    (a, b) => new Date(b).getTime() - new Date(a).getTime(),
+  const sortedWorkouts = useMemo(
+    () =>
+      [...data.workouts].sort(
+        (a, b) => parseDate(b.date!).getTime() - parseDate(a.date!).getTime(),
+      ),
+    [data.workouts],
   );
+
+  // Group workouts by the selected grouping (or a single flat group)
+  const workoutGroups = useMemo(() => {
+    if (groupMode === "none") {
+      return [{ label: null as string | null, workouts: sortedWorkouts }];
+    }
+
+    const groups: { label: string; workouts: Workout[] }[] = [];
+    const groupIndexByLabel = new Map<string, number>();
+
+    for (const workout of sortedWorkouts) {
+      const label =
+        groupMode === "week"
+          ? `Week ${workout.week}`
+          : groupMode === "workout"
+            ? workout.name
+            : parseDate(workout.date!).toLocaleDateString("en-US", {
+                month: "long",
+                year: "numeric",
+              });
+
+      let index = groupIndexByLabel.get(label);
+      if (index === undefined) {
+        index = groups.length;
+        groupIndexByLabel.set(label, index);
+        groups.push({ label, workouts: [] });
+      }
+      groups[index].workouts.push(workout);
+    }
+
+    return groups;
+  }, [sortedWorkouts, groupMode]);
 
   // Calculate weekly stats for the last 4 weeks
   const weeklyStats = useMemo(() => {
@@ -206,38 +225,78 @@ const WorkoutHistory = () => {
           <p>Start a workout to see it here.</p>
         </div>
       ) : (
-        <div className={styles.workoutList}>
-          {sortedDates.map((dateKey) => (
-            <div key={dateKey} className={styles.dateGroup}>
-              <h2 className={styles.dateHeader}>
-                {formatDateDisplay(groupedWorkouts[dateKey][0].date!)}
-              </h2>
-              <div className={styles.workoutCards}>
-                {groupedWorkouts[dateKey].map((workout, idx) => (
-                  <button
-                    key={`${workout.name}-${workout.week}-${idx}`}
-                    className={styles.workoutCard}
-                    onClick={() => setSelectedWorkout(workout)}
-                  >
-                    <div className={styles.workoutIcon}>
-                      <Dumbbell size={20} />
-                    </div>
-                    <div className={styles.workoutInfo}>
-                      <span className={styles.workoutName}>{workout.name}</span>
-                      <span className={styles.workoutMeta}>
-                        {workout.exercises.length} exercise
-                        {workout.exercises.length !== 1 ? "s" : ""}
-                        {workout.duration &&
-                          ` · ${formatDuration(workout.duration)}`}
-                      </span>
-                    </div>
-                    <div className={styles.weekBadge}>Week {workout.week}</div>
-                  </button>
-                ))}
-              </div>
+        <>
+          <div className={styles.groupSelector}>
+            <span className={styles.groupSelectorLabel}>Group by</span>
+            <div className={styles.groupOptions}>
+              {(
+                [
+                  { mode: "none", label: "Date" },
+                  { mode: "week", label: "Week" },
+                  { mode: "month", label: "Month" },
+                  { mode: "workout", label: "Workout" },
+                ] as const
+              ).map(({ mode, label }) => (
+                <button
+                  key={mode}
+                  className={`${styles.groupOption} ${
+                    groupMode === mode ? styles.groupOptionActive : ""
+                  }`}
+                  onClick={() => setGroupMode(mode)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+
+          <div className={styles.workoutList}>
+            {workoutGroups.map((group, groupIdx) => (
+              <div
+                key={group.label ?? `flat-${groupIdx}`}
+                className={styles.dateGroup}
+              >
+                {group.label && (
+                  <h2 className={styles.dateHeader}>{group.label}</h2>
+                )}
+                <div className={styles.workoutCards}>
+                  {group.workouts.map((workout, idx) => (
+                    <button
+                      key={`${workout.date}-${workout.name}-${workout.week}-${idx}`}
+                      className={styles.workoutCard}
+                      onClick={() => setSelectedWorkout(workout)}
+                    >
+                      <div className={styles.workoutIcon}>
+                        <Dumbbell size={20} />
+                      </div>
+                      <div className={styles.workoutInfo}>
+                        {groupMode === "none" && (
+                          <span className={styles.workoutDate}>
+                            {formatDateDisplay(workout.date!)}
+                          </span>
+                        )}
+                        <span className={styles.workoutName}>
+                          {groupMode === "workout"
+                            ? formatDateDisplay(workout.date!)
+                            : workout.name}
+                        </span>
+                        <span className={styles.workoutMeta}>
+                          {workout.exercises.length} exercise
+                          {workout.exercises.length !== 1 ? "s" : ""}
+                          {workout.duration &&
+                            ` · ${formatDuration(workout.duration)}`}
+                        </span>
+                      </div>
+                      <div className={styles.weekBadge}>
+                        Week {workout.week}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Workout Detail Drawer */}

@@ -36,8 +36,10 @@
 
 .drawerCollapsed {
   height: 64px;
-  /* Position above the bottom nav (nav is ~66px + safe-area) */
+  /* Position above the bottom nav */
   bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  border-radius: 16px 16px 0 0;
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* Handle area */
@@ -67,14 +69,14 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-top: 12px;
+  margin-top: 8px;
   width: 100%;
   justify-content: center;
   padding: 0 16px;
 }
 
 .peekTimer {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
@@ -84,7 +86,7 @@
 .peekExercise {
   font-size: 0.9375rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;

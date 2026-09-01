@@ -46,10 +46,19 @@ const WorkoutDrawerOverlay = () => {
   const exerciseNames = [...new Set(workoutData.map((e) => e.exercise))];
   const currentExerciseName = exerciseNames[currentExerciseIndex] || "";
 
+  // Show drawer when on workout route OR when there's an active workout on other pages
+  const shouldShowDrawer = !!(isWorkoutRoute || activeWorkout);
+
+  const handlePeekTap = () => {
+    navigate("/workout");
+  };
+
   return (
     <WorkoutDrawer
-      isOpen={isWorkoutRoute}
+      isOpen={shouldShowDrawer}
       onClose={handleClose}
+      forceCollapsed={!isWorkoutRoute && !!activeWorkout}
+      onPeekTap={!isWorkoutRoute ? handlePeekTap : undefined}
       peekContent={
         activeWorkout
           ? {
