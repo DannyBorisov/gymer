@@ -18,6 +18,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { useGetBodyWeight, useSaveBodyWeight } from "../../api/profile";
+import { parseDate } from "../../lib/date";
 
 const BodyScaleIcon = ({ size = 18 }: { size?: number }) => (
   <svg
@@ -86,7 +87,7 @@ const Profile = () => {
   // Entries are sorted ascending, so latest is last
   const latestWeight = weightEntries[weightEntries.length - 1];
   const hasLoggedToday = latestWeight
-    ? new Date(latestWeight.date).toDateString() === new Date().toDateString()
+    ? parseDate(latestWeight.date).toDateString() === new Date().toDateString()
     : false;
 
   const handleSaveWeight = () => {
@@ -98,7 +99,7 @@ const Profile = () => {
   };
 
   const formatDisplayDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = parseDate(dateStr);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -113,7 +114,7 @@ const Profile = () => {
     if (weightEntries.length === 0) return [];
     return weightEntries.map((entry) => ({
       ...entry,
-      displayDate: new Date(entry.date).toLocaleDateString("en-US", {
+      displayDate: parseDate(entry.date).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
       }),

@@ -11,6 +11,7 @@ import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
 import { useSettings } from "../../contexts/SettingsContext";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import { parseExerciseName } from "../../types/shared";
+import { parseDate } from "../../lib/date";
 import styles from "./WorkoutHistory.module.css";
 
 const WorkoutHistory = () => {
@@ -20,8 +21,8 @@ const WorkoutHistory = () => {
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [showStats, setShowStats] = useState(true);
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+  const formatDateDisplay = (dateStr: string) => {
+    const date = parseDate(dateStr);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -58,7 +59,7 @@ const WorkoutHistory = () => {
   };
 
   const getDateKey = (dateStr: string) => {
-    const date = new Date(dateStr);
+    const date = parseDate(dateStr);
     return date.toISOString().split("T")[0];
   };
 
@@ -96,7 +97,7 @@ const WorkoutHistory = () => {
       weekEnd.setHours(23, 59, 59, 999);
 
       const count = data.workouts.filter((w) => {
-        const workoutDate = new Date(w.date!);
+        const workoutDate = parseDate(w.date!);
         return workoutDate >= weekStart && workoutDate <= weekEnd;
       }).length;
 
@@ -112,7 +113,7 @@ const WorkoutHistory = () => {
   const thisMonthCount = useMemo(() => {
     const now = new Date();
     return data.workouts.filter((w) => {
-      const workoutDate = new Date(w.date!);
+      const workoutDate = parseDate(w.date!);
       return (
         workoutDate.getMonth() === now.getMonth() &&
         workoutDate.getFullYear() === now.getFullYear()
@@ -209,7 +210,7 @@ const WorkoutHistory = () => {
           {sortedDates.map((dateKey) => (
             <div key={dateKey} className={styles.dateGroup}>
               <h2 className={styles.dateHeader}>
-                {formatDate(groupedWorkouts[dateKey][0].date!)}
+                {formatDateDisplay(groupedWorkouts[dateKey][0].date!)}
               </h2>
               <div className={styles.workoutCards}>
                 {groupedWorkouts[dateKey].map((workout, idx) => (
@@ -251,7 +252,7 @@ const WorkoutHistory = () => {
               <div className={styles.drawerHeaderInfo}>
                 <h2 className={styles.drawerTitle}>{selectedWorkout.name}</h2>
                 <div className={styles.drawerMeta}>
-                  <span>{formatDate(selectedWorkout.date!)}</span>
+                  <span>{formatDateDisplay(selectedWorkout.date!)}</span>
                   {selectedWorkout.duration && (
                     <>
                       <span className={styles.metaDot}>·</span>

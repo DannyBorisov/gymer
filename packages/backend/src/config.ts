@@ -25,6 +25,7 @@ const EnvSchema = z.object({
   FIRESTORE_DATABASE_ID: z.string().default("default"),
   GOOGLE_CLOUD_PROJECT_ID: z.string(),
   GOOGLE_CLOUD_LOCATION: z.string().default("global"),
+  GOOGLE_GEMINI_API_KEY: z.string(),
 });
 
 const env = EnvSchema.parse(process.env);

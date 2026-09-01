@@ -15,6 +15,7 @@ import { useWorkout } from "../../contexts/WorkoutContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useGetProgram } from "../../api/programs";
 import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
+import { parseDate } from "../../lib/date";
 import styles from "./Home.module.css";
 
 interface Program {
@@ -44,7 +45,7 @@ const Home = () => {
       .flat()
       .filter((w): w is Workout => w !== null && w.date !== undefined);
     return all.sort(
-      (a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime(),
+      (a, b) => parseDate(b.date!).getTime() - parseDate(a.date!).getTime(),
     );
   }, [historyResponse]);
   const lastWorkout = completedWorkouts[0] || null;
@@ -69,7 +70,7 @@ const Home = () => {
   const { workoutCount, streak } = useMemo(() => {
     const now = new Date();
     const workoutCount = completedWorkouts.filter((workout) => {
-      const date = new Date(workout.date!);
+      const date = parseDate(workout.date!);
       return (
         date.getMonth() === now.getMonth() &&
         date.getFullYear() === now.getFullYear()
@@ -84,7 +85,7 @@ const Home = () => {
     };
     const workoutWeeks = new Set(
       completedWorkouts.map((workout) => {
-        return getWeekStart(new Date(workout.date!));
+        return getWeekStart(parseDate(workout.date!));
       }),
     );
     const weekLength = 7 * 24 * 60 * 60 * 1000;
@@ -163,8 +164,8 @@ const Home = () => {
     }
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+  const formatDateRelative = (dateStr: string) => {
+    const date = parseDate(dateStr);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
@@ -347,7 +348,7 @@ const Home = () => {
             <div className={styles.workoutInfo}>
               <span className={styles.workoutName}>{lastWorkout.name}</span>
               <span className={styles.workoutMeta}>
-                {formatDate(lastWorkout.date!)}
+                {formatDateRelative(lastWorkout.date!)}
                 {lastWorkout.duration &&
                   ` · ${formatDuration(lastWorkout.duration)}`}
               </span>

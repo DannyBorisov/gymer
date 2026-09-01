@@ -6,15 +6,8 @@ import config from "../config.js";
 class GenAIService {
   private client: GoogleGenAI;
 
-  constructor(
-    projectId = config.env.GOOGLE_CLOUD_PROJECT_ID,
-    location = config.env.GOOGLE_CLOUD_LOCATION,
-  ) {
-    this.client = new GoogleGenAI({
-      enterprise: true,
-      project: projectId,
-      location: location,
-    });
+  constructor(apiKey = config.env.GOOGLE_GEMINI_API_KEY) {
+    this.client = new GoogleGenAI({ apiKey });
   }
 
   async generateContent(
