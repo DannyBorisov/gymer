@@ -1,6 +1,6 @@
 import config from "./config.js";
 
-export const CorsConfig = {
+export default {
   origin: [
     config.env.FRONTEND_URL,
     "https://gymerr.co",

@@ -1,6 +1,6 @@
 import type { RouteHandler } from "fastify";
 import config from "../config.js";
-import { getSession, setSession, clearSession } from "../routes/auth.js";
+import { setSession, getSession } from "../lib/session.js";
 import { encrypt } from "../lib/encryption.js";
 
 export const getAuthUrl: RouteHandler<{
@@ -58,7 +58,7 @@ export const getAuthStatus: RouteHandler = async function (request) {
 };
 
 export const logout: RouteHandler = async function (_request, reply) {
-  clearSession(reply);
+  reply.clearCookie("session", { path: "/" });
   return { success: true };
 };
 

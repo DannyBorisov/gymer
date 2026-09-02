@@ -7,7 +7,7 @@ import firestorePlugin from "./plugins/firestore.js";
 import genaiPlugin from "./plugins/genai.js";
 import routes from "./routes/index.js";
 import { oauthRoutes } from "./routes/auth.js";
-import { CorsConfig } from "./cors.js";
+import CorsConfig from "./cors.js";
 
 export function buildApp() {
   const fastify = Fastify({

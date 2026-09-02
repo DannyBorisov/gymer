@@ -76,7 +76,7 @@ export interface SetUpdateData {
 }
 
 export interface WorkoutUpdateData {
-  date?: Date;
+  date?: Date | string; // string when arriving as JSON over the wire
   duration?: string;
 }
 

@@ -28,22 +28,36 @@ export function parseDate(str: string): Date | null {
 }
 
 /**
+ * Coerce a Date or an ISO/date string (JSON serializes Date to string over the wire)
+ * into a valid Date. Throws on an unparseable value.
+ */
+export function toDate(value: Date | string): Date {
+  const date = value instanceof Date ? value : new Date(value);
+  if (isNaN(date.getTime())) {
+    throw new Error(`Invalid date value: ${String(value)}`);
+  }
+  return date;
+}
+
+/**
  * Format Date to DD/MM/YYYY
  */
-export function formatDate(date: Date): string {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
+export function formatDate(date: Date | string): string {
+  const d = toDate(date);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
   return `${day}/${month}/${year}`;
 }
 
 /**
  * Format Date to DD/MM/YYYY, HH:MM
  */
-export function formatDateTime(date: Date): string {
-  const dateStr = formatDate(date);
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
+export function formatDateTime(date: Date | string): string {
+  const d = toDate(date);
+  const dateStr = formatDate(d);
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
   return `${dateStr}, ${hours}:${minutes}`;
 }
 
