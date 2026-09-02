@@ -5,6 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="68e4137f-b74f-4996-a02a-e6e8883b648a" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/backend/src/handlers/ai.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/handlers/ai.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/frontend/capacitor.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/capacitor.config.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/frontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/index.html" afterDir="false" />

@@ -22,3 +22,6 @@ project(':capacitor-keyboard').projectDir = new File('../../../node_modules/@cap
 
 include ':capacitor-local-notifications'
 project(':capacitor-local-notifications').projectDir = new File('../../../node_modules/@capacitor/local-notifications/android')
+
+include ':revenuecat-purchases-capacitor'
+project(':revenuecat-purchases-capacitor').projectDir = new File('../../../node_modules/@revenuecat/purchases-capacitor/android')

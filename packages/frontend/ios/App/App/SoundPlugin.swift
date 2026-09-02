@@ -73,15 +73,26 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     }
 
     private func activateAudioSession() {
+        setSessionDucking(false)
+        // Setup background audio engine so announcements still fire when backgrounded
+        setupBackgroundAudio()
+    }
+
+    // Session is always .playback + .mixWithOthers so other audio (music, YouTube)
+    // keeps playing at full volume. We add/remove .duckOthers only around each spoken
+    // announcement so ducking lasts exactly as long as the announcement - foreground
+    // or background. mode is .default (NOT .spokenAudio) so toggling ducks other media
+    // rather than interrupting/pausing it.
+    private func setSessionDucking(_ duck: Bool) {
+        let session = AVAudioSession.sharedInstance()
+        let options: AVAudioSession.CategoryOptions = duck ? [.mixWithOthers, .duckOthers] : [.mixWithOthers]
         do {
-            let session = AVAudioSession.sharedInstance()
-            // Use duckOthers to lower other audio (like YouTube) instead of stopping it
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers, .duckOthers])
+            if session.category != .playback || session.categoryOptions != options {
+                try session.setCategory(.playback, mode: .default, options: options)
+            }
             try session.setActive(true)
-            // Setup background audio engine when activating
-            setupBackgroundAudio()
         } catch {
-            print("Audio session error: \(error)")
+            print("Audio session error (duck=\(duck)): \(error)")
         }
     }
 
@@ -216,14 +227,8 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
             synthesizer.stopSpeaking(at: .immediate)
         }
 
-        // Configure audio session for speech - duck others to lower YouTube/video volume
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
-            try session.setActive(true, options: [])
-        } catch {
-            print("SoundPlugin: Failed to configure audio session for speech: \(error)")
-        }
+        // Duck other audio for the duration of this announcement only.
+        setSessionDucking(true)
 
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = rate
@@ -255,7 +260,7 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         print("SoundPlugin: Speech finished")
         DispatchQueue.main.async {
             self.isSpeaking = false
-            self.restoreBackgroundAudioSession()
+            self.onAnnouncementEnded()
         }
     }
 
@@ -263,24 +268,23 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         print("SoundPlugin: Speech cancelled")
         DispatchQueue.main.async {
             self.isSpeaking = false
-            self.restoreBackgroundAudioSession()
+            self.onAnnouncementEnded()
+        }
+    }
+
+    private func onAnnouncementEnded() {
+        if isRunning {
+            // Rest timer still active - stop ducking, keep the session alive for
+            // background announcements. Other audio returns to full volume.
+            setSessionDucking(false)
+        } else {
+            // One-shot announcement - release the session so other apps un-duck.
+            deactivateAudioSession()
         }
     }
 
     public func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         print("SoundPlugin: Speech started")
-    }
-
-    private func restoreBackgroundAudioSession() {
-        // Restore audio session to background mode after speech
-        // Only if still running (rest timer active)
-        guard isRunning else { return }
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers, .duckOthers])
-        } catch {
-            print("SoundPlugin: Failed to restore audio session: \(error)")
-        }
     }
 
     private func formatDuration(_ totalSeconds: Int) -> String {

@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { Browser } from "@capacitor/browser";
 import { authApi } from "../api/auth";
+import { configurePurchases, logOutPurchases } from "../lib/purchases";
 
 
 interface UserInfo {
@@ -44,6 +45,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (user?.email) {
+      configurePurchases(user.email).catch((err) =>
+        console.error("Failed to configure RevenueCat:", err),
+      );
+    }
+  }, [user?.email]);
 
   useEffect(() => {
     checkAuth();
@@ -103,6 +112,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSessionToken(null);
     setIsAuthenticated(false);
     setUser(null);
+
+    logOutPurchases().catch(() => {
+      // Ignore
+    });
 
     // Notify server (best effort)
     try {

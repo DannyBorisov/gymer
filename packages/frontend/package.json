@@ -22,6 +22,7 @@
     "@capacitor/keyboard": "^8.0.5",
     "@capacitor/local-notifications": "^8.3.0",
     "@ncdai/react-wheel-picker": "^1.2.3",
+    "@revenuecat/purchases-capacitor": "^13.4.2",
     "@tanstack/react-query": "^5.102.8",
     "capacitor-live-activities": "^8.0.0",
     "framer-motion": "^13.1.1",
