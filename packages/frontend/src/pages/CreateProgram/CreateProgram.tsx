@@ -12,6 +12,7 @@ import {
   Clock,
   Gauge,
   Tag,
+  ListChecks,
 } from "lucide-react";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
@@ -81,15 +82,13 @@ const ExerciseRow = ({
               type="button"
               className={styles.addVariantBtn}
               onClick={() => setShowVariant(true)}
-              title="Add variant"
+              title="Add exercise variation"
             >
               <Tag size={12} />
+              <span className={styles.variantButtonText}>Variation</span>
             </button>
           )}
         </div>
-        <button type="button" onClick={onRemove} className={styles.removeBtn}>
-          <Trash2 size={14} />
-        </button>
       </div>
       <div className={styles.exerciseInputs}>
         <div className={styles.inputGroup}>
@@ -133,14 +132,15 @@ const ExerciseRow = ({
         )}
         {dynamicRir && (
           <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>Custom</label>
+            <label className={styles.inputLabel}>RIR target</label>
             <div className={styles.customRirRow}>
               <button
                 type="button"
                 onClick={() => onUpdate("customRir", !exercise.customRir)}
                 className={`${styles.customRirToggle} ${exercise.customRir ? styles.customRirToggleActive : ""}`}
+                aria-pressed={Boolean(exercise.customRir)}
               >
-                {exercise.customRir ? "On" : "Off"}
+                {exercise.customRir ? "Custom" : "Plan"}
               </button>
               {exercise.customRir && (
                 <input
@@ -148,7 +148,8 @@ const ExerciseRow = ({
                   value={exercise.rir || ""}
                   onChange={(e) => onUpdate("rir", Number(e.target.value))}
                   className={styles.numberInput}
-                  placeholder="0"
+                  aria-label="Custom RIR target"
+                  placeholder="RIR"
                   min={0}
                   max={10}
                   inputMode="numeric"
@@ -158,6 +159,9 @@ const ExerciseRow = ({
           </div>
         )}
       </div>
+      <button type="button" onClick={onRemove} className={styles.removeBtn}>
+        <Trash2 size={14} />
+      </button>
     </div>
   );
 };
@@ -240,6 +244,7 @@ const WorkoutSection = ({
                 <span className={styles.colSets}>Sets</span>
                 <span className={styles.colReps}>Reps</span>
                 {showRir && <span className={styles.colRir}>RIR</span>}
+                {dynamicRir && <span className={styles.colRir}>RIR target</span>}
                 <span className={styles.colAction}></span>
               </div>
               {workout.exercises.map((exercise, exerciseIndex) => (
@@ -308,6 +313,12 @@ const CreateProgram = () => {
 
   const formRef = useRef<HTMLFormElement>(null);
   const isSubmitting = createProgram.isPending;
+  const isProgramReady =
+    program.name.trim() !== "" &&
+    program.workouts.every(
+      (workout) =>
+        workout.name.trim() !== "" && workout.exercises.length > 0,
+    );
   const isSubmittingRef = useRef(isSubmitting);
   isSubmittingRef.current = isSubmitting;
 
@@ -316,7 +327,7 @@ const CreateProgram = () => {
     if (mode === "edit" && !result?.success) {
       setFloatingAction({
         label: "Create Program",
-        enabled: !isSubmitting && program.name.trim() !== "",
+        enabled: !isSubmitting && isProgramReady,
         handler: () => {
           if (!isSubmittingRef.current && formRef.current) {
             formRef.current.requestSubmit();
@@ -330,7 +341,7 @@ const CreateProgram = () => {
     return () => {
       setFloatingAction(null);
     };
-  }, [mode, isSubmitting, program.name, result?.success, setFloatingAction]);
+  }, [mode, isSubmitting, isProgramReady, result?.success, setFloatingAction]);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -412,11 +423,17 @@ const CreateProgram = () => {
           </Link>
 
           <div className={styles.pageHeader}>
-            <h1 className={styles.title}>Choose a Template</h1>
+            <h1 className={styles.title}>Create your program</h1>
             <p className={styles.subtitle}>
-              Start with a proven program and customize it to your needs
+              Start with a proven split, then tailor every session to your goals.
             </p>
           </div>
+        </div>
+
+        <div className={styles.sectionIntro}>
+          <span className={styles.sectionEyebrow}>Start faster</span>
+          <h2>Choose a template</h2>
+          <p>Every detail stays editable after you select one.</p>
         </div>
 
         <div className={styles.templateGrid}>
@@ -480,92 +497,123 @@ const CreateProgram = () => {
         Back to Templates
       </button>
 
-      <div className={styles.pageHeader}>
-        <h1 className={styles.title}>Customize Program</h1>
+      <div className={styles.editHeader}>
+        <div>
+          <span className={styles.sectionEyebrow}>Program builder</span>
+          <h1 className={styles.title}>Customize your plan</h1>
+          <p className={styles.subtitle}>
+            Set the schedule, then add the exercises for each session.
+          </p>
+        </div>
+        <div className={styles.progressPill}>
+          <ListChecks size={16} />
+          <span>
+            {program.workouts.filter((workout) => workout.exercises.length > 0)
+              .length}
+            /{program.workouts.length} sessions ready
+          </span>
+        </div>
       </div>
 
       <form ref={formRef} onSubmit={handleSubmit} className={styles.form}>
-        <input
-          type="text"
-          value={program.name}
-          onChange={(e) => updateProgramName(e.target.value)}
-          className={styles.programNameInput}
-          placeholder="Program name"
-        />
-
-        <div className={styles.programSettings}>
-          <div className={styles.settingGroup}>
-            <label className={styles.settingLabel}>
-              <Calendar size={14} />
-              Weeks
-            </label>
+        <section className={styles.detailsCard}>
+          <div className={styles.cardHeading}>
+            <div>
+              <h2>Program details</h2>
+              <p>Choose a name and training rhythm.</p>
+            </div>
+          </div>
+          <label className={styles.nameField}>
+            <span>Program name</span>
             <input
-              type="number"
-              value={program.durationWeeks}
-              onChange={(e) => updateDuration(Number(e.target.value))}
-              className={styles.settingInput}
-              min={1}
-              max={52}
-              inputMode="numeric"
+              type="text"
+              value={program.name}
+              onChange={(e) => updateProgramName(e.target.value)}
+              className={styles.programNameInput}
+              placeholder="e.g. Summer Strength"
             />
-          </div>
-          <div className={styles.settingGroup}>
-            <label className={styles.settingLabel}>
-              <Clock size={14} />
-              Times/week
-            </label>
-            <select
-              value={program.frequency}
-              onChange={(e) => {
-                const val = e.target.value;
-                updateFrequency(
-                  val === "every-other-day"
-                    ? val
-                    : (Number(val) as 1 | 2 | 3 | 4 | 5 | 6),
-                );
-              }}
-              className={styles.settingSelect}
-            >
-              <option value={1}>1x</option>
-              <option value={2}>2x</option>
-              <option value={3}>3x</option>
-              <option value={4}>4x</option>
-              <option value={5}>5x</option>
-              <option value={6}>6x</option>
-              <option value="every-other-day">Every other day</option>
-            </select>
-          </div>
-          <div className={styles.settingGroup}>
-            <label className={styles.settingLabel}>
-              <Gauge size={14} />
-              RIR
-            </label>
-            <select
-              value={
-                program.dynamicRir ? `dynamic-${program.startingRir}` : "manual"
-              }
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === "manual") {
-                  updateDynamicRir(false);
-                } else {
-                  updateDynamicRir(true);
-                  updateStartingRir(Number(val.split("-")[1]));
+          </label>
+
+          <div className={styles.programSettings}>
+            <div className={styles.settingGroup}>
+              <label className={styles.settingLabel}>
+                <Calendar size={14} />
+                Duration
+              </label>
+              <input
+                type="number"
+                value={program.durationWeeks}
+                onChange={(e) => updateDuration(Number(e.target.value))}
+                className={styles.settingInput}
+                min={1}
+                max={52}
+                inputMode="numeric"
+              />
+              <span className={styles.fieldHint}>weeks</span>
+            </div>
+            <div className={styles.settingGroup}>
+              <label className={styles.settingLabel}>
+                <Clock size={14} />
+                Frequency
+              </label>
+              <select
+                value={program.frequency}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  updateFrequency(
+                    val === "every-other-day"
+                      ? val
+                      : (Number(val) as 1 | 2 | 3 | 4 | 5 | 6),
+                  );
+                }}
+                className={styles.settingSelect}
+              >
+                <option value={1}>1x per week</option>
+                <option value={2}>2x per week</option>
+                <option value={3}>3x per week</option>
+                <option value={4}>4x per week</option>
+                <option value={5}>5x per week</option>
+                <option value={6}>6x per week</option>
+                <option value="every-other-day">Every other day</option>
+              </select>
+            </div>
+            <div className={styles.settingGroup}>
+              <label className={styles.settingLabel}>
+                <Gauge size={14} />
+                Effort target
+              </label>
+              <select
+                value={
+                  program.dynamicRir ? `dynamic-${program.startingRir}` : "manual"
                 }
-              }}
-              className={styles.settingSelect}
-            >
-              <option value="manual">Manual</option>
-              <option value="dynamic-4">4 → 1</option>
-              <option value="dynamic-3">3 → 0</option>
-              <option value="dynamic-2">2 → 0</option>
-            </select>
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "manual") {
+                    updateDynamicRir(false);
+                  } else {
+                    updateDynamicRir(true);
+                    updateStartingRir(Number(val.split("-")[1]));
+                  }
+                }}
+                className={styles.settingSelect}
+              >
+                <option value="manual">Set each exercise</option>
+                <option value="dynamic-4">Progress 4 → 1 RIR</option>
+                <option value="dynamic-3">Progress 3 → 0 RIR</option>
+                <option value="dynamic-2">Progress 2 → 0 RIR</option>
+              </select>
+            </div>
           </div>
-        </div>
+        </section>
 
         <div className={styles.workoutsContainer}>
           <div className={styles.workoutsHeader}>
-            <span className={styles.workoutsTitle}>Sessions</span>
+            <div>
+              <span className={styles.workoutsTitle}>Training sessions</span>
+              <p className={styles.workoutsDescription}>
+                Name each session and add the exercises you want to perform.
+              </p>
+            </div>
             <button
               type="button"
               onClick={addWorkout}
@@ -628,10 +676,16 @@ const CreateProgram = () => {
               {result?.error && (
                 <span className={styles.errorMessage}>{result.error}</span>
               )}
+              {!isProgramReady && (
+                <span className={styles.formHint}>
+                  Add a program name, session names, and at least one exercise
+                  to each session.
+                </span>
+              )}
               <button
                 type="submit"
                 className={styles.submitButton}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isProgramReady}
               >
                 {isSubmitting ? (
                   <>

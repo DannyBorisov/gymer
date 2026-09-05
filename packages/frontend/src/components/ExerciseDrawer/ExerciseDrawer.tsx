@@ -173,13 +173,16 @@ export const ExerciseDrawer = ({
         </div>
       </div>
 
-      {multiSelect && selectedExercises.length > 0 && (
+      {multiSelect && (
         <div className={styles.footer}>
           <button
             onClick={handleConfirmMultiSelect}
             className={styles.confirmBtn}
+            disabled={selectedExercises.length === 0}
           >
-            Add {selectedExercises.length} exercise{selectedExercises.length > 1 ? "s" : ""}
+            {selectedExercises.length === 0
+              ? "Add exercises"
+              : `Add ${selectedExercises.length} exercise${selectedExercises.length > 1 ? "s" : ""}`}
           </button>
         </div>
       )}

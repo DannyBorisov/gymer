@@ -167,7 +167,13 @@ const Profile = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Profile</h1>
+        <div>
+          <span className={styles.eyebrow}>Account</span>
+          <h1 className={styles.title}>Profile</h1>
+          <p className={styles.headerSubtitle}>
+            Your training preferences and progress.
+          </p>
+        </div>
       </div>
 
       {/* User info card */}
@@ -190,7 +196,21 @@ const Profile = () => {
 
       {/* Weight section */}
       <div className={styles.section}>
-        <h2 className={styles.sectionTitle}>Body Weight</h2>
+        <div className={styles.sectionHeader}>
+          <div>
+            <span className={styles.sectionEyebrow}>Progress</span>
+            <h2 className={styles.sectionTitle}>Body weight</h2>
+          </div>
+          {latestWeight && (
+            <span
+              className={`${styles.weightStatus} ${
+                hasLoggedToday ? styles.weightStatusComplete : ""
+              }`}
+            >
+              {hasLoggedToday ? "Logged today" : "Ready to log"}
+            </span>
+          )}
+        </div>
 
         <div className={styles.weightCard}>
           {isLoadingWeight ? (
@@ -355,13 +375,23 @@ const Profile = () => {
 
       {/* Settings section */}
       <div className={styles.section}>
-        <h2 className={styles.sectionTitle}>Settings</h2>
+        <div className={styles.sectionHeader}>
+          <div>
+            <span className={styles.sectionEyebrow}>Preferences</span>
+            <h2 className={styles.sectionTitle}>Settings</h2>
+          </div>
+        </div>
 
         <div className={styles.settingsCard}>
           <div className={styles.settingsRow}>
             <div className={styles.settingsLabel}>
               <BodyScaleIcon size={18} />
-              <span>Weight unit</span>
+              <div className={styles.settingsText}>
+                <span>Weight unit</span>
+                <span className={styles.settingsDescription}>
+                  Used when logging body weight
+                </span>
+              </div>
             </div>
             <div className={styles.unitToggle}>
               <button
@@ -389,14 +419,24 @@ const Profile = () => {
 
       {/* Notifications section */}
       <div className={styles.section}>
-        <h2 className={styles.sectionTitle}>Notifications</h2>
+        <div className={styles.sectionHeader}>
+          <div>
+            <span className={styles.sectionEyebrow}>Stay consistent</span>
+            <h2 className={styles.sectionTitle}>Notifications</h2>
+          </div>
+        </div>
 
         <div className={styles.settingsCard}>
           {/* Weight Reminder */}
           <div className={styles.settingsRow}>
             <div className={styles.settingsLabel}>
               <Bell size={18} />
-              <span>Daily weight reminder</span>
+              <div className={styles.settingsText}>
+                <span>Daily weight reminder</span>
+                <span className={styles.settingsDescription}>
+                  A quick prompt to log your progress
+                </span>
+              </div>
             </div>
             <div className={styles.reminderControls}>
               {weightReminderOn && (
@@ -420,7 +460,12 @@ const Profile = () => {
           <div className={styles.settingsRow}>
             <div className={styles.settingsLabel}>
               <Volume2 size={18} />
-              <span>Rest timer voice</span>
+              <div className={styles.settingsText}>
+                <span>Rest timer voice</span>
+                <span className={styles.settingsDescription}>
+                  Announce elapsed rest time
+                </span>
+              </div>
             </div>
             <div className={styles.alertToggle}>
               <button

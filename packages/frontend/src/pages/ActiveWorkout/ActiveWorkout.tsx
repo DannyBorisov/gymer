@@ -13,6 +13,7 @@ import {
   Clock,
   TrendingUp,
   Lightbulb,
+  X,
 } from "lucide-react";
 import { useGetWorkoutTip } from "../../api/ai";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -66,7 +67,7 @@ const ActiveWorkout = () => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showPreviousWorkout, setShowPreviousWorkout] = useState(false);
   const [workoutTip, setWorkoutTip] = useState<string | null>(null);
-  const [displayedTip, setDisplayedTip] = useState("");
+  const [tipDismissed, setTipDismissed] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const celebratedProgressionExercises = useRef(new Set<string>());
 
@@ -76,7 +77,7 @@ const ActiveWorkout = () => {
     if (!activeWorkout?.programId || !activeWorkout?.workoutName) return;
 
     setWorkoutTip(null);
-    setDisplayedTip("");
+    setTipDismissed(false);
 
     try {
       const result = await workoutTipMutation.mutateAsync({
@@ -90,27 +91,10 @@ const ActiveWorkout = () => {
     }
   };
 
-  // Typewriter effect for tip
   useEffect(() => {
-    if (!workoutTip) {
-      setDisplayedTip("");
-      return;
-    }
-
-    let index = 0;
-    setDisplayedTip("");
-
-    const interval = setInterval(() => {
-      if (index < workoutTip.length) {
-        setDisplayedTip(workoutTip.slice(0, index + 1));
-        index++;
-      } else {
-        clearInterval(interval);
-      }
-    }, 20);
-
-    return () => clearInterval(interval);
-  }, [workoutTip]);
+    setWorkoutTip(null);
+    setTipDismissed(false);
+  }, [activeWorkout]);
 
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -453,7 +437,8 @@ const ActiveWorkout = () => {
               className={`${styles.tipBtn} ${workoutTipMutation.isPending ? styles.tipBtnLoading : ""}`}
               onClick={handleGetWorkoutTip}
               disabled={workoutTipMutation.isPending}
-              aria-label="Get AI tip"
+              aria-label="Get coach cue"
+              title="Get coach cue"
             >
               <Lightbulb size={20} />
             </button>
@@ -625,15 +610,24 @@ const ActiveWorkout = () => {
       )}
 
       {/* AI Tip */}
-      {(displayedTip || workoutTipMutation.isPending) && (
-        <div className={styles.tipContainer}>
+      {!tipDismissed && (workoutTip || workoutTipMutation.isPending) && (
+        <div className={styles.tipContainer} role="status" aria-live="polite">
           <Lightbulb size={16} className={styles.tipIcon} />
-          <p className={styles.tipText}>
-            {workoutTipMutation.isPending ? "Thinking..." : displayedTip}
-            {displayedTip && displayedTip.length < (workoutTip?.length || 0) && (
-              <span className={styles.tipCursor}>|</span>
-            )}
-          </p>
+          <div className={styles.tipContent}>
+            <span className={styles.tipLabel}>Coach cue</span>
+            <p className={styles.tipText}>
+              {workoutTipMutation.isPending
+                ? "Preparing a coach cue..."
+                : workoutTip}
+            </p>
+          </div>
+          <button
+            className={styles.tipClose}
+            onClick={() => setTipDismissed(true)}
+            aria-label="Dismiss tip"
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 

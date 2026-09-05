@@ -7,8 +7,8 @@ import {
   Zap,
   ChevronRight,
   Loader2,
-  Flame,
   TrendingUp,
+  CheckCircle2,
 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
@@ -67,7 +67,7 @@ const Home = () => {
     return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
   };
 
-  const { workoutCount, streak } = useMemo(() => {
+  const { workoutCount, completedSetCount } = useMemo(() => {
     const now = new Date();
     const workoutCount = completedWorkouts.filter((workout) => {
       const date = parseDate(workout.date!);
@@ -77,26 +77,20 @@ const Home = () => {
       );
     }).length;
 
-    const getWeekStart = (date: Date) => {
-      const result = new Date(date);
-      result.setHours(0, 0, 0, 0);
-      result.setDate(result.getDate() - result.getDay());
-      return result.getTime();
-    };
-    const workoutWeeks = new Set(
-      completedWorkouts.map((workout) => {
-        return getWeekStart(parseDate(workout.date!));
-      }),
+    const completedSetCount = completedWorkouts.reduce(
+      (total, workout) =>
+        total +
+        workout.exercises.reduce(
+          (exerciseTotal, exercise) =>
+            exerciseTotal +
+            exercise.sets.filter((set) => set.achievedReps !== undefined)
+              .length,
+          0,
+        ),
+      0,
     );
-    const weekLength = 7 * 24 * 60 * 60 * 1000;
-    let checkWeek = getWeekStart(now);
-    if (!workoutWeeks.has(checkWeek)) checkWeek -= weekLength;
-    let streak = 0;
-    while (workoutWeeks.has(checkWeek)) {
-      streak++;
-      checkWeek -= weekLength;
-    }
-    return { workoutCount, streak };
+
+    return { workoutCount, completedSetCount };
   }, [completedWorkouts]);
 
   // Find next incomplete workout (first workout without a date)
@@ -145,6 +139,9 @@ const Home = () => {
 
   const nextWorkout = getNextWorkout();
   const weekProgress = getWeekProgress();
+  const remainingSessions = weekProgress.total - weekProgress.completed;
+  const weekIsComplete =
+    weekProgress.total > 0 && remainingSessions === 0;
 
   const handleStartWorkout = () => {
     if (activeWorkout) {
@@ -211,14 +208,6 @@ const Home = () => {
           <span className={styles.eyebrow}>GYMERR / TODAY</span>
           <h1 className={styles.greeting}>{getGreeting()}</h1>
         </div>
-        {streak > 0 && (
-          <div className={styles.streakBadge}>
-            <Flame size={16} />
-            <span>
-              {streak} week{streak !== 1 ? "s" : ""}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Week Progress - only show if has active program */}
@@ -227,9 +216,14 @@ const Home = () => {
           <div className={styles.progressHeader}>
             <div className={styles.progressTitle}>
               <span className={styles.progressLabel}>
-                Week {weekProgress.week}
+                Week {weekProgress.week} target
               </span>
-              <span className={styles.progressStatus}>IN PROGRESS</span>
+              {weekIsComplete && (
+                <span className={styles.progressStatus}>
+                  <CheckCircle2 size={12} />
+                  COMPLETE
+                </span>
+              )}
             </div>
             <span className={styles.progressCount}>
               {weekProgress.completed} of {weekProgress.total} sessions
@@ -244,7 +238,11 @@ const Home = () => {
             />
           </div>
           <div className={styles.progressFooter}>
-            <span>Keep the streak alive</span>
+            <span>
+              {weekIsComplete
+                ? "All planned sessions complete"
+                : `${remainingSessions} session${remainingSessions !== 1 ? "s" : ""} left this week`}
+            </span>
             <span>
               {Math.round((weekProgress.completed / weekProgress.total) * 100)}%
             </span>
@@ -358,25 +356,28 @@ const Home = () => {
         </div>
       )}
 
-      {/* Quick Stats */}
-      {!isLoadingHistory && (
-        <div className={styles.statsGrid}>
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <Dumbbell size={18} />
+      {/* Training record */}
+      {!isLoadingHistory && completedWorkouts.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Training record</h2>
+          <div className={styles.statsGrid}>
+            <div className={styles.statCard}>
+              <div className={styles.statIcon}>
+                <TrendingUp size={18} />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>{workoutCount}</span>
+                <span className={styles.statLabel}>Sessions this month</span>
+              </div>
             </div>
-            <div className={styles.statInfo}>
-              <span className={styles.statValue}>{workoutCount}</span>
-              <span className={styles.statLabel}>This month</span>
-            </div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statIcon}>
-              <TrendingUp size={18} />
-            </div>
-            <div className={styles.statInfo}>
-              <span className={styles.statValue}>{streak}</span>
-              <span className={styles.statLabel}>Week streak</span>
+            <div className={styles.statCard}>
+              <div className={styles.statIcon}>
+                <CheckCircle2 size={18} />
+              </div>
+              <div className={styles.statInfo}>
+                <span className={styles.statValue}>{completedSetCount}</span>
+                <span className={styles.statLabel}>Sets completed</span>
+              </div>
             </div>
           </div>
         </div>

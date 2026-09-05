@@ -37,18 +37,6 @@
   }
 }
 
-.streakBadge {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.7rem;
-  background: rgba(234, 179, 8, 0.15);
-  border-radius: 100px;
-  color: #eab308;
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-
 /* Progress Card */
 .progressCard {
   background: var(--bg-elevated);
@@ -83,6 +71,9 @@
 }
 
 .progressStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   color: #63c98a;
   font-size: 0.625rem;
   font-weight: 700;

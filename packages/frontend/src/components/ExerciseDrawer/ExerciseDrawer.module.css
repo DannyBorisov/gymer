@@ -95,9 +95,7 @@
   overflow-y: auto;
   padding: 0 1rem 1rem;
   -webkit-overflow-scrolling: touch;
-  /* Keep the drawer pinned at its 85vh max height regardless of how many
-     results match the search, instead of shrinking to fit fewer rows. */
-  min-height: calc(85vh - 130px);
+  min-height: 0;
 }
 
 /* Add Custom Button */
@@ -220,4 +218,10 @@
 
 .confirmBtn:active {
   background: rgba(255, 255, 255, 0.8);
+}
+
+.confirmBtn:disabled {
+  background: var(--bg-interactive);
+  color: var(--text-muted);
+  cursor: not-allowed;
 }

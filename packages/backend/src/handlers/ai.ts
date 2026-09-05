@@ -130,12 +130,14 @@ ${JSON.stringify(workoutContext.workoutHistory, null, 2)}
 MOST RECENT SESSION (what they did last, might affect recovery):
 ${JSON.stringify(workoutContext.mostRecentSession, null, 2)}
 
+RECENT COACHING TIPS (avoid their angle and wording):
+${JSON.stringify(previousTipsList, null, 2)}
 
 Based on this data, provide ONE short, insightful tip for today's workout. Make sure it's different from the previous tips.
 `;
     const fullPrompt = `${COACH_PROMPT}\n\n---\n\n${userPrompt}`;
 
-    const tip = await this.genai.generateContent(fullPrompt);
+    const tip = await this.genai.generateWorkoutTip(fullPrompt);
     await gsql.aiTips.create({ programName: program.name, workoutName, tip });
 
     return { tip };

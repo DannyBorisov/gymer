@@ -438,3 +438,225 @@
     padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Profile hierarchy */
+.container {
+  max-width: 640px;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.header {
+  margin-bottom: 1.75rem;
+}
+
+.eyebrow,
+.sectionEyebrow {
+  color: var(--accent-green);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.headerSubtitle {
+  margin: 0.375rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.title {
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+.userCard {
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.15), transparent 45%),
+    var(--bg-elevated);
+}
+
+.userCard::after {
+  position: absolute;
+  top: -2rem;
+  right: -2rem;
+  width: 8rem;
+  height: 8rem;
+  border: 1px solid rgba(34, 197, 94, 0.16);
+  border-radius: 50%;
+  content: "";
+}
+
+.avatar,
+.avatarImage {
+  width: 64px;
+  height: 64px;
+  border: 2px solid rgba(34, 197, 94, 0.35);
+}
+
+.userInfo {
+  position: relative;
+  z-index: 1;
+  gap: 0.375rem;
+}
+
+.userName {
+  font-size: 1.25rem;
+}
+
+.section {
+  margin-bottom: 2rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.sectionTitle {
+  margin: 0.1875rem 0 0;
+  color: var(--text-primary);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.weightStatus {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.weightStatusComplete {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--accent-green);
+}
+
+.weightCard {
+  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+  background:
+    linear-gradient(135deg, rgba(59, 130, 246, 0.1), transparent 55%),
+    var(--bg-elevated);
+}
+
+.weightMain {
+  min-height: 4.5rem;
+}
+
+.weightValue {
+  font-size: clamp(2.75rem, 8vw, 3.5rem);
+  letter-spacing: -0.05em;
+}
+
+.weightUnit {
+  color: var(--text-muted);
+}
+
+.weightInput {
+  min-height: 48px;
+  border-radius: var(--radius-md);
+}
+
+.weightSaveBtn {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+}
+
+.settingsCard {
+  border-radius: var(--radius-xl);
+}
+
+.settingsRow {
+  min-height: 76px;
+  padding: 1rem 1.25rem;
+}
+
+.settingsLabel {
+  min-width: 0;
+}
+
+.settingsLabel > svg {
+  flex-shrink: 0;
+  color: var(--accent-green);
+}
+
+.settingsText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  min-width: 0;
+}
+
+.settingsDescription {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unitToggle,
+.alertToggle {
+  flex-shrink: 0;
+}
+
+.signOutButton {
+  min-height: 52px;
+  border-radius: var(--radius-xl);
+  margin-top: 0;
+}
+
+@media (max-width: 767px) {
+  .container {
+    padding: 1.25rem 1rem calc(6rem + var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .header {
+    margin-bottom: 1.25rem;
+  }
+
+  .headerSubtitle {
+    font-size: 0.875rem;
+  }
+
+  .userCard,
+  .weightCard {
+    padding: 1.125rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .section {
+    margin-bottom: 1.5rem;
+  }
+
+  .settingsCard {
+    border-radius: var(--radius-lg);
+  }
+
+  .settingsRow {
+    gap: 0.75rem;
+    min-height: 70px;
+    padding: 0.875rem 1rem;
+  }
+
+  .settingsDescription {
+    max-width: 11rem;
+  }
+}
