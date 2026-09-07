@@ -15,6 +15,7 @@ import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
 import Analytics from "./pages/Analytics/Analytics";
 import Profile from "./pages/Profile/Profile";
 import LegalPage from "./pages/Legal/LegalPage";
+import Onboarding from "./pages/Onboarding/Onboarding";
 import { useWorkout } from "./contexts/WorkoutContext";
 import { formatTime } from "./lib/time";
 
@@ -88,6 +89,7 @@ const ProtectedRoutes = () => {
         <PageWrapper key={displayLocation.pathname}>
           <Routes location={displayLocation}>
             {/* Main routes */}
+            <Route path="/welcome" element={<Onboarding />} />
             <Route path="/home" element={<Home />} />
             <Route path="/programs" element={<Programs />} />
             <Route path="/programs/create" element={<CreateProgram />} />

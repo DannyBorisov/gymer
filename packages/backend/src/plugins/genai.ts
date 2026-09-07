@@ -7,18 +7,18 @@ interface WorkoutTipResponse {
   tip: string;
 }
 
-const workoutTipResponseSchema = {
-  type: Type.OBJECT,
-  properties: {
-    tip: {
-      type: Type.STRING,
-      description:
-        "One concise, specific coaching tip for today's workout, limited to two sentences.",
-    },
-  },
-  required: ["tip"],
-  propertyOrdering: ["tip"],
-} as const;
+// const workoutTipResponseSchema = {
+//   type: Type.OBJECT,
+//   properties: {
+//     tip: {
+//       type: Type.STRING,
+//       description:
+//         "One concise, specific coaching tip for today's workout, limited to two sentences.",
+//     },
+//   },
+//   required: ["tip"],
+//   propertyOrdering: ["tip"],
+// } as const;
 
 class GenAIService {
   private client: GoogleGenAI;
@@ -28,17 +28,15 @@ class GenAIService {
   }
 
   async generateWorkoutTip(prompt: string): Promise<string> {
+    console.time("generateWorkoutTip1");
     const response = await this.client.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: 'gemini-3.5-flash-lite',
       contents: prompt,
+
       config: {
-        temperature: 0.35,
-        maxOutputTokens: 256,
-        thinkingConfig: {
-          thinkingBudget: 0,
-        },
+
         responseMimeType: "application/json",
-        responseSchema: workoutTipResponseSchema,
+        // responseSchema: workoutTipResponseSchema,
       },
     });
 
@@ -60,6 +58,7 @@ class GenAIService {
       throw new Error("Gemini returned a workout tip without text");
     }
 
+    console.timeEnd("generateWorkoutTip1");
     return tip;
   }
 }

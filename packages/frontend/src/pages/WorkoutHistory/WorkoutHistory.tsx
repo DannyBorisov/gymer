@@ -3,9 +3,6 @@ import {
   Loader2,
   Dumbbell,
   Clock,
-  TrendingUp,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -19,7 +16,6 @@ const WorkoutHistory = () => {
   const { data = { workouts: [] }, isLoading } = useGetWorkoutHistory();
 
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
-  const [showStats, setShowStats] = useState(true);
   const [groupMode, setGroupMode] = useState<
     "none" | "week" | "month" | "workout"
   >("none");
@@ -101,46 +97,31 @@ const WorkoutHistory = () => {
     return groups;
   }, [sortedWorkouts, groupMode]);
 
-  // Calculate weekly stats for the last 4 weeks
-  const weeklyStats = useMemo(() => {
-    const now = new Date();
-    const weeks: { weekLabel: string; count: number }[] = [];
+  const totalWorkouts = data.workouts.length;
+  const { completedSetCount, bestWeekCount } = useMemo(() => {
+    const weekCounts = new Map<string, number>();
+    let completedSetCount = 0;
 
-    for (let i = 0; i < 4; i++) {
-      const weekStart = new Date(now);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay() - i * 7);
-      weekStart.setHours(0, 0, 0, 0);
+    for (const workout of data.workouts) {
+      completedSetCount += workout.exercises.reduce(
+        (total, exercise) =>
+          total +
+          exercise.sets.filter((set) => set.achievedReps !== undefined).length,
+        0,
+      );
 
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
-
-      const count = data.workouts.filter((w) => {
-        const workoutDate = parseDate(w.date!);
-        return workoutDate >= weekStart && workoutDate <= weekEnd;
-      }).length;
-
-      const label =
-        i === 0 ? "This week" : i === 1 ? "Last week" : `${i} weeks ago`;
-      weeks.push({ weekLabel: label, count });
+      const date = parseDate(workout.date!);
+      const weekStart = new Date(date);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekKey = weekStart.toISOString().slice(0, 10);
+      weekCounts.set(weekKey, (weekCounts.get(weekKey) ?? 0) + 1);
     }
 
-    return weeks.reverse();
+    return {
+      completedSetCount,
+      bestWeekCount: Math.max(...weekCounts.values(), 0),
+    };
   }, [data.workouts]);
-
-  const totalWorkouts = data.workouts.length;
-  const thisMonthCount = useMemo(() => {
-    const now = new Date();
-    return data.workouts.filter((w) => {
-      const workoutDate = parseDate(w.date!);
-      return (
-        workoutDate.getMonth() === now.getMonth() &&
-        workoutDate.getFullYear() === now.getFullYear()
-      );
-    }).length;
-  }, [data.workouts]);
-
-  const maxWeeklyCount = Math.max(...weeklyStats.map((w) => w.count), 1);
 
   return (
     <div className={styles.container}>
@@ -149,68 +130,34 @@ const WorkoutHistory = () => {
       {/* Stats Section */}
       {!isLoading && data.workouts.length > 0 && (
         <div className={styles.statsSection}>
-          <button
-            className={styles.statsToggle}
-            onClick={() => setShowStats(!showStats)}
-          >
-            <div className={styles.statsToggleLeft}>
-              <TrendingUp size={16} />
-              <span>Stats</span>
+          <div className={styles.statsHeader}>
+            <Dumbbell size={18} />
+            <div>
+              <span className={styles.statsEyebrow}>Training record</span>
+              <h2>Your completed work</h2>
             </div>
-            {showStats ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
-
-          {showStats && (
-            <div className={styles.statsContent}>
-              <div className={styles.statsSummary}>
-                <div className={styles.statItem}>
-                  <span className={styles.statValue}>{totalWorkouts}</span>
-                  <span className={styles.statLabel}>Total</span>
-                </div>
-                <div className={styles.statItem}>
-                  <span className={styles.statValue}>{thisMonthCount}</span>
-                  <span className={styles.statLabel}>This month</span>
-                </div>
-                <div className={styles.statItem}>
-                  <span className={styles.statValue}>
-                    {Math.round(
-                      (weeklyStats.reduce((sum, w) => sum + w.count, 0) / 4) *
-                        10,
-                    ) / 10}
-                  </span>
-                  <span className={styles.statLabel}>Avg/week</span>
-                </div>
-              </div>
-
-              <div className={styles.weeklyBars}>
-                <span className={styles.barsLabel}>Weekly frequency</span>
-                <div className={styles.barsContainer}>
-                  {weeklyStats.map((week) => (
-                    <div key={week.weekLabel} className={styles.barItem}>
-                      <div className={styles.barTrack}>
-                        <div
-                          className={styles.barFill}
-                          style={{
-                            height: `${(week.count / maxWeeklyCount) * 100}%`,
-                          }}
-                        />
-                      </div>
-                      <span className={styles.barCount}>{week.count}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className={styles.barsLabels}>
-                  {weeklyStats.map((week) => (
-                    <span key={week.weekLabel} className={styles.barLabel}>
-                      {week.weekLabel
-                        .replace(" weeks ago", "w")
-                        .replace(" week", "w")}
-                    </span>
-                  ))}
-                </div>
-              </div>
+          </div>
+          <div className={styles.statsHighlight}>
+            <span className={styles.highlightValue}>{totalWorkouts}</span>
+            <div className={styles.highlightCopy}>
+              <strong>
+                workout{totalWorkouts !== 1 ? "s" : ""} completed
+              </strong>
+              <span>Every session is part of the record.</span>
             </div>
-          )}
+          </div>
+          <div className={styles.achievementGrid}>
+            <div className={styles.achievementItem}>
+              <span className={styles.achievementValue}>{completedSetCount}</span>
+              <span className={styles.achievementLabel}>Sets logged</span>
+            </div>
+            <div className={styles.achievementItem}>
+              <span className={styles.achievementValue}>{bestWeekCount}</span>
+              <span className={styles.achievementLabel}>
+                Sessions in your best week
+              </span>
+            </div>
+          </div>
         </div>
       )}
 

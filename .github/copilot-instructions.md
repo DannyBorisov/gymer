@@ -10,7 +10,6 @@ Gymerr is an npm-workspaces monorepo. Install dependencies from the repository r
 | Run the API | `npm run dev:backend` |
 | Build all workspaces in dependency order | `npm run build` |
 | Build one workspace | `npm run build:backend` or `npm run build:frontend` |
-| Build shared contracts only | `npm run build -w @gymerr/shared` |
 | Lint the frontend | `npm run lint -w @gymerr/frontend` |
 | Sync the built web bundle to iOS | `npm run deploy:ios` |
 | Run Android unit tests | `cd packages/frontend/android && ./gradlew testDebugUnitTest` |

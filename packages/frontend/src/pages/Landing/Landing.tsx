@@ -18,7 +18,7 @@ const Landing = () => {
 
   useEffect(() => {
     if (!isLoading && user) {
-      navigate("/home", { replace: true });
+      navigate("/welcome", { replace: true });
     }
   }, [user, isLoading, navigate]);
 
@@ -35,7 +35,7 @@ const Landing = () => {
           </div>
           {!isLoading && (
             <Link
-              to={user ? "/programs" : "/login"}
+              to={user ? "/welcome" : "/login"}
               className={styles.headerCta}
             >
               {user ? "Open App" : "Get Started"}
@@ -62,7 +62,7 @@ const Landing = () => {
           </p>
           <div className={styles.heroCtas}>
             <Link
-              to={user ? "/programs" : "/login"}
+              to={user ? "/welcome" : "/login"}
               className={styles.primaryBtn}
             >
               {user ? "Go to App" : "Start Tracking"}

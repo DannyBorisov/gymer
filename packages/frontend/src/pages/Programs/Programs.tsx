@@ -176,8 +176,12 @@ const Programs = () => {
           {/* Empty state */}
           {programs.length === 0 && (
             <div className={styles.emptyState}>
-              <p>No programs yet</p>
-              <p>Create your first training program to get started</p>
+              <h2>Build a plan you can follow</h2>
+              <p>Start with a template, then make it your own.</p>
+              <Link to="/programs/create" className={styles.emptyStateCta}>
+                <Plus size={18} />
+                <span>Choose a template</span>
+              </Link>
             </div>
           )}
         </>

@@ -37,7 +37,7 @@ const Login = () => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/welcome" replace />;
   }
 
   return (

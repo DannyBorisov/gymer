@@ -138,6 +138,7 @@ Based on this data, provide ONE short, insightful tip for today's workout. Make 
     const fullPrompt = `${COACH_PROMPT}\n\n---\n\n${userPrompt}`;
 
     const tip = await this.genai.generateWorkoutTip(fullPrompt);
+    console.log(tip);
     await gsql.aiTips.create({ programName: program.name, workoutName, tip });
 
     return { tip };

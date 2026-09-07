@@ -9,7 +9,7 @@
     "postinstall": "if [ -z \"$VERCEL\" ]; then patch-package; fi",
     "dev:frontend": "npm run dev -w @gymerr/frontend",
     "dev:backend": "npm run dev -w @gymerr/backend",
-    "build": "npm run build -w @gymerr/shared && npm run build -w @gymerr/backend && npm run build -w @gymerr/frontend",
+    "build": "npm run build -w @gymerr/backend && npm run build -w @gymerr/frontend",
     "build:frontend": "npm run build -w @gymerr/frontend",
     "build:backend": "npm run build -w @gymerr/backend",
     "deploy:ios": "npm run cap:sync -w @gymerr/frontend"
