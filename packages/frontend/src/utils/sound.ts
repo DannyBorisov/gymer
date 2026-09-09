@@ -1,47 +1,13 @@
 import { Capacitor } from "@capacitor/core";
-import { Sound, type SoundMode } from "../plugins/sound";
-
-const SOUND_MODE_KEY = "restTimerSoundMode";
-
-export type { SoundMode };
-
-export function getSoundMode(): SoundMode {
-  const saved = localStorage.getItem(SOUND_MODE_KEY);
-  return (saved as SoundMode) || "voice";
-}
-
-export function setSoundMode(mode: SoundMode) {
-  localStorage.setItem(SOUND_MODE_KEY, mode);
-}
-
-function formatDurationForSpeech(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-
-  if (mins === 0) {
-    return `${secs} seconds`;
-  } else if (secs === 0) {
-    if (mins === 1) {
-      return "1 minute";
-    }
-    return `${mins} minutes`;
-  } else {
-    if (mins === 1) {
-      return `1 minute ${secs}`;
-    }
-    return `${mins} minutes ${secs}`;
-  }
-}
+import { Sound } from "../plugins/sound";
 
 // Schedule native background sound for when rest timer completes
 export async function scheduleRestTimerNotification(durationSeconds: number, announceInterval?: number, startTime?: number) {
   if (!Capacitor.isNativePlatform()) return;
 
   try {
-    const mode = getSoundMode();
     await Sound.scheduleRestSound({
       duration: durationSeconds,
-      mode,
       announceInterval: announceInterval || 30,
       startTime: startTime || Date.now()
     });
@@ -85,77 +51,5 @@ export function unlockAudio() {
     source.start(0);
   } catch {
     // Audio not supported
-  }
-}
-
-function playWebAudioBeep() {
-  try {
-    const ctx = getAudioContext();
-
-    // Resume context if suspended
-    if (ctx.state === "suspended") {
-      ctx.resume();
-    }
-
-    const now = ctx.currentTime;
-
-    // Create two beeps for notification
-    for (let i = 0; i < 2; i++) {
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      oscillator.type = "sine";
-      oscillator.frequency.value = 880; // A5 note
-
-      const beepStart = now + i * 0.2;
-      const beepEnd = beepStart + 0.1;
-
-      gainNode.gain.setValueAtTime(0, beepStart);
-      gainNode.gain.linearRampToValueAtTime(0.3, beepStart + 0.01);
-      gainNode.gain.linearRampToValueAtTime(0, beepEnd);
-
-      oscillator.start(beepStart);
-      oscillator.stop(beepEnd + 0.1);
-    }
-  } catch {
-    // Audio not supported or blocked
-  }
-}
-
-export async function playRestTimerSound(durationSeconds?: number) {
-  if (Capacitor.isNativePlatform()) {
-    const mode = getSoundMode();
-    try {
-      if (mode === "voice" && durationSeconds) {
-        const text = formatDurationForSpeech(durationSeconds);
-        await Sound.speak({ text, rate: 0.52 });
-      } else {
-        await Sound.playRestTimerBeep({ soundId: 1007 });
-      }
-    } catch {
-      playWebAudioBeep();
-    }
-  } else {
-    playWebAudioBeep();
-  }
-}
-
-// Preview sound mode (for settings)
-export async function previewSoundMode(mode: SoundMode) {
-  if (Capacitor.isNativePlatform()) {
-    try {
-      if (mode === "voice") {
-        await Sound.speak({ text: "Rest complete", rate: 0.52 });
-      } else {
-        await Sound.playRestTimerBeep({ soundId: 1007 });
-      }
-    } catch {
-      playWebAudioBeep();
-    }
-  } else {
-    playWebAudioBeep();
   }
 }

@@ -55,7 +55,8 @@ export class ProgramModel extends BaseModel {
       if (!rows || rows.length < 2) return null;
 
       return parseProgramRows(rows as string[][], id, programName);
-    } catch {
+    } catch (err) {
+      console.error(`[ProgramModel.findInternal] failed for ${id}:`, err);
       return null;
     }
   }

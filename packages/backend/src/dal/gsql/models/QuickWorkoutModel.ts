@@ -98,7 +98,7 @@ export class QuickWorkoutModel extends BaseModel {
 
     const sheetName = await this.getSheetName(spreadsheetId);
     const today = new Date();
-    const dateStr = formatDateTime(today);
+    const dateStr = formatDateTime(input.date ?? today);
 
     const rows: (string | number)[][] = input.sets.map((set, index) => [
       index === 0 ? dateStr : '',

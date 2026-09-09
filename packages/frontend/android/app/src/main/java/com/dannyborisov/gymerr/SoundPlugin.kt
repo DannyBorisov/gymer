@@ -4,7 +4,6 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
-import android.media.ToneGenerator
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -25,7 +24,6 @@ class SoundPlugin : Plugin() {
     private var restTimer: Timer? = null
     private var elapsedSeconds: Int = 0
     private var announceInterval: Int = 30
-    private var isVoiceMode: Boolean = true
     private var isRunning: Boolean = false
     private val handler = Handler(Looper.getMainLooper())
 
@@ -40,17 +38,6 @@ class SoundPlugin : Plugin() {
                 tts?.language = Locale.US
                 tts?.setSpeechRate(0.9f)
             }
-        }
-    }
-
-    @PluginMethod
-    fun playRestTimerBeep(call: PluginCall) {
-        handler.post {
-            requestAudioFocus {
-                playBeep()
-                releaseAudioFocusDelayed(1000)
-            }
-            call.resolve()
         }
     }
 
@@ -79,7 +66,6 @@ class SoundPlugin : Plugin() {
 
     @PluginMethod
     fun scheduleRestSound(call: PluginCall) {
-        val mode = call.getString("mode") ?: "voice"
         var interval = call.getInt("announceInterval") ?: 30
         if (interval <= 0) interval = 30
 
@@ -89,7 +75,6 @@ class SoundPlugin : Plugin() {
             restTimer = null
 
             announceInterval = interval
-            isVoiceMode = mode == "voice"
             elapsedSeconds = 0
             isRunning = true
 
@@ -126,8 +111,7 @@ class SoundPlugin : Plugin() {
         // Announce at intervals
         val shouldAnnounce = elapsedSeconds > 0 &&
                             announceInterval > 0 &&
-                            (elapsedSeconds % announceInterval) == 0 &&
-                            isVoiceMode
+                            (elapsedSeconds % announceInterval) == 0
 
         if (shouldAnnounce) {
             val text = formatDuration(elapsedSeconds)
@@ -160,21 +144,6 @@ class SoundPlugin : Plugin() {
             secs == 0 -> "$mins minutes"
             mins == 1 -> "1 minute $secs"
             else -> "$mins minutes $secs"
-        }
-    }
-
-    private fun playBeep() {
-        try {
-            val toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-            toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 200)
-            handler.postDelayed({
-                toneGenerator.startTone(ToneGenerator.TONE_PROP_BEEP, 200)
-                handler.postDelayed({
-                    toneGenerator.release()
-                }, 300)
-            }, 300)
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 

@@ -36,6 +36,7 @@ export interface QuickWorkoutSet {
 export interface QuickWorkoutPayload {
   workoutId: string;
   duration: string;
+  date?: string;
   sets: QuickWorkoutSet[];
 }
 

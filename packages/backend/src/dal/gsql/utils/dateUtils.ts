@@ -27,6 +27,45 @@ export function parseDate(str: string): Date | null {
   return date;
 }
 
+interface WallClock {
+  year: number;
+  month: number; // 1-12
+  day: number;
+  hours: number;
+  minutes: number;
+}
+
+/**
+ * Extract wall-clock parts from a Date or a string. A timezone-less ISO string
+ * (`YYYY-MM-DDTHH:MM[:SS]`) is read literally so the client's local time is
+ * preserved regardless of the server's timezone (which is UTC).
+ */
+function toWallClock(value: Date | string): WallClock {
+  if (typeof value === "string") {
+    const m = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (m) {
+      return {
+        year: +m[1],
+        month: +m[2],
+        day: +m[3],
+        hours: +m[4],
+        minutes: +m[5],
+      };
+    }
+  }
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d.getTime())) {
+    throw new Error(`Invalid date value: ${String(value)}`);
+  }
+  return {
+    year: d.getFullYear(),
+    month: d.getMonth() + 1,
+    day: d.getDate(),
+    hours: d.getHours(),
+    minutes: d.getMinutes(),
+  };
+}
+
 /**
  * Coerce a Date or an ISO/date string (JSON serializes Date to string over the wire)
  * into a valid Date. Throws on an unparseable value.
@@ -43,21 +82,20 @@ export function toDate(value: Date | string): Date {
  * Format Date to DD/MM/YYYY
  */
 export function formatDate(date: Date | string): string {
-  const d = toDate(date);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  const w = toWallClock(date);
+  const day = String(w.day).padStart(2, "0");
+  const month = String(w.month).padStart(2, "0");
+  return `${day}/${month}/${w.year}`;
 }
 
 /**
  * Format Date to DD/MM/YYYY, HH:MM
  */
 export function formatDateTime(date: Date | string): string {
-  const d = toDate(date);
-  const dateStr = formatDate(d);
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
+  const w = toWallClock(date);
+  const dateStr = formatDate(date);
+  const hours = String(w.hours).padStart(2, "0");
+  const minutes = String(w.minutes).padStart(2, "0");
   return `${dateStr}, ${hours}:${minutes}`;
 }
 

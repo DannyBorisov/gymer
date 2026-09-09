@@ -131,6 +131,7 @@ export interface QuickWorkout {
 export interface CreateQuickWorkoutInput {
   workoutId: string;
   duration: string;
+  date?: string; // local wall-clock ISO (YYYY-MM-DDTHH:MM:SS); defaults to now
   sets: {
     exercise: string;
     set: number;

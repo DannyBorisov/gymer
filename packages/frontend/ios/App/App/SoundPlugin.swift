@@ -1,14 +1,12 @@
 import Foundation
 import Capacitor
 import AVFoundation
-import AudioToolbox
 
 @objc(SoundPlugin)
 public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelegate {
     public let identifier = "SoundPlugin"
     public let jsName = "Sound"
     public let pluginMethods: [CAPPluginMethod] = [
-        CAPPluginMethod(name: "playRestTimerBeep", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "speak", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "scheduleRestSound", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancelRestSound", returnType: CAPPluginReturnPromise)
@@ -20,7 +18,6 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     private var timer: Timer?
     private var startTime: Double = 0
     private var announceInterval: Int = 30
-    private var isVoiceMode: Bool = true
     private var isRunning: Bool = false
     private var isAudioReady: Bool = false
     private var isSpeaking: Bool = false
@@ -108,15 +105,6 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         }
     }
 
-    @objc func playRestTimerBeep(_ call: CAPPluginCall) {
-        let soundId = SystemSoundID(call.getInt("soundId") ?? 1007)
-
-        DispatchQueue.main.async {
-            self.playBeep(soundId: soundId)
-            call.resolve()
-        }
-    }
-
     @objc func speak(_ call: CAPPluginCall) {
         let text = call.getString("text") ?? "Rest complete"
         let rate = call.getFloat("rate") ?? 0.5
@@ -128,7 +116,6 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
     }
 
     @objc func scheduleRestSound(_ call: CAPPluginCall) {
-        let mode = call.getString("mode") ?? "voice"
         // Ensure interval is a valid integer, default to 30
         var interval = call.getInt("announceInterval") ?? 30
         if interval <= 0 {
@@ -137,7 +124,7 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         // Get start time from JS (milliseconds since epoch), default to now
         let jsStartTime = call.getDouble("startTime") ?? (Date().timeIntervalSince1970 * 1000)
 
-        print("SoundPlugin: scheduleRestSound called - mode: \(mode), interval: \(interval), startTime: \(jsStartTime)")
+        print("SoundPlugin: scheduleRestSound called - interval: \(interval), startTime: \(jsStartTime)")
 
         DispatchQueue.main.async {
             // Always stop first to prevent duplicates
@@ -147,13 +134,12 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
             self.activateAudioSession()
 
             self.announceInterval = interval
-            self.isVoiceMode = mode == "voice"
             self.startTime = jsStartTime
             self.isRunning = true
             self.isSpeaking = false
             self.lastAnnouncedSecond = -1
 
-            print("SoundPlugin: Timer starting - isVoiceMode: \(self.isVoiceMode), interval: \(self.announceInterval)")
+            print("SoundPlugin: Timer starting - interval: \(self.announceInterval)")
 
             // Start timer immediately on main run loop
             self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -204,7 +190,6 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
         let shouldAnnounce = elapsedSeconds > 0 &&
                             announceInterval > 0 &&
                             (elapsedSeconds % announceInterval) == 0 &&
-                            isVoiceMode &&
                             !isSpeaking &&
                             elapsedSeconds != lastAnnouncedSecond
 
@@ -306,9 +291,5 @@ public class SoundPlugin: CAPPlugin, CAPBridgedPlugin, AVSpeechSynthesizerDelega
                 return String(mins) + " minutes " + String(secs)
             }
         }
-    }
-
-    private func playBeep(soundId: SystemSoundID) {
-        AudioServicesPlaySystemSound(soundId)
     }
 }

@@ -41,6 +41,18 @@ export class GoogleSheets {
     );
   }
 
+  // A per-call OAuth2 client so concurrent requests don't clobber each other's
+  // credentials on a shared client (google-auth-library is not concurrency-safe).
+  private authFor(tokens: Tokens) {
+    const client = new google.auth.OAuth2(
+      config.google.clientId,
+      config.google.clientSecret,
+      config.google.redirectUri,
+    );
+    client.setCredentials(tokens);
+    return client;
+  }
+
   getAuthUrl(state?: string): string {
     return this.oauth2Client.generateAuthUrl({
       access_type: "offline",
@@ -74,13 +86,11 @@ export class GoogleSheets {
   }
 
   private getSheetsClient(tokens: Tokens): sheets_v4.Sheets {
-    this.oauth2Client.setCredentials(tokens);
-    return google.sheets({ version: "v4", auth: this.oauth2Client });
+    return google.sheets({ version: "v4", auth: this.authFor(tokens) });
   }
 
   private getDriveClient(tokens: Tokens): drive_v3.Drive {
-    this.oauth2Client.setCredentials(tokens);
-    return google.drive({ version: "v3", auth: this.oauth2Client });
+    return google.drive({ version: "v3", auth: this.authFor(tokens) });
   }
 
   async create(tokens: Tokens, title: string): Promise<string> {

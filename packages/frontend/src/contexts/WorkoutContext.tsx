@@ -148,6 +148,16 @@ const buildSetUpdates = (
       },
     }));
 
+// Local wall-clock as a timezone-less ISO string (YYYY-MM-DDTHH:MM:SS) so the
+// backend records the user's local time, not UTC.
+const localISOString = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+};
+
 // Marks the workout complete (date + duration)
 const buildCompletionUpdate = (
   week: number,
@@ -156,7 +166,7 @@ const buildCompletionUpdate = (
 ): ProgramUpdateInput => ({
   where: { week, workout: { name: workoutName } },
   data: {
-    date: new Date().toISOString(),
+    date: localISOString(new Date()),
     duration: formatDuration(durationSeconds),
   },
 });
@@ -168,6 +178,7 @@ const buildQuickPayload = (
 ): QuickWorkoutPayload => ({
   workoutId: `quick-${Date.now()}`,
   duration: formatDuration(durationSeconds),
+  date: localISOString(new Date()),
   sets: rows
     .filter((row) => row.weight || row.repsAchieved)
     .map((row) => ({
@@ -746,6 +757,16 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setCompletedSets((prev) => new Set([...prev, rowIndex]));
     setDuration(timer);
     setIsTimerRunning(false);
+
+    // Workout is finished: stop the rest timer and tear down the Live Activity
+    cancelRestTimerNotification();
+    if (restTimerIntervalRef.current) {
+      clearInterval(restTimerIntervalRef.current);
+    }
+    setIsRestTimerActive(false);
+    setRestTimer(0);
+    setRestTimerStartTime(null);
+    endWorkoutLiveActivity();
 
     if (!activeWorkout) return;
 
