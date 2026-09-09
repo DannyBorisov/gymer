@@ -1,7 +1,7 @@
 import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
 import { createGSQL } from "../dal/index.js";
-import { formatDate } from "../dal/utils/dateUtils.js";
+import { formatDate } from "../dal/gsql/utils/dateUtils.js";
 
 export const getExerciseBests: RouteHandler = async function (request, reply) {
   const { tokens } = getAuthSession(request);

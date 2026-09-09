@@ -1,0 +1,71 @@
+# Development environment only. Three services: frontend, backend, database.
+# Usage: npm run dev   (or: docker compose up --build)
+#
+# Source is bind-mounted for hot reload. node_modules live in named volumes so the
+# host's (or a missing) node_modules never shadows what the image installed.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gymerr
+      POSTGRES_PASSWORD: gymerr
+      POSTGRES_DB: gymerr
+    ports:
+      # Host 5433 to avoid clashing with a local Postgres on 5432.
+      # Inside the compose network other services still reach it at db:5432.
+      - "5433:5432"
+    volumes:
+      - gymerr_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymerr -d gymerr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile.dev
+    command: sh -c "npx prisma migrate deploy --schema packages/backend/prisma/schema.prisma && npm run dev -w @gymerr/backend"
+    env_file:
+      - packages/backend/.env
+    environment:
+      NODE_ENV: development
+      PORT: "3002"
+      DATABASE_URL: postgresql://gymerr:gymerr@db:5432/gymerr?schema=public
+    ports:
+      - "3002:3002"
+    volumes:
+      - ./packages/backend/src:/app/packages/backend/src
+      - ./packages/backend/prisma:/app/packages/backend/prisma
+      - root_node_modules:/app/node_modules
+      - backend_node_modules:/app/packages/backend/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile.dev
+    command: npm run dev -w @gymerr/frontend -- --host 0.0.0.0
+    environment:
+      VITE_API_URL: http://localhost:3002
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./packages/frontend/src:/app/packages/frontend/src
+      - ./packages/frontend/public:/app/packages/frontend/public
+      - ./packages/frontend/index.html:/app/packages/frontend/index.html
+      - ./packages/frontend/vite.config.ts:/app/packages/frontend/vite.config.ts
+      - root_node_modules:/app/node_modules
+      - frontend_node_modules:/app/packages/frontend/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  gymerr_pgdata:
+  root_node_modules:
+  backend_node_modules:
+  frontend_node_modules:

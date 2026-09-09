@@ -1,6 +1,6 @@
 import { BaseModel } from './BaseModel.js';
 import { QuickWorkoutSchema } from '../schemas/quickWorkout.js';
-import { formatDate, parseDate, isDateFormat } from '../utils/dateUtils.js';
+import { formatDateTime, parseDate, isDateFormat } from '../utils/dateUtils.js';
 import type {
   QuickWorkout,
   QuickWorkoutSet,
@@ -98,7 +98,7 @@ export class QuickWorkoutModel extends BaseModel {
 
     const sheetName = await this.getSheetName(spreadsheetId);
     const today = new Date();
-    const dateStr = formatDate(today);
+    const dateStr = formatDateTime(today);
 
     const rows: (string | number)[][] = input.sets.map((set, index) => [
       index === 0 ? dateStr : '',

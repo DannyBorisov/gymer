@@ -8,6 +8,7 @@ import genaiPlugin from "./plugins/genai.js";
 import routes from "./routes/index.js";
 import { oauthRoutes } from "./routes/auth.js";
 import CorsConfig from "./cors.js";
+import { prismaClient } from "./dal/postgres/client.js";
 
 export function buildApp() {
   const fastify = Fastify({
@@ -36,6 +37,10 @@ export function buildApp() {
 
   fastify.get("/api/health", async () => {
     return { status: "ok" };
+  });
+
+  fastify.addHook("onClose", async () => {
+    await prismaClient.$disconnect();
   });
 
   return fastify;

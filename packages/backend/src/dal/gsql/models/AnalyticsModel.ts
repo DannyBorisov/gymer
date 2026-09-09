@@ -1,4 +1,4 @@
-import type { GoogleSheets } from "../../plugins/googleSheets.js";
+import type { GoogleSheets } from "../../../plugins/googleSheets.js";
 import type { AuthTokens } from "./BaseModel.js";
 import { ProgramModel } from "./ProgramModel.js";
 import { QuickWorkoutModel } from "./QuickWorkoutModel.js";

@@ -21,6 +21,9 @@ extension JSONLayoutParser {
     static func buildTimerView(_ element: LayoutElement, _ data: [String: AnyCodable]) -> AnyView {
         let endTime = getDouble(from: resolveValue(element.properties["endTime"], with: data))
         let style = getString(from: resolveValue(element.properties["style"], with: data))
+        let hasFixedWidth = getDouble(
+            from: resolveValue(element.properties["width"], with: data)
+        ) != nil
 
         if(endTime == nil || style == nil){
             return AnyView(Text("Invalid Timer").foregroundColor(Color.red))
@@ -32,7 +35,7 @@ extension JSONLayoutParser {
 
         // For "timer" style, count UP from the start date (elapsed time)
         if(style == "timer"){
-            return AnyView(Text(
+            let timer = Text(
                 timerInterval: startDate...Date.distantFuture,
                 pauseTime: nil,
                 countsDown: false,
@@ -40,8 +43,16 @@ extension JSONLayoutParser {
             )
             .monospacedDigit()
             .modifier(ViewModifierText(element: element, data: data))
-            .frame(maxWidth: 50)
-            .fixedSize(horizontal: true, vertical: false))
+
+            if hasFixedWidth {
+                return AnyView(timer.fixedSize(horizontal: true, vertical: false))
+            }
+
+            return AnyView(
+                timer
+                    .frame(maxWidth: 50)
+                    .fixedSize(horizontal: true, vertical: false)
+            )
         }
 
         // For "countdown" style, count DOWN to the end date

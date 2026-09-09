@@ -92,11 +92,17 @@ export function useCreateProgram<T>() {
 export function useUpdateProgram() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, input }: { id: string; input: ProgramUpdateInput }) =>
-      programsApi.update(id, input),
+    mutationFn: ({
+      id,
+      input,
+    }: {
+      id: string;
+      input: ProgramUpdateInput | ProgramUpdateInput[];
+    }) => programsApi.update(id, input),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: programQueryKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: programQueryKeys.list });
+      queryClient.invalidateQueries({ queryKey: ["workouts", "history"] });
     },
   });
 }

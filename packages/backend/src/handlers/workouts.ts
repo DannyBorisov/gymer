@@ -1,7 +1,7 @@
 import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
 import { createGSQL } from "../dal/index.js";
-import { formatDate } from "../dal/utils/dateUtils.js";
+import { formatDate } from "../dal/gsql/utils/dateUtils.js";
 import type { CreateQuickWorkoutInput } from "../dal/types.js";
 
 export const getExercises: RouteHandler = async function (request, reply) {

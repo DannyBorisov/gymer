@@ -16,7 +16,9 @@ import Analytics from "./pages/Analytics/Analytics";
 import Profile from "./pages/Profile/Profile";
 import LegalPage from "./pages/Legal/LegalPage";
 import Onboarding from "./pages/Onboarding/Onboarding";
+import OnboardingSetup from "./pages/OnboardingSetup/OnboardingSetup";
 import { useWorkout } from "./contexts/WorkoutContext";
+import { useGetOnboarding } from "./api/onboarding";
 import { formatTime } from "./lib/time";
 
 const PageWrapper = ({ children }: { children: React.ReactNode }) => {
@@ -74,6 +76,26 @@ const WorkoutDrawerOverlay = () => {
   );
 };
 
+// Blocks the app until onboarding is complete.
+const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  const { data, isLoading } = useGetOnboarding();
+
+  if (isLoading) return null;
+
+  const isComplete = data?.onboarding?.isComplete ?? false;
+  const onOnboarding = location.pathname === "/onboarding";
+
+  if (!isComplete && !onOnboarding) {
+    return <Navigate to="/onboarding" replace />;
+  }
+  if (isComplete && onOnboarding) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const ProtectedRoutes = () => {
   const location = useLocation();
   const isWorkoutRoute = location.pathname === "/workout";
@@ -84,12 +106,13 @@ const ProtectedRoutes = () => {
     : location;
 
   return (
-    <>
+    <OnboardingGate>
       <AnimatePresence mode="wait">
         <PageWrapper key={displayLocation.pathname}>
           <Routes location={displayLocation}>
             {/* Main routes */}
             <Route path="/welcome" element={<Onboarding />} />
+            <Route path="/onboarding" element={<OnboardingSetup />} />
             <Route path="/home" element={<Home />} />
             <Route path="/programs" element={<Programs />} />
             <Route path="/programs/create" element={<CreateProgram />} />
@@ -111,7 +134,7 @@ const ProtectedRoutes = () => {
         </PageWrapper>
       </AnimatePresence>
       <WorkoutDrawerOverlay />
-    </>
+    </OnboardingGate>
   );
 };
 

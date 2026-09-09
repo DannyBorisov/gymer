@@ -6,10 +6,10 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { workoutsApi } from "../api/workouts";
-import { analyticsApi } from "../api/analytics";
-import { programsApi } from "../api/programs";
-import type { Workout as ApiWorkout } from "../api/workouts";
+import { useSaveQuickWorkout } from "../api/workouts";
+import { useGetExerciseBests } from "../api/analytics";
+import { useUpdateProgram, type ProgramUpdateInput } from "../api/programs";
+import type { Workout as ApiWorkout, QuickWorkoutPayload } from "../api/workouts";
 import { formatDuration } from "../lib/time";
 import {
   startWorkoutLiveActivity,
@@ -122,6 +122,64 @@ interface WorkoutContextType {
 
 const WorkoutContext = createContext<WorkoutContextType | null>(null);
 
+// Rows with logged data, as Prisma-like batch updates for PATCH /api/programs/:id
+const buildSetUpdates = (
+  rows: ExerciseRow[],
+  week: number,
+  workoutName: string,
+): ProgramUpdateInput[] =>
+  rows
+    .filter((row) => row.weight || row.repsAchieved)
+    .map((row) => ({
+      where: {
+        week,
+        workout: {
+          name: workoutName,
+          exercise: { name: row.exercise, set: row.set - 1 },
+        },
+      },
+      data: {
+        achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
+        achievedReps: row.repsAchieved
+          ? parseInt(row.repsAchieved, 10)
+          : undefined,
+        achievedRir: row.rirAchieved || undefined,
+        notes: row.notes || undefined,
+      },
+    }));
+
+// Marks the workout complete (date + duration)
+const buildCompletionUpdate = (
+  week: number,
+  workoutName: string,
+  durationSeconds: number,
+): ProgramUpdateInput => ({
+  where: { week, workout: { name: workoutName } },
+  data: {
+    date: new Date().toISOString(),
+    duration: formatDuration(durationSeconds),
+  },
+});
+
+// Rows with logged data, as a POST /api/quick-workouts/save payload
+const buildQuickPayload = (
+  rows: ExerciseRow[],
+  durationSeconds: number,
+): QuickWorkoutPayload => ({
+  workoutId: `quick-${Date.now()}`,
+  duration: formatDuration(durationSeconds),
+  sets: rows
+    .filter((row) => row.weight || row.repsAchieved)
+    .map((row) => ({
+      exercise: row.exercise,
+      set: row.set,
+      weight: row.weight,
+      reps: row.repsAchieved,
+      rir: row.rirAchieved,
+      notes: row.notes,
+    })),
+});
+
 export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(
     null,
@@ -140,10 +198,14 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [previousStats, setPreviousStats] = useState<
     Record<string, PreviousStats>
   >({});
-  const [exerciseBests, setExerciseBests] = useState<
-    Record<string, ExerciseBest>
-  >({});
   const [isQuickWorkout, setIsQuickWorkout] = useState(false);
+
+  // Server calls
+  const updateProgram = useUpdateProgram();
+  const saveQuickWorkout = useSaveQuickWorkout();
+  // Reference data for PR detection; only fetched once a workout is active
+  const { data: bestsData } = useGetExerciseBests(Boolean(activeWorkout));
+  const exerciseBests: Record<string, ExerciseBest> = bestsData?.bests ?? {};
 
   // Rest timer state (persisted across drawer collapse)
   const [restTimer, setRestTimer] = useState(0);
@@ -253,46 +315,27 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
     setIsSaving(true);
     try {
-      // Build batch updates using Prisma-like where clauses
-      const updates = workoutData
-        .filter((row) => row.weight || row.repsAchieved) // Only save rows with data
-        .map((row) => ({
-          where: {
-            week: activeWorkout.week,
-            workout: {
-              name: activeWorkout.workoutName,
-              exercise: {
-                name: row.exercise,
-                set: row.set - 1, // Convert to 0-based index
-              },
-            },
-          },
-          data: {
-            achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
-            achievedReps: row.repsAchieved
-              ? parseInt(row.repsAchieved, 10)
-              : undefined,
-            achievedRir: row.rirAchieved || undefined,
-            notes: row.notes || undefined,
-          },
-        }));
+      const updates = buildSetUpdates(
+        workoutData,
+        activeWorkout.week,
+        activeWorkout.workoutName,
+      );
 
-      // Add workout completion (date/duration) if needed
       if (includeDate) {
-        updates.push({
-          where: {
-            week: activeWorkout.week,
-            workout: { name: activeWorkout.workoutName },
-          },
-          data: {
-            date: new Date(),
-            duration: formatDuration(timer),
-          },
-        } as any); // Type assertion needed for different data shape
+        updates.push(
+          buildCompletionUpdate(
+            activeWorkout.week,
+            activeWorkout.workoutName,
+            timer,
+          ),
+        );
       }
 
       if (updates.length > 0) {
-        await programsApi.update(activeWorkout.programId, updates);
+        await updateProgram.mutateAsync({
+          id: activeWorkout.programId,
+          input: updates,
+        });
       }
 
       setHasUnsavedChanges(false);
@@ -464,17 +507,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
     setPreviousStats(stats);
 
-    // Fetch exercise bests asynchronously for PR detection
-    analyticsApi
-      .bests()
-      .then((data) => {
-        if (data.bests) {
-          setExerciseBests(data.bests);
-        }
-      })
-      .catch(() => {
-        // Silently fail - PRs just won't be detected
-      });
+    // exerciseBests loads via useGetExerciseBests once activeWorkout is set
 
     // Only start Live Activity if workout is not already complete
     if (!workout.date) {
@@ -519,15 +552,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setPreviousStats({});
     setIsQuickWorkout(true);
 
-    // Fetch exercise bests asynchronously for PR detection
-    analyticsApi
-      .bests()
-      .then((data) => {
-        if (data.bests) {
-          setExerciseBests(data.bests);
-        }
-      })
-      .catch(() => {});
+    // exerciseBests loads via useGetExerciseBests once activeWorkout is set
 
     // Start timer
     setTimer(0);
@@ -605,7 +630,6 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setAllWorkouts([]);
     setProgramName("");
     setPreviousStats({});
-    setExerciseBests({});
     setIsQuickWorkout(false);
   };
 
@@ -659,49 +683,21 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       setIsSaving(true);
       try {
         if (isQuickWorkout) {
-          // Save quick workout
-          const validSets = newData.filter((s) => s.weight || s.repsAchieved);
-          if (validSets.length > 0) {
-            await workoutsApi.saveQuick({
-              workoutId: `quick-${Date.now()}`,
-              duration: formatDuration(timer),
-              sets: validSets.map((s) => ({
-                exercise: s.exercise,
-                set: s.set,
-                weight: s.weight,
-                reps: s.repsAchieved,
-                rir: s.rirAchieved,
-                notes: s.notes,
-              })),
-            });
+          const payload = buildQuickPayload(newData, timer);
+          if (payload.sets.length > 0) {
+            await saveQuickWorkout.mutateAsync(payload);
           }
         } else {
-          // Save program workout using Prisma-like where clauses
-          const updates = newData
-            .filter((row) => row.weight || row.repsAchieved)
-            .map((row) => ({
-              where: {
-                week: activeWorkout.week,
-                workout: {
-                  name: activeWorkout.workoutName,
-                  exercise: {
-                    name: row.exercise,
-                    set: row.set - 1,
-                  },
-                },
-              },
-              data: {
-                achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
-                achievedReps: row.repsAchieved
-                  ? parseInt(row.repsAchieved, 10)
-                  : undefined,
-                achievedRir: row.rirAchieved || undefined,
-                notes: row.notes || undefined,
-              },
-            }));
-
+          const updates = buildSetUpdates(
+            newData,
+            activeWorkout.week,
+            activeWorkout.workoutName,
+          );
           if (updates.length > 0) {
-            await programsApi.update(activeWorkout.programId, updates);
+            await updateProgram.mutateAsync({
+              id: activeWorkout.programId,
+              input: updates,
+            });
           }
         }
 
@@ -754,23 +750,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     if (!activeWorkout) return;
 
     if (isQuickWorkout) {
-      // Save quick workout
-      const validSets = newData.filter((s) => s.weight || s.repsAchieved);
-      if (validSets.length > 0) {
+      const payload = buildQuickPayload(newData, timer);
+      if (payload.sets.length > 0) {
         setIsSaving(true);
         try {
-          await workoutsApi.saveQuick({
-            workoutId: `quick-${Date.now()}`,
-            duration: formatDuration(timer),
-            sets: validSets.map((s) => ({
-              exercise: s.exercise,
-              set: s.set,
-              weight: s.weight,
-              reps: s.repsAchieved,
-              rir: s.rirAchieved,
-              notes: s.notes,
-            })),
-          });
+          await saveQuickWorkout.mutateAsync(payload);
         } catch (error) {
           console.error("Failed to save quick workout:", error);
         } finally {
@@ -778,51 +762,25 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } else {
-      // Save program workout with data, date, and duration
       setIsSaving(true);
       try {
-        const durationStr = formatDuration(timer);
-
-        // Build batch updates for all sets
-        const setUpdates = newData
-          .filter((row) => row.weight || row.repsAchieved)
-          .map((row) => ({
-            where: {
-              week: activeWorkout.week,
-              workout: {
-                name: activeWorkout.workoutName,
-                exercise: {
-                  name: row.exercise,
-                  set: row.set - 1,
-                },
-              },
-            },
-            data: {
-              achievedWeight: row.weight ? parseFloat(row.weight) : undefined,
-              achievedReps: row.repsAchieved
-                ? parseInt(row.repsAchieved, 10)
-                : undefined,
-              achievedRir: row.rirAchieved || undefined,
-              notes: row.notes || undefined,
-            },
-          }));
-
-        // Add workout completion update
-        const allUpdates = [
-          ...setUpdates,
-          {
-            where: {
-              week: activeWorkout.week,
-              workout: { name: activeWorkout.workoutName },
-            },
-            data: {
-              date: new Date(),
-              duration: durationStr,
-            },
-          },
+        const updates = [
+          ...buildSetUpdates(
+            newData,
+            activeWorkout.week,
+            activeWorkout.workoutName,
+          ),
+          buildCompletionUpdate(
+            activeWorkout.week,
+            activeWorkout.workoutName,
+            timer,
+          ),
         ];
 
-        await programsApi.update(activeWorkout.programId, allUpdates as any);
+        await updateProgram.mutateAsync({
+          id: activeWorkout.programId,
+          input: updates,
+        });
 
         setHasUnsavedChanges(false);
         hasUnsavedChangesRef.current = false;

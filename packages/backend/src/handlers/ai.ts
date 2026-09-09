@@ -1,6 +1,6 @@
 import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
-import { createGSQL } from "../dal/index.js";
+import { createGSQL, prisma } from "../dal/index.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -20,7 +20,7 @@ interface WorkoutTipRequest {
 export const getWorkoutTip: RouteHandler<{
   Body: WorkoutTipRequest;
 }> = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const { tokens, user } = getAuthSession(request);
   const { programId, week, workoutName } = request.body;
 
   try {
@@ -94,7 +94,9 @@ export const getWorkoutTip: RouteHandler<{
       : null;
 
     // 4. Get previous tips to avoid repetition
-    const previousTips = await gsql.aiTips.findRecent(10);
+    const previousTips = user?.email
+      ? await prisma.aiTips.findRecent(user.email, 10)
+      : [];
     const previousTipsList = previousTips.map((t) => t.tip);
 
     // Build context for the AI
@@ -139,7 +141,13 @@ Based on this data, provide ONE short, insightful tip for today's workout. Make 
 
     const tip = await this.genai.generateWorkoutTip(fullPrompt);
     console.log(tip);
-    await gsql.aiTips.create({ programName: program.name, workoutName, tip });
+    if (user?.email) {
+      await prisma.aiTips.create(user.email, {
+        programName: program.name,
+        workoutName,
+        tip,
+      });
+    }
 
     return { tip };
   } catch (error) {

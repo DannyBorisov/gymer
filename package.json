@@ -6,9 +6,9 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "if [ -z \"$VERCEL\" ]; then patch-package; fi",
     "dev:frontend": "npm run dev -w @gymerr/frontend",
     "dev:backend": "npm run dev -w @gymerr/backend",
+    "dev": "docker compose down -v && docker compose up",
     "build": "npm run build -w @gymerr/backend && npm run build -w @gymerr/frontend",
     "build:frontend": "npm run build -w @gymerr/frontend",
     "build:backend": "npm run build -w @gymerr/backend",

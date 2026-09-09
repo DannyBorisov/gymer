@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Goal {
+  LOSE_FAT
+  BUILD_MUSCLE
+  MAINTAIN
+  GAIN_STRENGTH
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+model Onboarding {
+  id         String   @id @default(cuid())
+  userEmail  String   @unique
+  weight     Float
+  height     Float
+  age        Int
+  gender     Gender
+  goal       Goal
+  isComplete Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model AiTip {
+  id          String   @id @default(cuid())
+  userEmail   String
+  programName String
+  workoutName String
+  tip         String
+  createdAt   DateTime @default(now())
+
+  @@index([userEmail, createdAt])
+}

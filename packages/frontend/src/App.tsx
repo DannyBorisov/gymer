@@ -12,15 +12,15 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-      <AuthProvider>
-        <SettingsProvider>
-          <WorkoutProvider>
-            <QuickWorkoutProvider>
-              <AppRoutes />
-            </QuickWorkoutProvider>
-          </WorkoutProvider>
-        </SettingsProvider>
-      </AuthProvider>
+        <AuthProvider>
+          <SettingsProvider>
+            <WorkoutProvider>
+              <QuickWorkoutProvider>
+                <AppRoutes />
+              </QuickWorkoutProvider>
+            </WorkoutProvider>
+          </SettingsProvider>
+        </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );

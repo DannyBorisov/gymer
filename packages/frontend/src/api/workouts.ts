@@ -24,11 +24,26 @@ export interface Workout {
   exercises: WorkoutExercise[];
 }
 
+export interface QuickWorkoutSet {
+  exercise: string;
+  set: number;
+  weight: string;
+  reps: string;
+  rir: string;
+  notes: string;
+}
+
+export interface QuickWorkoutPayload {
+  workoutId: string;
+  duration: string;
+  sets: QuickWorkoutSet[];
+}
+
 export const workoutsApi = {
   history: () => request<{ workouts: Workout[] }>("/api/workouts/history"),
   quickExercises: () =>
     request<{ exercises: string[] }>("/api/quick-workouts/exercises"),
-  saveQuick: (payload: unknown) =>
+  saveQuick: (payload: QuickWorkoutPayload) =>
     request<void>("/api/quick-workouts/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -58,7 +73,7 @@ export function useGetQuickWorkoutExercises() {
 export function useSaveQuickWorkout() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: unknown) => workoutsApi.saveQuick(payload),
+    mutationFn: (payload: QuickWorkoutPayload) => workoutsApi.saveQuick(payload),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.history }),
   });

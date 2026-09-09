@@ -442,7 +442,7 @@
 /* Profile hierarchy */
 .container {
   max-width: 640px;
-  padding: clamp(1.25rem, 3vw, 2.5rem);
+  padding: clamp(1.25rem, 3vw, 2.5rem) 0;
   padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
 }
 
@@ -625,7 +625,7 @@
 
 @media (max-width: 767px) {
   .container {
-    padding: 1.25rem 1rem calc(6rem + var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px));
+    padding: 1.25rem 0 calc(6rem + var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px));
   }
 
   .header {

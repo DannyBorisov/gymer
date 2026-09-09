@@ -17,7 +17,7 @@ export async function requireAuth(
     return reply.status(401).send({ error: "Not authenticated" });
   }
 
-  request.session = session;
+  request.session = session as AuthenticatedSession;
 }
 
 export function getAuthSession(request: FastifyRequest): AuthenticatedSession {

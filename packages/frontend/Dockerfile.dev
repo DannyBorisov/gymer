@@ -1,0 +1,16 @@
+# Dev image for the frontend (Vite dev server). Source is bind-mounted at runtime.
+FROM node:22-slim
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY packages/frontend/package.json packages/frontend/
+COPY packages/backend/package.json packages/backend/
+COPY packages/shared/package.json packages/shared/
+COPY packages/backend/prisma packages/backend/prisma
+
+RUN npm ci
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev", "-w", "@gymerr/frontend", "--", "--host", "0.0.0.0"]

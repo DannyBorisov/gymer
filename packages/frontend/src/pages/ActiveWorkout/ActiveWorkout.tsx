@@ -35,8 +35,7 @@ import useClickOutside from "../../hooks/useClickOutside";
 
 const ActiveWorkout = () => {
   const navigate = useNavigate();
-  const { weightUnit, restTimerDuration, restTimerAnnounceInterval } =
-    useSettings();
+  const { weightUnit, restTimerAnnounceInterval } = useSettings();
   const {
     activeWorkout,
     workoutData,
@@ -117,7 +116,7 @@ const ActiveWorkout = () => {
 
   // Wrapper to handle UI state when starting rest timer
   const handleStartRestTimer = (exerciseName: string) => {
-    startRestTimer(exerciseName, restTimerDuration, restTimerAnnounceInterval);
+    startRestTimer(exerciseName, restTimer, restTimerAnnounceInterval);
   };
 
   // Swipe gesture handlers for set navigation
@@ -503,7 +502,9 @@ const ActiveWorkout = () => {
           <div className={styles.summaryHeader}>
             <h2 className={styles.summaryTitle}>Workout Complete!</h2>
             {activeWorkout?.workoutName && (
-              <p className={styles.summarySubtitle}>{activeWorkout.workoutName}</p>
+              <p className={styles.summarySubtitle}>
+                {activeWorkout.workoutName}
+              </p>
             )}
           </div>
           <div className={styles.summaryStats}>
@@ -553,7 +554,9 @@ const ActiveWorkout = () => {
                   <span className={styles.summaryStatValue}>
                     {workoutSummary.progressionCount}
                   </span>
-                  <span className={styles.summaryStatLabel}>PR{workoutSummary.progressionCount > 1 ? "s" : ""}</span>
+                  <span className={styles.summaryStatLabel}>
+                    PR{workoutSummary.progressionCount > 1 ? "s" : ""}
+                  </span>
                 </div>
               </div>
             )}

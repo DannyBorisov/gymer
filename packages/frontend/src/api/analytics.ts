@@ -34,6 +34,10 @@ export function useGetAnalyticsProgression() {
   return useQuery({ queryKey: analyticsQueryKeys.progression, queryFn: analyticsApi.progression });
 }
 
-export function useGetExerciseBests() {
-  return useQuery({ queryKey: analyticsQueryKeys.bests, queryFn: analyticsApi.bests });
+export function useGetExerciseBests(enabled = true) {
+  return useQuery({
+    queryKey: analyticsQueryKeys.bests,
+    queryFn: analyticsApi.bests,
+    enabled,
+  });
 }

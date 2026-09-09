@@ -1,93 +1,81 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { localStorage } from "../services/local-storage";
 
-type WeightUnit = 'kg' | 'lbs'
+type WeightUnit = "kg" | "lbs";
 
 interface ActiveProgram {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
+
+interface Settings {
+  weightUnit: WeightUnit;
+  showRestSuggestion: boolean;
+  restTimerAnnounceInterval: number;
+  activeProgram: ActiveProgram | null;
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  weightUnit: "kg",
+  showRestSuggestion: true,
+  restTimerAnnounceInterval: 60,
+  activeProgram: null,
+};
+
+const STORAGE_KEY = "settings";
 
 interface SettingsContextType {
-  weightUnit: WeightUnit
-  setWeightUnit: (unit: WeightUnit) => void
-  showRestSuggestion: boolean
-  setShowRestSuggestion: (show: boolean) => void
-  restTimerDuration: number
-  setRestTimerDuration: (seconds: number) => void
-  restTimerAnnounceInterval: number
-  setRestTimerAnnounceInterval: (seconds: number) => void
-  activeProgram: ActiveProgram | null
-  setActiveProgram: (program: ActiveProgram | null) => void
+  weightUnit: WeightUnit;
+  setWeightUnit: (unit: WeightUnit) => void;
+  showRestSuggestion: boolean;
+  setShowRestSuggestion: (show: boolean) => void;
+  restTimerAnnounceInterval: number;
+  setRestTimerAnnounceInterval: (seconds: number) => void;
+  activeProgram: ActiveProgram | null;
+  setActiveProgram: (program: ActiveProgram | null) => void;
 }
 
-const SettingsContext = createContext<SettingsContextType | null>(null)
+const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [weightUnit, setWeightUnit] = useState<WeightUnit>('kg')
-  const [showRestSuggestion, setShowRestSuggestionState] = useState<boolean>(() => {
-    const saved = localStorage.getItem('showRestSuggestion')
-    return saved !== null ? saved === 'true' : true
-  })
-  const [restTimerDuration, setRestTimerDurationState] = useState<number>(() => {
-    const saved = localStorage.getItem('restTimerDuration')
-    return saved !== null ? parseInt(saved, 10) : 90
-  })
-  const [restTimerAnnounceInterval, setRestTimerAnnounceIntervalState] = useState<number>(() => {
-    const saved = localStorage.getItem('restTimerAnnounceInterval')
-    return saved !== null ? parseInt(saved, 10) : 60
-  })
+  const [settings, setSettings] = useState<Settings>(() => ({
+    ...DEFAULT_SETTINGS,
+    ...localStorage.get<Partial<Settings>>(STORAGE_KEY, {}),
+  }));
 
-  const [activeProgram, setActiveProgramState] = useState<ActiveProgram | null>(() => {
-    const saved = localStorage.getItem('activeProgram')
-    return saved ? JSON.parse(saved) : null
-  })
-
-  const setShowRestSuggestion = (show: boolean) => {
-    setShowRestSuggestionState(show)
-    localStorage.setItem('showRestSuggestion', String(show))
-  }
-
-  const setRestTimerDuration = (seconds: number) => {
-    setRestTimerDurationState(seconds)
-    localStorage.setItem('restTimerDuration', String(seconds))
-  }
-
-  const setRestTimerAnnounceInterval = (seconds: number) => {
-    setRestTimerAnnounceIntervalState(seconds)
-    localStorage.setItem('restTimerAnnounceInterval', String(seconds))
-  }
-
-  const setActiveProgram = (program: ActiveProgram | null) => {
-    setActiveProgramState(program)
-    if (program) {
-      localStorage.setItem('activeProgram', JSON.stringify(program))
-    } else {
-      localStorage.removeItem('activeProgram')
-    }
-  }
+  const update = (patch: Partial<Settings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      localStorage.set(STORAGE_KEY, next);
+      return next;
+    });
+  };
 
   return (
-    <SettingsContext.Provider value={{
-      weightUnit,
-      setWeightUnit,
-      showRestSuggestion,
-      setShowRestSuggestion,
-      restTimerDuration,
-      setRestTimerDuration,
-      restTimerAnnounceInterval,
-      setRestTimerAnnounceInterval,
-      activeProgram,
-      setActiveProgram
-    }}>
+    <SettingsContext.Provider
+      value={{
+        weightUnit: settings.weightUnit,
+        setWeightUnit: (weightUnit) => update({ weightUnit }),
+        showRestSuggestion: settings.showRestSuggestion,
+        setShowRestSuggestion: (showRestSuggestion) =>
+          update({ showRestSuggestion }),
+
+        restTimerAnnounceInterval: settings.restTimerAnnounceInterval,
+        setRestTimerAnnounceInterval: (restTimerAnnounceInterval) =>
+          update({ restTimerAnnounceInterval }),
+        activeProgram: settings.activeProgram,
+        setActiveProgram: (activeProgram) => update({ activeProgram }),
+      }}
+    >
       {children}
     </SettingsContext.Provider>
-  )
-}
+  );
+};
 
 export const useSettings = () => {
-  const context = useContext(SettingsContext)
+  const context = useContext(SettingsContext);
   if (!context) {
-    throw new Error('useSettings must be used within a SettingsProvider')
+    throw new Error("useSettings must be used within a SettingsProvider");
   }
-  return context
-}
+  return context;
+};

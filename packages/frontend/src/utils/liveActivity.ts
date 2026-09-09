@@ -15,35 +15,82 @@ let restStartTime: number | null = null;
 const WORKOUT_COLOR = "#22C55E";
 const REST_COLOR = "#EAB308";
 
-// Create layout with native timer that auto-updates (lock screen)
+// Lock Screen layout uses a fixed timer frame because ActivityKit may otherwise
+// compress dynamically sized timer text when the device is locked.
 const createLayout = (startTime: number): LayoutElement => ({
   type: "container",
-  properties: [{ direction: "vertical" }, { spacing: 4 }, { padding: 16 }],
+  properties: [
+    { direction: "vertical" },
+    { spacing: 10 },
+    { padding: 16 },
+    { insideAlignment: "leading" },
+  ],
   children: [
     {
-      type: "text",
-      properties: [
-        { text: "{{workoutName}}" },
-        { fontSize: 16 },
-        { fontWeight: "medium" },
-        { color: "#FFFFFF" },
+      type: "container",
+      properties: [{ direction: "horizontal" }, { spacing: 6 }],
+      children: [
+        {
+          type: "image",
+          properties: [
+            { systemName: "dumbbell.fill" },
+            { color: WORKOUT_COLOR },
+          ],
+        },
+        {
+          type: "text",
+          properties: [
+            { text: "{{workoutName}}" },
+            { fontSize: 14 },
+            { fontWeight: "semibold" },
+            { color: "#A0A0A0" },
+            { lineLimit: 1 },
+          ],
+        },
       ],
     },
     {
-      type: "timer",
+      type: "text",
       properties: [
-        { endTime: startTime },
-        { style: "timer" },
-        { fontSize: 48 },
-        { fontWeight: "bold" },
-        { color: WORKOUT_COLOR },
-        { monospacedDigit: true },
+        { text: "{{exerciseName}}" },
+        { fontSize: 20 },
+        { fontWeight: "semibold" },
+        { color: "#FFFFFF" },
+        { lineLimit: 1 },
+      ],
+    },
+    {
+      type: "container",
+      properties: [{ direction: "horizontal" }, { spacing: 10 }],
+      children: [
+        {
+          type: "timer",
+          properties: [
+            { endTime: startTime },
+            { style: "timer" },
+            { fontSize: 28 },
+            { fontWeight: "bold" },
+            { color: WORKOUT_COLOR },
+            { monospacedDigit: true },
+            { width: 156 },
+            { alignment: "leading" },
+          ],
+        },
+        {
+          type: "text",
+          properties: [
+            { text: "ELAPSED" },
+            { fontSize: 11 },
+            { fontWeight: "semibold" },
+            { color: "#A0A0A0" },
+          ],
+        },
       ],
     },
   ],
 });
 
-// Create Dynamic Island layout with native timer
+// Dynamic Island keeps its compact, purpose-built layout.
 const createDynamicIslandLayout = (startTime: number): DynamicIslandLayout => ({
   expanded: {
     center: {
@@ -112,35 +159,84 @@ const createDynamicIslandLayout = (startTime: number): DynamicIslandLayout => ({
   },
 });
 
-// Create layout with rest timer active (lock screen)
+// The rest state follows the same Lock Screen hierarchy with dedicated timer rows.
 const createLayoutWithRest = (workoutStart: number, restStart: number): LayoutElement => ({
   type: "container",
-  properties: [{ direction: "vertical" }, { spacing: 4 }, { padding: 16 }],
+  properties: [
+    { direction: "vertical" },
+    { spacing: 10 },
+    { padding: 16 },
+    { insideAlignment: "leading" },
+  ],
   children: [
+    {
+      type: "container",
+      properties: [{ direction: "horizontal" }, { spacing: 6 }],
+      children: [
+        {
+          type: "image",
+          properties: [
+            { systemName: "dumbbell.fill" },
+            { color: WORKOUT_COLOR },
+          ],
+        },
+        {
+          type: "text",
+          properties: [
+            { text: "{{workoutName}}" },
+            { fontSize: 14 },
+            { fontWeight: "semibold" },
+            { color: "#A0A0A0" },
+            { lineLimit: 1 },
+          ],
+        },
+      ],
+    },
     {
       type: "text",
       properties: [
-        { text: "{{workoutName}}" },
-        { fontSize: 16 },
-        { fontWeight: "medium" },
+        { text: "{{exerciseName}}" },
+        { fontSize: 20 },
+        { fontWeight: "semibold" },
         { color: "#FFFFFF" },
+        { lineLimit: 1 },
       ],
     },
     {
       type: "container",
-      properties: [{ direction: "horizontal" }, { spacing: 24 }],
+      properties: [
+        { direction: "horizontal" },
+        { spacing: 10 },
+      ],
       children: [
         {
           type: "timer",
           properties: [
             { endTime: workoutStart },
             { style: "timer" },
-            { fontSize: 36 },
+            { fontSize: 26 },
             { fontWeight: "bold" },
             { color: WORKOUT_COLOR },
             { monospacedDigit: true },
+            { width: 132 },
+            { alignment: "leading" },
           ],
         },
+        {
+          type: "text",
+          properties: [
+            { text: "WORKOUT" },
+            { fontSize: 10 },
+            { fontWeight: "semibold" },
+            { color: "#A0A0A0" },
+          ],
+        },
+      ],
+    },
+    {
+      type: "container",
+      properties: [{ direction: "horizontal" }, { spacing: 10 }],
+      children: [
         {
           type: "container",
           properties: [{ direction: "horizontal" }, { spacing: 6 }],
@@ -154,12 +250,23 @@ const createLayoutWithRest = (workoutStart: number, restStart: number): LayoutEl
               properties: [
                 { endTime: restStart },
                 { style: "timer" },
-                { fontSize: 36 },
+                { fontSize: 26 },
                 { fontWeight: "bold" },
                 { color: REST_COLOR },
                 { monospacedDigit: true },
+                { width: 108 },
+                { alignment: "leading" },
               ],
             },
+          ],
+        },
+        {
+          type: "text",
+          properties: [
+            { text: "REST" },
+            { fontSize: 10 },
+            { fontWeight: "semibold" },
+            { color: "#A0A0A0" },
           ],
         },
       ],

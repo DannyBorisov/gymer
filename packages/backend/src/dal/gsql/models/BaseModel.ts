@@ -1,4 +1,4 @@
-import type { GoogleSheets } from '../../plugins/googleSheets.js';
+import type { GoogleSheets } from '../../../plugins/googleSheets.js';
 
 export interface AuthTokens {
   access_token: string;
