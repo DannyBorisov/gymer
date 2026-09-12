@@ -16,3 +16,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GYMERR_91A27 }}
           channelId: live
           projectId: gymerr-91a27
+          entryPoint: packages/frontend
