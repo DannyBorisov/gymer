@@ -1,0 +1,28 @@
+.handle {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  align-self: center;
+  background: var(--bg-interactive);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: grab;
+  touch-action: none;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.handle:hover {
+  color: var(--text-primary);
+  background: var(--bg-interactive);
+}
+
+.handle:active {
+  cursor: grabbing;
+  color: var(--text-primary);
+}

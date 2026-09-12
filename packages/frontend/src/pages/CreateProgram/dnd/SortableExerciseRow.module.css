@@ -1,0 +1,4 @@
+/* The lifted card is rendered in the DragOverlay; hide the original in place. */
+.dragging {
+  opacity: 0;
+}
