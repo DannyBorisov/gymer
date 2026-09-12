@@ -1,11 +1,7 @@
 import { useState } from "react";
 import type { Program, Workout, Exercise, Frequency } from "../types/program";
 import { formatExerciseName } from "../types/shared";
-import {
-  newExerciseId,
-  stripExerciseId,
-  withExerciseIds,
-} from "./exerciseId";
+import { newExerciseId, stripExerciseId, withExerciseIds } from "./exerciseId";
 
 const createEmptyWorkout = (): Workout => ({
   name: "",
@@ -62,7 +58,7 @@ export const useCreateProgram = () => {
     setProgram((prev) => ({
       ...prev,
       workouts: prev.workouts.map((w, i) =>
-        i === workoutIndex ? { ...w, name } : w
+        i === workoutIndex ? { ...w, name } : w,
       ),
     }));
   };
@@ -80,7 +76,7 @@ export const useCreateProgram = () => {
       workouts: prev.workouts.map((w, i) =>
         i === workoutIndex
           ? { ...w, exercises: [...w.exercises, ...newExercises] }
-          : w
+          : w,
       ),
     }));
   };
@@ -90,8 +86,11 @@ export const useCreateProgram = () => {
       ...prev,
       workouts: prev.workouts.map((w, wi) =>
         wi === workoutIndex
-          ? { ...w, exercises: w.exercises.filter((_, ei) => ei !== exerciseIndex) }
-          : w
+          ? {
+              ...w,
+              exercises: w.exercises.filter((_, ei) => ei !== exerciseIndex),
+            }
+          : w,
       ),
     }));
   };
@@ -100,7 +99,7 @@ export const useCreateProgram = () => {
     workoutIndex: number,
     exerciseIndex: number,
     field: keyof Exercise,
-    value: string | number | boolean
+    value: string | number | boolean,
   ) => {
     setProgram((prev) => ({
       ...prev,
@@ -109,10 +108,10 @@ export const useCreateProgram = () => {
           ? {
               ...w,
               exercises: w.exercises.map((e, ei) =>
-                ei === exerciseIndex ? { ...e, [field]: value } : e
+                ei === exerciseIndex ? { ...e, [field]: value } : e,
               ),
             }
-          : w
+          : w,
       ),
     }));
   };
@@ -126,14 +125,14 @@ export const useCreateProgram = () => {
   const moveExercise = (
     exerciseId: string,
     toWorkoutIndex: number,
-    toIndex: number
+    toIndex: number,
   ) => {
     setProgram((prev) => {
       const target = prev.workouts[toWorkoutIndex];
       if (!target) return prev;
 
       const fromWorkoutIndex = prev.workouts.findIndex((w) =>
-        w.exercises.some((e) => e.id === exerciseId)
+        w.exercises.some((e) => e.id === exerciseId),
       );
       if (fromWorkoutIndex === -1) return prev;
 
