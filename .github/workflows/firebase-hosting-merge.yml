@@ -17,4 +17,5 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GYMERR_91A27 }}
           channelId: live
-          projectId: gymerr-91a27
+          projectId: gymerr
+          entryPoint: packages/frontend
