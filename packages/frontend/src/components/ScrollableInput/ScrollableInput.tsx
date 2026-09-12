@@ -51,6 +51,7 @@ export function ScrollableInput({
   // Scroll state refs
   const isScrolling = useRef(false);
   const isButtonScroll = useRef(false);
+  const userInteracted = useRef(false);
   const lastScrollTop = useRef(0);
   const lastScrollTime = useRef(0);
   const velocity = useRef(0);
@@ -159,6 +160,10 @@ export function ScrollableInput({
   // Apply momentum and snap
   const applyMomentum = useCallback(() => {
     if (!scrollRef.current) return;
+    // Only commit a value if the user actually scrolled the picker. Guards
+    // against spurious scroll events (layout shifts, drawer animations) writing
+    // the resting-position value into an untouched field.
+    if (!userInteracted.current) return;
 
     const currentVelocity = velocity.current;
 
@@ -229,6 +234,10 @@ export function ScrollableInput({
   // Handle scroll event
   const handleScroll = useCallback(() => {
     if (!scrollRef.current || isEditing) return;
+    // Ignore scroll events before the picker has committed its initial
+    // scroll-to-value position (e.g. while mounted hidden in a drawer), and
+    // scroll events caused by our own programmatic scrolling.
+    if (!isReady || isButtonScroll.current) return;
 
     const now = performance.now();
     const currentScroll = scrollRef.current.scrollTop;
@@ -243,6 +252,7 @@ export function ScrollableInput({
     lastScrollTop.current = currentScroll;
     lastScrollTime.current = now;
     isScrolling.current = true;
+    userInteracted.current = true;
 
     // Haptic feedback when crossing value boundaries
     const currentIdx = getScrollIndex();
@@ -267,11 +277,10 @@ export function ScrollableInput({
     snapTimeoutRef.current = setTimeout(() => {
       applyMomentum();
     }, 50);
-  }, [isEditing, values.length, getScrollIndex, applyMomentum]);
+  }, [isEditing, isReady, values.length, getScrollIndex, applyMomentum]);
 
   // Scroll to current value on mount and value change
   useEffect(() => {
-    console.log(label, value);
     // Skip if button is handling the scroll animation
     if (isButtonScroll.current) return;
     if (isEditing) return;
@@ -294,9 +303,15 @@ export function ScrollableInput({
         rafId = requestAnimationFrame(trySetScroll);
         return;
       }
+      // Mark this as a programmatic scroll so the onScroll handler that fires
+      // from setting scrollTop isn't treated as user interaction.
+      isButtonScroll.current = true;
       el.scrollTop = targetScroll;
       lastHapticIndex.current = currentIndex;
       setIsReady(true);
+      requestAnimationFrame(() => {
+        isButtonScroll.current = false;
+      });
     };
 
     trySetScroll();

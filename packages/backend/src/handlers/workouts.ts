@@ -143,15 +143,12 @@ export const getWorkoutHistory: RouteHandler = async function (request, reply) {
     const programsPromises = programs.map(({ id }) => gsql.programs.find(id));
     const programDetails = await Promise.all(programsPromises);
 
-    const completeWorkouts = programDetails.flatMap((pd) =>
-      pd?.workouts
-        .filter((w) => !!w.date)
-        .sort(
-          (a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime(),
-        ),
-    );
-
-    console.log(completeWorkouts);
+    const completeWorkouts = programDetails
+      .flatMap((pd) => pd?.workouts ?? [])
+      .filter((w) => !!w.date)
+      .sort(
+        (a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime(),
+      );
 
     return { workouts: completeWorkouts };
   } catch (error) {

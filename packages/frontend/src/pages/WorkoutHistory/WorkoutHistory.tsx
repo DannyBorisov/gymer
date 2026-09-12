@@ -13,7 +13,17 @@ import styles from "./WorkoutHistory.module.css";
 
 const WorkoutHistory = () => {
   const { weightUnit } = useSettings();
-  const { data = { workouts: [] }, isLoading } = useGetWorkoutHistory();
+  const { data: rawData = { workouts: [] }, isLoading } =
+    useGetWorkoutHistory();
+  // Only dated workouts belong in history; guard against nulls/undated rows.
+  const data = useMemo(
+    () => ({
+      workouts: rawData.workouts.filter(
+        (w): w is Workout => w != null && w.date != null,
+      ),
+    }),
+    [rawData],
+  );
 
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [groupMode, setGroupMode] = useState<

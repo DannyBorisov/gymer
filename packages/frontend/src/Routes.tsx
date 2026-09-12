@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
 import { WorkoutDrawer } from "./components/WorkoutDrawer";
+import { parseExerciseName } from "./types/shared";
 import Landing from "./pages/Landing/Landing";
 import Login from "./pages/Login/Login";
 import Home from "./pages/Home/Home";
@@ -45,9 +46,14 @@ const WorkoutDrawerOverlay = () => {
     navigate("/home");
   };
 
-  // Get current exercise name
+  // Get current exercise name (variant shown alongside, e.g. "Row · Wide Grip")
   const exerciseNames = [...new Set(workoutData.map((e) => e.exercise))];
-  const currentExerciseName = exerciseNames[currentExerciseIndex] || "";
+  const currentFullName = exerciseNames[currentExerciseIndex] || "";
+  const { name: currentName, variant: currentVariant } =
+    parseExerciseName(currentFullName);
+  const currentExerciseName = currentVariant
+    ? `${currentName} · ${currentVariant}`
+    : currentName;
 
   // Show drawer when on workout route OR when there's an active workout on other pages
   const shouldShowDrawer = !!(isWorkoutRoute || activeWorkout);
@@ -144,6 +150,7 @@ const AppRoutes = () => (
     <Route path="/login" element={<Login />} />
     <Route path="/terms" element={<LegalPage />} />
     <Route path="/privacy" element={<LegalPage />} />
+    <Route path="/delete-account" element={<LegalPage />} />
     <Route
       path="/*"
       element={

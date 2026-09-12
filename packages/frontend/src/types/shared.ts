@@ -1,5 +1,10 @@
 // Program creation types
 export interface Exercise {
+  /**
+   * Stable client-side id for list reconciliation while editing (drag reorder,
+   * React keys). Assigned by the create-program hook; stripped before submit.
+   */
+  id?: string;
   name: string;
   variant?: string; // e.g., "Wide Grip", "Machine", "Dumbbell"
   sets: number;

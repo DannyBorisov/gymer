@@ -603,9 +603,22 @@ const ActiveWorkout = () => {
         </div>
       </div>
 
-      {/* Target info */}
+      {/* Current exercise + target */}
       {currentSet && (
-        <div className={styles.targetInfo}>
+        <div className={styles.currentExercise}>
+          {(() => {
+            const { name, variant } = parseExerciseName(currentExerciseName);
+            return (
+              <h2 className={styles.currentExerciseName}>
+                {name}
+                {variant && (
+                  <span className={styles.currentExerciseVariant}>
+                    {variant}
+                  </span>
+                )}
+              </h2>
+            );
+          })()}
           <span className={styles.targetText}>
             {currentSet.targetReps} reps @ {currentSet.rir} RIR
           </span>

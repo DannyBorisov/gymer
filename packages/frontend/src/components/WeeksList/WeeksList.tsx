@@ -4,6 +4,7 @@ import { Play, CheckCircle2, Circle, Dumbbell, X } from "lucide-react";
 import { SwipeableDrawer } from "../SwipeableDrawer";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import { formatDateWithDay } from "../../lib/date";
+import { parseExerciseName } from "../../types/shared";
 import type { Workout } from "../../api/workouts";
 import styles from "./WeeksList.module.css";
 
@@ -189,11 +190,18 @@ export const WeeksList = ({
             </div>
 
             <div className={styles.exercisePreviewList}>
-              {workoutExercises.map((exercise, index) => (
+              {workoutExercises.map((exercise, index) => {
+                const { name, variant } = parseExerciseName(exercise.name);
+                return (
                 <div key={exercise.name} className={styles.exercisePreview}>
                   <span className={styles.exerciseNumber}>{index + 1}</span>
                   <div className={styles.exerciseDetails}>
-                    <span className={styles.exerciseName}>{exercise.name}</span>
+                    <span className={styles.exerciseName}>
+                      <span className={styles.exerciseNameText}>{name}</span>
+                      {variant && (
+                        <span className={styles.exerciseVariant}>{variant}</span>
+                      )}
+                    </span>
                     <span className={styles.exerciseMeta}>
                       {exercise.totalSets} set
                       {exercise.totalSets === 1 ? "" : "s"} x {exercise.reps}{" "}
@@ -201,7 +209,8 @@ export const WeeksList = ({
                     </span>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <button

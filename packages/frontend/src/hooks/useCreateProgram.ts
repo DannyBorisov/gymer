@@ -1,20 +1,25 @@
 import { useState } from "react";
 import type { Program, Workout, Exercise, Frequency } from "../types/program";
 import { formatExerciseName } from "../types/shared";
+import {
+  newExerciseId,
+  stripExerciseId,
+  withExerciseIds,
+} from "./exerciseId";
 
 const createEmptyWorkout = (): Workout => ({
   name: "",
   exercises: [],
 });
 
-const initialProgram: Program = {
+const initialProgram = (): Program => ({
   name: "",
   durationWeeks: 4,
   frequency: 4,
   dynamicRir: true,
   startingRir: 3,
   workouts: [createEmptyWorkout()],
-};
+});
 
 export const useCreateProgram = () => {
   const [program, setProgram] = useState<Program>(initialProgram);
@@ -64,6 +69,7 @@ export const useCreateProgram = () => {
 
   const addExercises = (workoutIndex: number, exerciseNames: string[]) => {
     const newExercises: Exercise[] = exerciseNames.map((name) => ({
+      id: newExerciseId(),
       name,
       sets: 3,
       reps: 10,
@@ -111,12 +117,69 @@ export const useCreateProgram = () => {
     }));
   };
 
+  /**
+   * Move the exercise with `exerciseId` to `toIndex` within `toWorkoutIndex`
+   * (`arrayMove` semantics: the index the row should occupy afterwards).
+   * Handles same-session and cross-session; a no-op when the position is
+   * unchanged, so it is safe to call repeatedly while dragging.
+   */
+  const moveExercise = (
+    exerciseId: string,
+    toWorkoutIndex: number,
+    toIndex: number
+  ) => {
+    setProgram((prev) => {
+      const target = prev.workouts[toWorkoutIndex];
+      if (!target) return prev;
+
+      const fromWorkoutIndex = prev.workouts.findIndex((w) =>
+        w.exercises.some((e) => e.id === exerciseId)
+      );
+      if (fromWorkoutIndex === -1) return prev;
+
+      const source = prev.workouts[fromWorkoutIndex];
+      const fromIndex = source.exercises.findIndex((e) => e.id === exerciseId);
+      const moved = source.exercises[fromIndex];
+
+      if (fromWorkoutIndex === toWorkoutIndex && fromIndex === toIndex) {
+        return prev;
+      }
+
+      const remaining =
+        fromWorkoutIndex === toWorkoutIndex
+          ? target.exercises.filter((e) => e.id !== exerciseId)
+          : target.exercises;
+
+      const insertAt = Math.max(0, Math.min(toIndex, remaining.length));
+      const nextTargetExercises = [
+        ...remaining.slice(0, insertAt),
+        moved,
+        ...remaining.slice(insertAt),
+      ];
+
+      return {
+        ...prev,
+        workouts: prev.workouts.map((w, i) => {
+          if (i === toWorkoutIndex)
+            return { ...w, exercises: nextTargetExercises };
+          if (i === fromWorkoutIndex && fromWorkoutIndex !== toWorkoutIndex) {
+            return {
+              ...w,
+              exercises: w.exercises.filter((e) => e.id !== exerciseId),
+            };
+          }
+          return w;
+        }),
+      };
+    });
+  };
+
   const resetProgram = () => {
-    setProgram(initialProgram);
+    setProgram(initialProgram());
   };
 
   const loadProgram = (preset: Program) => {
-    setProgram(preset);
+    setProgram(withExerciseIds(preset));
   };
 
   // Get program with combined exercise names (name + variant) for submission
@@ -125,7 +188,7 @@ export const useCreateProgram = () => {
     workouts: program.workouts.map((w) => ({
       ...w,
       exercises: w.exercises.map((e) => ({
-        ...e,
+        ...stripExerciseId(e),
         name: formatExerciseName(e.name, e.variant),
         variant: undefined, // Remove variant field for submission
       })),
@@ -146,6 +209,7 @@ export const useCreateProgram = () => {
     addExercises,
     removeExercise,
     updateExercise,
+    moveExercise,
     resetProgram,
     loadProgram,
   };

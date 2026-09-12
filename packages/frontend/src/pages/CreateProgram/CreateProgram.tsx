@@ -2,280 +2,27 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
-  Trash2,
-  ChevronRight,
   ChevronLeft,
+  ChevronRight,
   ExternalLink,
   Loader2,
   Dumbbell,
   Calendar,
   Clock,
   Gauge,
-  Tag,
   ListChecks,
 } from "lucide-react";
+import { DndContext, DragOverlay, closestCorners } from "@dnd-kit/core";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import { useCreateProgram as useCreateProgramMutation } from "../../api/programs";
 import { presets } from "../../data/presets";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
-import type { Workout, Exercise, Program } from "../../types/program";
+import type { Program } from "../../types/program";
+import { WorkoutSection } from "./components/WorkoutSection";
+import { ExerciseRow } from "./components/ExerciseRow";
+import { useExerciseDnd } from "./dnd/useExerciseDnd";
 import styles from "./CreateProgram.module.css";
-
-interface ExerciseRowProps {
-  exercise: Exercise;
-  index: number;
-  onUpdate: (field: keyof Exercise, value: string | number | boolean) => void;
-  onRemove: () => void;
-  onOpenDrawer: () => void;
-  showRir: boolean;
-  dynamicRir: boolean;
-}
-
-const ExerciseRow = ({
-  exercise,
-  index,
-  onUpdate,
-  onRemove,
-  onOpenDrawer,
-  showRir,
-  dynamicRir,
-}: ExerciseRowProps) => {
-  const [showVariant, setShowVariant] = useState(!!exercise.variant);
-
-  return (
-    <div className={styles.exerciseRow}>
-      <div className={styles.exerciseHeader}>
-        <span className={styles.exerciseIndex}>{index + 1}</span>
-        <div className={styles.exerciseNameGroup}>
-          <input
-            type="text"
-            value={exercise.name}
-            onFocus={onOpenDrawer}
-            onChange={(e) => onUpdate("name", e.target.value)}
-            className={styles.exerciseNameInput}
-            placeholder="Exercise name"
-            readOnly
-          />
-          {exercise.variant && !showVariant && (
-            <button
-              type="button"
-              className={styles.variantBadge}
-              onClick={() => setShowVariant(true)}
-            >
-              {exercise.variant}
-            </button>
-          )}
-          {showVariant && (
-            <input
-              type="text"
-              value={exercise.variant || ""}
-              onChange={(e) => onUpdate("variant", e.target.value)}
-              onBlur={() => !exercise.variant && setShowVariant(false)}
-              className={styles.variantInput}
-              placeholder="e.g. Wide Grip"
-              autoFocus
-            />
-          )}
-          {!showVariant && !exercise.variant && (
-            <button
-              type="button"
-              className={styles.addVariantBtn}
-              onClick={() => setShowVariant(true)}
-              title="Add exercise variation"
-            >
-              <Tag size={12} />
-              <span className={styles.variantButtonText}>Variation</span>
-            </button>
-          )}
-        </div>
-      </div>
-      <div className={styles.exerciseInputs}>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Sets</label>
-          <input
-            type="number"
-            value={exercise.sets || ""}
-            onChange={(e) => onUpdate("sets", Number(e.target.value))}
-            className={styles.numberInput}
-            placeholder="0"
-            min={0}
-            inputMode="numeric"
-          />
-        </div>
-        <div className={styles.inputGroup}>
-          <label className={styles.inputLabel}>Reps</label>
-          <input
-            type="number"
-            value={exercise.reps || ""}
-            onChange={(e) => onUpdate("reps", Number(e.target.value))}
-            className={styles.numberInput}
-            placeholder="0"
-            min={0}
-            inputMode="numeric"
-          />
-        </div>
-        {showRir && (
-          <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>RIR</label>
-            <input
-              type="number"
-              value={exercise.rir || ""}
-              onChange={(e) => onUpdate("rir", Number(e.target.value))}
-              className={styles.numberInput}
-              placeholder="0"
-              min={0}
-              max={10}
-              inputMode="numeric"
-            />
-          </div>
-        )}
-        {dynamicRir && (
-          <div className={styles.inputGroup}>
-            <label className={styles.inputLabel}>RIR target</label>
-            <div className={styles.customRirRow}>
-              <button
-                type="button"
-                onClick={() => onUpdate("customRir", !exercise.customRir)}
-                className={`${styles.customRirToggle} ${exercise.customRir ? styles.customRirToggleActive : ""}`}
-                aria-pressed={Boolean(exercise.customRir)}
-              >
-                {exercise.customRir ? "Custom" : "Plan"}
-              </button>
-              {exercise.customRir && (
-                <input
-                  type="number"
-                  value={exercise.rir || ""}
-                  onChange={(e) => onUpdate("rir", Number(e.target.value))}
-                  className={styles.numberInput}
-                  aria-label="Custom RIR target"
-                  placeholder="RIR"
-                  min={0}
-                  max={10}
-                  inputMode="numeric"
-                />
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-      <button type="button" onClick={onRemove} className={styles.removeBtn}>
-        <Trash2 size={14} />
-      </button>
-    </div>
-  );
-};
-
-interface WorkoutSectionProps {
-  workout: Workout;
-  workoutIndex: number;
-  onUpdateName: (name: string) => void;
-  onRemove: () => void;
-  onOpenAddDrawer: () => void;
-  onRemoveExercise: (exerciseIndex: number) => void;
-  onUpdateExercise: (
-    exerciseIndex: number,
-    field: keyof Exercise,
-    value: string | number | boolean,
-  ) => void;
-  canRemove: boolean;
-  onOpenEditDrawer: (exerciseIndex: number) => void;
-  showRir: boolean;
-  dynamicRir: boolean;
-}
-
-const WorkoutSection = ({
-  workout,
-  workoutIndex,
-  onUpdateName,
-  onRemove,
-  onOpenAddDrawer,
-  onRemoveExercise,
-  onUpdateExercise,
-  canRemove,
-  onOpenEditDrawer,
-  showRir,
-  dynamicRir,
-}: WorkoutSectionProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  return (
-    <div className={styles.workoutSection}>
-      <div className={styles.workoutHeader}>
-        <button
-          type="button"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={styles.collapseBtn}
-        >
-          <ChevronRight
-            size={16}
-            className={`${styles.chevron} ${!isCollapsed ? styles.chevronOpen : ""}`}
-          />
-        </button>
-        <span className={styles.workoutLabel}>Session {workoutIndex + 1}</span>
-        <input
-          type="text"
-          value={workout.name}
-          onChange={(e) => onUpdateName(e.target.value)}
-          className={styles.workoutNameInput}
-          placeholder="Workout name"
-        />
-        <button
-          type="button"
-          onClick={onRemove}
-          className={styles.removeWorkoutBtn}
-          disabled={!canRemove}
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
-
-      {!isCollapsed && (
-        <div className={styles.exercisesTable}>
-          {workout.exercises.length === 0 ? (
-            <div className={styles.emptyExercises}>
-              <p>No exercises yet</p>
-            </div>
-          ) : (
-            <>
-              <div className={styles.tableHeader}>
-                <span className={styles.colNum}>#</span>
-                <span className={styles.colExercise}>Exercise</span>
-                <span className={styles.colSets}>Sets</span>
-                <span className={styles.colReps}>Reps</span>
-                {showRir && <span className={styles.colRir}>RIR</span>}
-                {dynamicRir && <span className={styles.colRir}>RIR target</span>}
-                <span className={styles.colAction}></span>
-              </div>
-              {workout.exercises.map((exercise, exerciseIndex) => (
-                <ExerciseRow
-                  key={exerciseIndex}
-                  exercise={exercise}
-                  index={exerciseIndex}
-                  onUpdate={(field, value) =>
-                    onUpdateExercise(exerciseIndex, field, value)
-                  }
-                  onRemove={() => onRemoveExercise(exerciseIndex)}
-                  onOpenDrawer={() => onOpenEditDrawer(exerciseIndex)}
-                  showRir={showRir}
-                  dynamicRir={dynamicRir}
-                />
-              ))}
-            </>
-          )}
-          <button
-            type="button"
-            onClick={onOpenAddDrawer}
-            className={styles.addExerciseBtn}
-          >
-            <Plus size={14} />
-            Add Exercises
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const getFrequencyLabel = (frequency: Program["frequency"]) => {
   if (frequency === "every-other-day") return "Every other day";
@@ -298,9 +45,12 @@ const CreateProgram = () => {
     addExercises,
     removeExercise,
     updateExercise,
+    moveExercise,
     loadProgram,
     resetProgram,
   } = useCreateProgram();
+
+  const exerciseDnd = useExerciseDnd({ program, moveExercise });
   const { setFloatingAction } = useQuickWorkout();
   const createProgram = useCreateProgramMutation<Program>();
 
@@ -624,30 +374,55 @@ const CreateProgram = () => {
             </button>
           </div>
 
-          <div className={styles.workoutsGrid}>
-            {program.workouts.map((workout, workoutIndex) => (
-              <WorkoutSection
-                key={workoutIndex}
-                workout={workout}
-                workoutIndex={workoutIndex}
-                onUpdateName={(name) => updateWorkoutName(workoutIndex, name)}
-                onRemove={() => removeWorkout(workoutIndex)}
-                onOpenAddDrawer={() => handleOpenAddDrawer(workoutIndex)}
-                onRemoveExercise={(exerciseIndex) =>
-                  removeExercise(workoutIndex, exerciseIndex)
-                }
-                onUpdateExercise={(exerciseIndex, field, value) =>
-                  updateExercise(workoutIndex, exerciseIndex, field, value)
-                }
-                canRemove={program.workouts.length > 1}
-                onOpenEditDrawer={(exerciseIndex) =>
-                  handleOpenEditDrawer(workoutIndex, exerciseIndex)
-                }
-                showRir={!program.dynamicRir}
-                dynamicRir={program.dynamicRir}
-              />
-            ))}
-          </div>
+          <DndContext
+            sensors={exerciseDnd.sensors}
+            collisionDetection={closestCorners}
+            onDragStart={exerciseDnd.onDragStart}
+            onDragOver={exerciseDnd.onDragOver}
+            onDragEnd={exerciseDnd.onDragEnd}
+            onDragCancel={exerciseDnd.onDragCancel}
+          >
+            <div className={styles.workoutsGrid}>
+              {program.workouts.map((workout, workoutIndex) => (
+                <WorkoutSection
+                  key={workoutIndex}
+                  workout={workout}
+                  workoutIndex={workoutIndex}
+                  onUpdateName={(name) => updateWorkoutName(workoutIndex, name)}
+                  onRemove={() => removeWorkout(workoutIndex)}
+                  onOpenAddDrawer={() => handleOpenAddDrawer(workoutIndex)}
+                  onRemoveExercise={(exerciseIndex) =>
+                    removeExercise(workoutIndex, exerciseIndex)
+                  }
+                  onUpdateExercise={(exerciseIndex, field, value) =>
+                    updateExercise(workoutIndex, exerciseIndex, field, value)
+                  }
+                  canRemove={program.workouts.length > 1}
+                  onOpenEditDrawer={(exerciseIndex) =>
+                    handleOpenEditDrawer(workoutIndex, exerciseIndex)
+                  }
+                  showRir={!program.dynamicRir}
+                  dynamicRir={program.dynamicRir}
+                />
+              ))}
+            </div>
+
+            <DragOverlay>
+              {exerciseDnd.activeExercise ? (
+                <div className={styles.dragOverlay}>
+                  <ExerciseRow
+                    exercise={exerciseDnd.activeExercise}
+                    index={0}
+                    onUpdate={() => {}}
+                    onRemove={() => {}}
+                    onOpenDrawer={() => {}}
+                    showRir={!program.dynamicRir}
+                    dynamicRir={program.dynamicRir}
+                  />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
         </div>
 
         <div className={styles.formActions}>

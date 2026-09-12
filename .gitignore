@@ -10,3 +10,7 @@ packages/frontend/ios/App/Pods/
 .vercel
 .env*
 packages/backend/.env
+
+# Signing keystores — never commit
+*.keystore
+*.jks

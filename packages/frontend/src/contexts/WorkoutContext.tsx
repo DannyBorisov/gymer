@@ -10,6 +10,7 @@ import { useSaveQuickWorkout } from "../api/workouts";
 import { useGetExerciseBests } from "../api/analytics";
 import { useUpdateProgram, type ProgramUpdateInput } from "../api/programs";
 import type { Workout as ApiWorkout, QuickWorkoutPayload } from "../api/workouts";
+import { formatExerciseName } from "../types/shared";
 import { formatDuration } from "../lib/time";
 import {
   startWorkoutLiveActivity,
@@ -425,7 +426,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         const set = exercise.sets[setIdx];
         rows.push({
           rowIndex: rowIndex++,
-          exercise: exercise.name,
+          // Recombine so downstream parseExerciseName() can show the variant.
+          exercise: formatExerciseName(exercise.name, exercise.variant),
           set: setIdx + 1,
           targetReps: set.targetReps,
           rir: set.targetRir,
@@ -476,13 +478,15 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       setCompletedSets(new Set());
     }
 
-    // Calculate previous stats for each exercise from the SAME workout type only
+    // Calculate previous stats for each exercise from the SAME workout type only.
+    // Keyed by the combined "Name (Variant)" so it matches the workout rows.
     const stats: Record<string, PreviousStats> = {};
-    const exerciseNames = [...new Set(workout.exercises.map((e) => e.name))];
     const currentWorkoutName = workout.name;
     const currentWeek = workout.week;
 
-    for (const exerciseName of exerciseNames) {
+    for (const exercise of workout.exercises) {
+      const exerciseKey = formatExerciseName(exercise.name, exercise.variant);
+
       // Find previous weeks with same workout name
       const prevWorkouts = programWorkouts
         .filter(
@@ -493,7 +497,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       for (const prevWorkout of prevWorkouts) {
         const prevExercise = prevWorkout.exercises.find(
-          (e) => e.name === exerciseName,
+          (e) =>
+            e.name === exercise.name && e.variant === exercise.variant,
         );
         if (!prevExercise) continue;
 
@@ -502,7 +507,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         );
 
         if (completedSets.length > 0) {
-          stats[exerciseName] = {
+          stats[exerciseKey] = {
             week: prevWorkout.week,
             workout: prevWorkout.name,
             sets: completedSets.map((s) => ({

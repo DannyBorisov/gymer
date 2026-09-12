@@ -2,7 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Dumbbell } from "lucide-react";
 import styles from "./LegalPage.module.css";
 
-type LegalDocument = "terms" | "privacy";
+type LegalDocument = "terms" | "privacy" | "delete-account";
 
 const documents: Record<LegalDocument, {
   title: string;
@@ -19,7 +19,7 @@ const documents: Record<LegalDocument, {
       },
       {
         heading: "Your data",
-        content: "Gymerr uses Google OAuth and Google Sheets to provide its workout tracking features. You keep ownership of your workout data. You can manage or delete the spreadsheets created in your Google Drive.",
+        content: "Gymerr uses Google OAuth and Google Sheets to provide its workout tracking features. Your workout data is stored in a Google Sheet in your own Google Drive and belongs to you. Deleting your Gymerr account does not delete this spreadsheet or its data — since it lives in your Google Drive, you manage and delete it yourself from there.",
       },
       {
         heading: "Health and safety",
@@ -32,6 +32,10 @@ const documents: Record<LegalDocument, {
       {
         heading: "Changes",
         content: "We may update these terms as Gymerr changes. Continued use of the service after an update means you accept the revised terms.",
+      },
+      {
+        heading: "Contact",
+        content: "Questions about these terms? Reach us at contact@gymerr.co.",
       },
     ],
   },
@@ -60,8 +64,38 @@ const documents: Record<LegalDocument, {
         content: "We do not sell your personal information. We do not use your workout data for advertising. Information is retained only as needed to provide the service, or in the Google Drive account and browser storage that you control.",
       },
       {
+        heading: "Account deletion",
+        content: "Your workout data lives in a Google Sheet in your own Google Drive, not on our servers. If you delete your Gymerr account, this spreadsheet and its data are not deleted — since it belongs to you, you can view, export, or delete it at any time directly from your Google Drive.",
+      },
+      {
         heading: "Updates",
         content: "We may update this policy when the service or its data practices change. The latest version will be available on this page.",
+      },
+      {
+        heading: "Contact",
+        content: "Questions about this policy or your data? Reach us at contact@gymerr.co.",
+      },
+    ],
+  },
+  "delete-account": {
+    title: "Delete Your Account",
+    intro: "How to remove your Gymerr account and what happens to your data.",
+    sections: [
+      {
+        heading: "How to delete your account",
+        content: "Open Gymerr, go to Profile, and choose Delete Account. This removes your Gymerr sign-in and profile information. If you can't access the app, email contact@gymerr.co from the address associated with your account and we'll delete it for you.",
+      },
+      {
+        heading: "What gets deleted",
+        content: "Deleting your account removes your Gymerr profile and revokes the app's access to your Google account.",
+      },
+      {
+        heading: "What isn't deleted",
+        content: "Your workout data is stored in a Google Sheet in your own Google Drive, not on our servers. Account deletion does not delete this spreadsheet. Since it belongs to you, you can keep, export, or delete it yourself at any time from Google Drive.",
+      },
+      {
+        heading: "Contact",
+        content: "Questions about deleting your account or your data? Reach us at contact@gymerr.co.",
       },
     ],
   },
@@ -69,7 +103,12 @@ const documents: Record<LegalDocument, {
 
 const LegalPage = () => {
   const location = useLocation();
-  const documentType: LegalDocument = location.pathname === "/privacy" ? "privacy" : "terms";
+  const documentType: LegalDocument =
+    location.pathname === "/privacy"
+      ? "privacy"
+      : location.pathname === "/delete-account"
+        ? "delete-account"
+        : "terms";
   const document = documents[documentType];
 
   return (
@@ -104,6 +143,9 @@ const LegalPage = () => {
           </Link>
           <Link className={documentType === "privacy" ? styles.active : undefined} to="/privacy">
             Privacy Policy
+          </Link>
+          <Link className={documentType === "delete-account" ? styles.active : undefined} to="/delete-account">
+            Delete Account
           </Link>
         </nav>
       </article>
