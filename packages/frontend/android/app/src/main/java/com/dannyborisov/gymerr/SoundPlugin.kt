@@ -156,12 +156,26 @@ class SoundPlugin : Plugin() {
 
             focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
                 .setAudioAttributes(audioAttributes)
-                .setOnAudioFocusChangeListener { }
+                .setOnAudioFocusChangeListener { change ->
+                    android.util.Log.d("SoundPlugin", "onAudioFocusChange: $change")
+                    if (change == AudioManager.AUDIOFOCUS_GAIN) {
+                        onFocusGranted()
+                    }
+                }
                 .build()
 
             val result = audioManager?.requestAudioFocus(focusRequest!!)
-            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                onFocusGranted()
+            android.util.Log.d("SoundPlugin", "requestAudioFocus result: $result")
+            when (result) {
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> onFocusGranted()
+                AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> {
+                    // Granted asynchronously — the listener above will call
+                    // onFocusGranted() once AUDIOFOCUS_GAIN actually arrives.
+                }
+                else -> {
+                    android.util.Log.w("SoundPlugin", "Audio focus request failed, speaking anyway")
+                    onFocusGranted()
+                }
             }
         } else {
             @Suppress("DEPRECATION")
@@ -170,9 +184,10 @@ class SoundPlugin : Plugin() {
                 AudioManager.STREAM_NOTIFICATION,
                 AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
             )
-            if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                onFocusGranted()
-            }
+            android.util.Log.d("SoundPlugin", "requestAudioFocus (legacy) result: $result")
+            // Speak regardless of focus result on legacy devices — a failed/denied
+            // focus request should not silently drop the announcement.
+            onFocusGranted()
         }
     }
 
