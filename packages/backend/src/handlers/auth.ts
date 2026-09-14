@@ -53,7 +53,7 @@ export const getAuthStatus: RouteHandler = async function (request) {
   const session = getSession(request);
   return {
     authenticated: !!session.tokens,
-    user: session.user || null,
+    user: session.user ?? null,
   };
 };
 

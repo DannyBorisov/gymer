@@ -9,11 +9,13 @@ import styles from "./Onboarding.module.css";
 const Onboarding = () => {
   const navigate = useNavigate();
   const { activeProgram } = useSettings();
+
   const {
     data: programsData,
     isLoading: isLoadingPrograms,
     error: programsError,
   } = useGetPrograms();
+
   const {
     data: historyData,
     isLoading: isLoadingHistory,
@@ -22,10 +24,10 @@ const Onboarding = () => {
 
   const programs = programsData?.programs ?? [];
   const hasWorkoutHistory = (historyData?.workouts ?? []).some(
-    (workout) => workout !== null,
+    (workout) => workout,
   );
   const hasValidActiveProgram = programs.some(
-    (program) => program.id === activeProgram?.id,
+    ({ id }) => id === activeProgram?.id,
   );
 
   useEffect(() => {

@@ -16,8 +16,12 @@ let configured = false;
  * once — subsequent calls only log the user in. No-ops on web (no web billing
  * key configured yet).
  */
+// Temporarily disabled — throwing errors in production. Re-enable by
+// removing this early return once the underlying issue is fixed.
+const DISABLED = true;
+
 export async function configurePurchases(appUserID: string): Promise<void> {
-  if (!Capacitor.isNativePlatform() || !apiKey) return;
+  if (DISABLED || !Capacitor.isNativePlatform() || !apiKey) return;
 
   if (!configured) {
     await Purchases.setLogLevel({
@@ -32,6 +36,6 @@ export async function configurePurchases(appUserID: string): Promise<void> {
 }
 
 export async function logOutPurchases(): Promise<void> {
-  if (!Capacitor.isNativePlatform() || !configured) return;
+  if (DISABLED || !Capacitor.isNativePlatform() || !configured) return;
   await Purchases.logOut();
 }

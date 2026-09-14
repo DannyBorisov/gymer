@@ -9,6 +9,8 @@ import {
   Sheet,
   Clock,
   TrendingUp,
+  Apple,
+  PlayCircle,
 } from "lucide-react";
 import styles from "./Landing.module.css";
 
@@ -68,6 +70,22 @@ const Landing = () => {
               {user ? "Go to App" : "Start Tracking"}
               <ArrowRight size={18} />
             </Link>
+          </div>
+          <div className={styles.storeBadges}>
+            <a href="" className={styles.storeBadge} aria-label="Download on the App Store">
+              <Apple size={22} />
+              <span>
+                <span className={styles.storeBadgeSmall}>Download on the</span>
+                <span className={styles.storeBadgeBig}>App Store</span>
+              </span>
+            </a>
+            <a href="" className={styles.storeBadge} aria-label="Get it on Google Play">
+              <PlayCircle size={22} />
+              <span>
+                <span className={styles.storeBadgeSmall}>Get it on</span>
+                <span className={styles.storeBadgeBig}>Google Play</span>
+              </span>
+            </a>
           </div>
         </div>
 
