@@ -20,17 +20,24 @@ enum Gender {
   OTHER
 }
 
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
 model Onboarding {
-  id         String   @id @default(cuid())
-  userEmail  String   @unique
-  weight     Float
-  height     Float
-  age        Int
-  gender     Gender
-  goal       Goal
-  isComplete Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id              String          @id @default(cuid())
+  userEmail       String          @unique
+  weight          Float
+  height          Float
+  age             Int
+  gender          Gender
+  goal            Goal
+  experienceLevel ExperienceLevel
+  isComplete      Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model AiTip {

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export type Goal = "LOSE_FAT" | "BUILD_MUSCLE" | "MAINTAIN" | "GAIN_STRENGTH";
 export type Gender = "MALE" | "FEMALE" | "OTHER";
+export type ExperienceLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 
 export interface Onboarding {
   weight: number;
@@ -10,6 +11,7 @@ export interface Onboarding {
   age: number;
   gender: Gender;
   goal: Goal;
+  experienceLevel: ExperienceLevel;
   isComplete: boolean;
 }
 

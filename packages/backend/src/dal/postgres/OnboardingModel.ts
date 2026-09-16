@@ -1,4 +1,4 @@
-import type { Gender, Goal, Onboarding } from "@prisma/client";
+import type { ExperienceLevel, Gender, Goal, Onboarding } from "@prisma/client";
 import { prismaClient } from "./client.js";
 
 export interface OnboardingInput {
@@ -7,6 +7,7 @@ export interface OnboardingInput {
   age: number;
   gender: Gender;
   goal: Goal;
+  experienceLevel: ExperienceLevel;
   isComplete: boolean;
 }
 

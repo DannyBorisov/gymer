@@ -57,6 +57,7 @@ const Layout = ({ children }: LayoutProps) => {
   const isOnWorkoutPage = location.pathname === "/workout";
   const hasMinimizedWorkout = activeWorkout && !isOnWorkoutPage;
   const needsDrawerPadding = isOnWorkoutPage || hasMinimizedWorkout;
+  const isOnboarding = location.pathname === "/onboarding";
 
   useEffect(() => {
     const checkMobile = () => {
@@ -179,13 +180,13 @@ const Layout = ({ children }: LayoutProps) => {
       </aside>
 
       <main
-        className={`${styles.main} ${needsDrawerPadding ? styles.mainWithDrawer : ""}`}
+        className={`${styles.main} ${needsDrawerPadding ? styles.mainWithDrawer : ""} ${isOnboarding ? styles.mainNoNav : ""}`}
       >
         {children}
       </main>
 
       {/* Mobile Bottom Navigation */}
-      {isMobile && (
+      {isMobile && !isOnboarding && (
         <nav className={styles.bottomNav}>
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink

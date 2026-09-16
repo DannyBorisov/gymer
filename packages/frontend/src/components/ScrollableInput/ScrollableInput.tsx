@@ -1,10 +1,13 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { Plus, Minus } from "lucide-react";
 import { hapticSelection, hapticMedium } from "../../utils/haptics";
+import { InfoTooltip } from "../InfoTooltip/InfoTooltip";
 import styles from "./ScrollableInput.module.css";
 
 interface ScrollableInputProps {
   label: string;
+  /** Optional explanation shown in a popup next to the label, e.g. for RIR. */
+  labelInfo?: string;
   value: string;
   onChange: (value: string) => void;
   onAdjust: (delta: number) => void;
@@ -28,6 +31,7 @@ const BUTTON_SCROLL_DURATION = 80; // ms for fast button scroll
 
 export function ScrollableInput({
   label,
+  labelInfo,
   value,
   onChange,
   step,
@@ -434,7 +438,12 @@ export function ScrollableInput({
 
   return (
     <div className={`${styles.inputGroup} ${dark ? styles.dark : ""}`}>
-      <span className={styles.label}>{label}</span>
+      <span className={styles.label}>
+        {label}
+        {labelInfo && (
+          <InfoTooltip label={`What is ${label}?`} text={labelInfo} />
+        )}
+      </span>
       <div className={styles.pickerContainer}>
         <button
           type="button"

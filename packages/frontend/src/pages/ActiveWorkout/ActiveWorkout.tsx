@@ -774,6 +774,7 @@ const ActiveWorkout = () => {
                 />
                 <ScrollableInput
                   label="RIR"
+                  labelInfo="Reps in Reserve — how many more reps you could have done before failure."
                   value={getRow(currentSet.rowIndex)?.rirAchieved || ""}
                   onChange={(val) =>
                     updateExercise(currentSet.rowIndex, "rirAchieved", val)

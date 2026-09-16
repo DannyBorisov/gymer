@@ -27,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: packages/backend/Dockerfile.dev
-    command: sh -c "npx prisma migrate deploy --schema packages/backend/prisma/schema.prisma && npm run dev -w @gymerr/backend"
+    command: sh -c "npx prisma generate --schema packages/backend/prisma/schema.prisma && npx prisma migrate deploy --schema packages/backend/prisma/schema.prisma && npm run dev -w @gymerr/backend"
     env_file:
       - packages/backend/.env
     environment:

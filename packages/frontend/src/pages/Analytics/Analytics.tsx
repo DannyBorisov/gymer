@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Loader2, TrendingUp, ChevronDown, ChevronUp, BarChart3, ArrowUp, ArrowDown, Search, X } from "lucide-react";
+import { Loader2, TrendingUp, ChevronDown, ChevronUp, BarChart3, ArrowUp, ArrowDown, Search, X, AlertTriangle } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -14,27 +14,89 @@ import {
   useGetAnalyticsProgression,
   type ProgressionEntry,
 } from "../../api/analytics";
+import { useGetOnboarding } from "../../api/onboarding";
 import { useSettings } from "../../contexts/SettingsContext";
+import { PlateauDrawer } from "./PlateauDrawer";
 import styles from "./Analytics.module.css";
 
-type TabType = "progression" | "volume";
+type TabType = "strength" | "volume";
+
+// Flat/declining e1RM only signals a problem worth flagging when the user's
+// goal is actually progressive overload — for fat loss, maintenance, or a
+// deliberate deload it's expected, not a stall.
+const PLATEAU_ELIGIBLE_GOALS = new Set(["BUILD_MUSCLE", "GAIN_STRENGTH"]);
 
 const Analytics = () => {
   const { weightUnit } = useSettings();
-  const [activeTab, setActiveTab] = useState<TabType>("progression");
+  const [activeTab, setActiveTab] = useState<TabType>("strength");
+  const { data: onboardingData } = useGetOnboarding();
+  const isPlateauEligible = PLATEAU_ELIGIBLE_GOALS.has(onboardingData?.onboarding?.goal ?? "");
 
   // Progression state
   const { data: progressionData, isLoading: isLoadingProgression } = useGetAnalyticsProgression();
   const exercises = progressionData?.exercises || [];
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
+  const [expandedVolumeExercise, setExpandedVolumeExercise] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [volumeSearchQuery, setVolumeSearchQuery] = useState("");
+  const [plateauDrawerExercise, setPlateauDrawerExercise] = useState<string | null>(null);
 
-  // Filter exercises based on search
+  // A plateau = the last few sessions' e1RM trend is flat or declining.
+  // Uses a simple linear regression slope over the recent window, compared
+  // against a small threshold relative to the exercise's own e1RM scale so
+  // it works the same whether someone lifts in kg or lbs, light or heavy.
+  const PLATEAU_WINDOW = 5;
+  const PLATEAU_MIN_SESSIONS = 4;
+  const PLATEAU_SLOPE_THRESHOLD = 0.005; // 0.5% of average e1RM per session
+
+  const detectPlateau = (entries: ProgressionEntry[]) => {
+    if (entries.length < PLATEAU_MIN_SESSIONS) return null;
+
+    const recent = entries.slice(-PLATEAU_WINDOW).filter((e) => e.e1rm);
+    if (recent.length < PLATEAU_MIN_SESSIONS) return null;
+
+    const n = recent.length;
+    const xs = recent.map((_, i) => i);
+    const ys = recent.map((e) => e.e1rm!);
+    const meanX = xs.reduce((a, b) => a + b, 0) / n;
+    const meanY = ys.reduce((a, b) => a + b, 0) / n;
+    const numerator = xs.reduce((sum, x, i) => sum + (x - meanX) * (ys[i] - meanY), 0);
+    const denominator = xs.reduce((sum, x) => sum + (x - meanX) ** 2, 0);
+    const slope = denominator === 0 ? 0 : numerator / denominator;
+
+    const isFlat = slope <= meanY * PLATEAU_SLOPE_THRESHOLD;
+    if (!isFlat) return null;
+
+    return { sessionsStalled: n };
+  };
+
+  const plateauedNames = useMemo(() => {
+    if (!isPlateauEligible) return new Set<string>();
+    return new Set(
+      exercises.filter((ex) => detectPlateau(ex.entries) !== null).map((ex) => ex.exercise),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exercises, isPlateauEligible]);
+
+  // Filter exercises based on search, plateaued exercises sorted first
   const filteredExercises = useMemo(() => {
-    if (!searchQuery.trim()) return exercises;
-    const query = searchQuery.toLowerCase();
+    const query = searchQuery.trim().toLowerCase();
+    const matched = query
+      ? exercises.filter((ex) => ex.exercise.toLowerCase().includes(query))
+      : exercises;
+    return [...matched].sort((a, b) => {
+      const aPlateaued = plateauedNames.has(a.exercise);
+      const bPlateaued = plateauedNames.has(b.exercise);
+      if (aPlateaued === bPlateaued) return 0;
+      return aPlateaued ? -1 : 1;
+    });
+  }, [exercises, searchQuery, plateauedNames]);
+
+  const filteredVolumeExercises = useMemo(() => {
+    if (!volumeSearchQuery.trim()) return exercises;
+    const query = volumeSearchQuery.toLowerCase();
     return exercises.filter((ex) => ex.exercise.toLowerCase().includes(query));
-  }, [exercises, searchQuery]);
+  }, [exercises, volumeSearchQuery]);
 
   const formatDate = (dateStr: string) => {
     const [day, month] = dateStr.split("/");
@@ -52,6 +114,20 @@ const Analytics = () => {
 
   const toggleExercise = (exercise: string) => {
     setExpandedExercise(expandedExercise === exercise ? null : exercise);
+  };
+
+  const toggleVolumeExercise = (exercise: string) => {
+    setExpandedVolumeExercise(expandedVolumeExercise === exercise ? null : exercise);
+  };
+
+  const getVolumeChange = (entries: ProgressionEntry[]) => {
+    if (entries.length < 2) return null;
+    const first = entries[0].weight * entries[0].reps * entries[0].sets;
+    const last = entries[entries.length - 1].weight * entries[entries.length - 1].reps * entries[entries.length - 1].sets;
+    if (first === 0) return null;
+    const change = last - first;
+    const percent = ((change / first) * 100).toFixed(1);
+    return { change, percent, isPositive: change >= 0 };
   };
 
   const parseDate = (dateStr: string) => {
@@ -87,14 +163,10 @@ const Analytics = () => {
   const volumeChange = previousWeekVolume > 0
     ? Math.round(((currentWeekVolume - previousWeekVolume) / previousWeekVolume) * 100)
     : null;
-  const volumeChartData = Array.from({ length: 8 }, (_, index) => {
-    const week = currentWeek - (7 - index) * 7 * 24 * 60 * 60 * 1000;
-    const date = new Date(week);
-    return { label: `${date.getDate()}/${date.getMonth() + 1}`, volume: Math.round(weeklyVolume.get(week) || 0) };
-  });
 
   return (
     <div className={styles.container}>
+      <span className={styles.eyebrow}>GYMERR / STATS</span>
       <h1 className={styles.title}>Analytics</h1>
 
       <div className={styles.summaryStrip}>
@@ -104,24 +176,28 @@ const Analytics = () => {
         </div>
         <div className={styles.summaryMetric}>
           <span className={styles.summaryLabel}>Volume vs last week</span>
-          <strong className={styles.summaryVolumeValue}>
+          <strong
+            className={`${styles.summaryVolumeValue} ${volumeChange !== null && volumeChange >= 0 ? styles.volumeUp : styles.volumeDown}`}
+          >
+            {volumeChange !== null &&
+              (volumeChange >= 0 ? (
+                <ArrowUp size={16} />
+              ) : (
+                <ArrowDown size={16} />
+              ))}
             {volumeChange === null ? "—" : `${volumeChange >= 0 ? "+" : ""}${volumeChange}%`}
           </strong>
-        </div>
-        <div className={`${styles.volumeChange} ${volumeChange !== null && volumeChange >= 0 ? styles.volumeUp : styles.volumeDown}`}>
-          {volumeChange !== null && volumeChange >= 0 ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-          <span>{volumeChange === null ? "No prior week" : `${Math.abs(volumeChange)}% vs last week`}</span>
         </div>
       </div>
 
       {/* Tabs */}
       <div className={styles.tabs}>
         <button
-          className={`${styles.tab} ${activeTab === "progression" ? styles.tabActive : ""}`}
-          onClick={() => setActiveTab("progression")}
+          className={`${styles.tab} ${activeTab === "strength" ? styles.tabActive : ""}`}
+          onClick={() => setActiveTab("strength")}
         >
           <TrendingUp size={16} />
-          <span>Progression</span>
+          <span>Strength</span>
         </button>
         <button
           className={`${styles.tab} ${activeTab === "volume" ? styles.tabActive : ""}`}
@@ -132,8 +208,8 @@ const Analytics = () => {
         </button>
       </div>
 
-      {/* Progression Tab */}
-      {activeTab === "progression" && (
+      {/* Strength Tab */}
+      {activeTab === "strength" && (
         <>
           {/* Search Input */}
           {!isLoadingProgression && exercises.length > 0 && (
@@ -192,12 +268,32 @@ const Analytics = () => {
 
                 return (
                   <div key={ex.exercise} className={styles.exerciseCard}>
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       className={styles.exerciseHeader}
                       onClick={() => toggleExercise(ex.exercise)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") toggleExercise(ex.exercise);
+                      }}
                     >
                       <div className={styles.exerciseInfo}>
-                        <span className={styles.exerciseName}>{ex.exercise}</span>
+                        <span className={styles.exerciseName}>
+                          {ex.exercise}
+                          {plateauedNames.has(ex.exercise) && (
+                            <button
+                              type="button"
+                              className={styles.plateauBadge}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPlateauDrawerExercise(ex.exercise);
+                              }}
+                            >
+                              <AlertTriangle size={11} />
+                              Plateau
+                            </button>
+                          )}
+                        </span>
                         <div className={styles.exerciseMeta}>
                           <span className={styles.latestWeight}>
                             {latestWeight} {weightUnit}
@@ -223,7 +319,7 @@ const Analytics = () => {
                           <ChevronDown size={20} />
                         )}
                       </div>
-                    </button>
+                    </div>
 
                     {isExpanded && (
                       <div className={styles.exerciseContent}>
@@ -309,35 +405,172 @@ const Analytics = () => {
       )}
 
       {activeTab === "volume" && (
-        <div className={styles.volumePanel}>
-          <div className={styles.volumeHeader}>
-            <div>
-              <span className={styles.sectionEyebrow}>LAST 8 WEEKS</span>
-              <h2>Training volume</h2>
+        <>
+          {/* Search Input */}
+          {!isLoadingProgression && exercises.length > 0 && (
+            <div className={styles.searchContainer}>
+              <Search size={18} className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search exercises..."
+                value={volumeSearchQuery}
+                onChange={(e) => setVolumeSearchQuery(e.target.value)}
+                className={styles.searchInput}
+              />
+              {volumeSearchQuery && (
+                <button
+                  className={styles.searchClear}
+                  onClick={() => setVolumeSearchQuery("")}
+                  aria-label="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
-            <strong>{currentWeekVolume.toLocaleString()} {weightUnit}</strong>
-          </div>
-          {exercises.length === 0 ? (
+          )}
+
+          {isLoadingProgression ? (
+            <div className={styles.loadingState}>
+              <Loader2 size={24} className={styles.spinner} />
+              <span>Loading volume data...</span>
+            </div>
+          ) : exercises.length === 0 ? (
             <div className={styles.emptyState}>
               <BarChart3 size={48} className={styles.emptyIcon} />
               <p>No volume data yet.</p>
+              <p className={styles.emptySubtext}>
+                Complete some workouts to see your volume.
+              </p>
+            </div>
+          ) : filteredVolumeExercises.length === 0 ? (
+            <div className={styles.emptyState}>
+              <Search size={48} className={styles.emptyIcon} />
+              <p>No exercises match "{volumeSearchQuery}"</p>
             </div>
           ) : (
-            <div className={styles.volumeChart}>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={volumeChartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#71717a" }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#71717a" }} tickFormatter={(value) => `${Math.round(value / 1000)}k`} />
-                  <Tooltip
-                    contentStyle={{ background: "var(--bg-secondary)", border: "1px solid var(--border-default)", borderRadius: "8px", fontSize: "12px" }}
-                    formatter={(value) => [`${Number(value).toLocaleString()} ${weightUnit}`, "Volume"]}
-                  />
-                  <Bar dataKey="volume" fill="#f97316" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className={styles.exerciseList}>
+              {filteredVolumeExercises.map((ex) => {
+                const volumeChange = getVolumeChange(ex.entries);
+                const isExpanded = expandedVolumeExercise === ex.exercise;
+                const chartData = ex.entries.map((e) => ({
+                  date: formatDate(e.date),
+                  volume: Math.round(e.weight * e.reps * e.sets),
+                }));
+                const latestEntry = ex.entries[ex.entries.length - 1];
+                const latestVolume = Math.round(latestEntry.weight * latestEntry.reps * latestEntry.sets);
+                const bestVolume = Math.max(...chartData.map((d) => d.volume));
+                const lastTrained = parseDate(latestEntry.date);
+                const daysSinceLastTrained = Math.max(0, Math.floor((now.getTime() - lastTrained.getTime()) / (24 * 60 * 60 * 1000)));
+
+                return (
+                  <div key={ex.exercise} className={styles.exerciseCard}>
+                    <button
+                      className={styles.exerciseHeader}
+                      onClick={() => toggleVolumeExercise(ex.exercise)}
+                    >
+                      <div className={styles.exerciseInfo}>
+                        <span className={styles.exerciseName}>{ex.exercise}</span>
+                        <div className={styles.exerciseMeta}>
+                          <span className={styles.latestWeight}>
+                            {latestVolume.toLocaleString()} {weightUnit}
+                          </span>
+                          {volumeChange && (
+                            <span
+                              className={`${styles.progressBadge} ${
+                                volumeChange.isPositive
+                                  ? styles.progressPositive
+                                  : styles.progressNegative
+                              }`}
+                            >
+                              {volumeChange.isPositive ? "+" : ""}
+                              {volumeChange.change.toLocaleString()} ({volumeChange.percent}%)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={styles.expandIcon}>
+                        {isExpanded ? (
+                          <ChevronUp size={20} />
+                        ) : (
+                          <ChevronDown size={20} />
+                        )}
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className={styles.exerciseContent}>
+                        <div className={styles.exerciseDetails}>
+                          <span>All-time best: {bestVolume.toLocaleString()} {weightUnit} volume</span>
+                          <span>Last trained: {daysSinceLastTrained === 0 ? "today" : `${daysSinceLastTrained} days ago`}</span>
+                        </div>
+                        {chartData.length >= 2 ? (
+                          <div className={styles.chartContainer}>
+                            <ResponsiveContainer width="100%" height={160}>
+                              <BarChart
+                                data={chartData}
+                                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                              >
+                                <XAxis
+                                  dataKey="date"
+                                  axisLine={false}
+                                  tickLine={false}
+                                  tick={{ fontSize: 10, fill: "#71717a" }}
+                                  interval="preserveStartEnd"
+                                />
+                                <YAxis
+                                  axisLine={false}
+                                  tickLine={false}
+                                  tick={{ fontSize: 10, fill: "#71717a" }}
+                                  tickFormatter={(v) => `${Math.round(v / 1000)}k`}
+                                  width={40}
+                                />
+                                <Tooltip
+                                  contentStyle={{
+                                    background: "var(--bg-secondary)",
+                                    border: "1px solid var(--border-default)",
+                                    borderRadius: "8px",
+                                    padding: "8px 12px",
+                                    fontSize: "12px",
+                                  }}
+                                  labelStyle={{
+                                    color: "var(--text-muted)",
+                                    marginBottom: "4px",
+                                  }}
+                                  itemStyle={{ color: "var(--text-primary)" }}
+                                  formatter={(value) => [
+                                    `${Number(value).toLocaleString()} ${weightUnit}`,
+                                    "Volume",
+                                  ]}
+                                />
+                                <Bar
+                                  dataKey="volume"
+                                  fill="var(--accent-green)"
+                                  radius={[4, 4, 0, 0]}
+                                />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <div className={styles.notEnoughData}>
+                            Need at least 2 sessions to show volume
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
-        </div>
+        </>
+      )}
+
+      {plateauDrawerExercise && (
+        <PlateauDrawer
+          exercise={plateauDrawerExercise}
+          isOpen={plateauDrawerExercise !== null}
+          onClose={() => setPlateauDrawerExercise(null)}
+        />
       )}
     </div>
   );

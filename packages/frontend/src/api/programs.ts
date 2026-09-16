@@ -51,7 +51,7 @@ export interface ProgramUpdateInput {
 export const programsApi = {
   list: () => request<{ programs: ProgramSummary[] }>("/api/programs"),
   get: <T = unknown>(id: string) => request<ProgramResponse<T>>(`/api/programs/${id}`),
-  create: <T>(program: T) => request<{ success: boolean; url?: string }>("/api/programs/create", {
+  create: <T>(program: T) => request<{ success: boolean; program: ProgramSummary }>("/api/programs/create", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(program),
@@ -60,6 +60,17 @@ export const programsApi = {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+  }),
+  delete: (id: string) => request<{ success: boolean }>(`/api/programs/${id}`, {
+    method: "DELETE",
+  }),
+  copy: (id: string) => request<{ success: boolean; program: ProgramSummary }>(`/api/programs/${id}/copy`, {
+    method: "POST",
+  }),
+  rename: (id: string, name: string) => request<{ success: boolean; program: ProgramSummary }>(`/api/programs/${id}/rename`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
   }),
 };
 
@@ -86,6 +97,37 @@ export function useCreateProgram<T>() {
   return useMutation({
     mutationFn: (program: T) => programsApi.create(program),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: programQueryKeys.list }),
+  });
+}
+
+export function useDeleteProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => programsApi.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: programQueryKeys.list }),
+  });
+}
+
+export function useCopyProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => programsApi.copy(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: programQueryKeys.list }),
+  });
+}
+
+export function useRenameProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => programsApi.rename(id, name),
+    // Awaited so isPending stays true until the list has actually refetched —
+    // otherwise the loader would disappear before the new name shows up.
+    onSuccess: async (_data, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: programQueryKeys.detail(variables.id) }),
+        queryClient.invalidateQueries({ queryKey: programQueryKeys.list }),
+      ]);
+    },
   });
 }
 

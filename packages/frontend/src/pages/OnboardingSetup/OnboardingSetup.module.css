@@ -1,7 +1,6 @@
 .page {
   max-width: 480px;
   margin: 0 auto;
-  padding: 2rem 0.5rem;
 }
 
 .title {
@@ -9,12 +8,225 @@
   font-size: 1.375rem;
   font-weight: 700;
   color: var(--text-primary);
-  padding: 0 1rem;
 }
 
 .subtitle {
   margin: 0 0 0.5rem;
   font-size: 0.875rem;
   color: var(--text-secondary);
-  padding: 0 1rem;
+}
+
+/* Notifications step */
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent-green-soft);
+  color: var(--accent-green);
+  margin: 1rem auto 1.5rem;
+}
+
+.actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.enableBtn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--accent-gradient);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--transition-fast);
+  min-height: var(--touch-target);
+}
+
+.enableBtn:hover {
+  filter: brightness(1.05);
+}
+
+.enableBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.skipBtn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: var(--touch-target);
+}
+
+.skipBtn:hover {
+  color: var(--text-primary);
+}
+
+/* Plan-choice step */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.optionCard {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.optionCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1.25rem;
+  right: 1.25rem;
+  height: 2px;
+  background: var(--accent-gradient);
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.optionCard:hover::before {
+  opacity: 0.9;
+}
+
+.optionCard:hover {
+  border-color: var(--border-emphasis);
+}
+
+.optionCard:active {
+  transform: scale(0.99);
+}
+
+.optionCard:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.optionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent-green-soft);
+  color: var(--accent-green);
+}
+
+.optionText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.optionTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.optionDescription {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.optionChevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+/* AI plan-details step */
+.planFields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 0 1.5rem;
+}
+
+.planField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.planFieldLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.optionPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pill {
+  padding: 0.625rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: var(--touch-target);
+  transition: all var(--transition-fast);
+}
+
+.pill:hover {
+  border-color: var(--border-emphasis);
+}
+
+.pillActive {
+  background: var(--accent-gradient);
+  border-color: transparent;
+  color: #fff;
+}
+
+.errorText {
+  margin: 0;
+  color: var(--accent-red);
+  font-size: 0.8125rem;
+  text-align: center;
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   useGetOnboarding,
   useSaveOnboarding,
+  type ExperienceLevel,
   type Gender,
   type Goal,
   type Onboarding,
@@ -21,20 +22,19 @@ const GENDERS: { value: Gender; label: string }[] = [
   { value: "OTHER", label: "Other" },
 ];
 
+const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
+  { value: "BEGINNER", label: "Beginner (0-1 years)" },
+  { value: "INTERMEDIATE", label: "Intermediate (1-3 years)" },
+  { value: "ADVANCED", label: "Advanced (3+ years)" },
+];
+
 type FormState = {
   weight: string;
   height: string;
   age: string;
   gender: Gender | "";
   goal: Goal | "";
-};
-
-const EMPTY: FormState = {
-  weight: "",
-  height: "",
-  age: "",
-  gender: "",
-  goal: "",
+  experienceLevel: ExperienceLevel | "";
 };
 
 const toForm = (o: Onboarding): FormState => ({
@@ -43,30 +43,44 @@ const toForm = (o: Onboarding): FormState => ({
   age: String(o.age),
   gender: o.gender,
   goal: o.goal,
+  experienceLevel: o.experienceLevel,
 });
 
 export function OnboardingForm({ onSaved }: { onSaved?: () => void }) {
   const { data, isLoading } = useGetOnboarding();
   const save = useSaveOnboarding();
-  const [form, setForm] = useState<FormState>(EMPTY);
+  const [form, setForm] = useState<FormState>({
+    weight: "",
+    height: "",
+    age: "",
+    gender: "",
+    goal: "",
+    experienceLevel: "",
+  });
 
   useEffect(() => {
     if (data?.onboarding) setForm(toForm(data.onboarding));
   }, [data]);
 
   const isComplete =
-    form.weight && form.height && form.age && form.gender && form.goal;
+    form.weight &&
+    form.height &&
+    form.age &&
+    form.gender &&
+    form.goal &&
+    form.experienceLevel;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isComplete) return;
     save.mutate(
       {
-        weight: parseFloat(form.weight),
-        height: parseFloat(form.height),
-        age: parseInt(form.age, 10),
+        weight: +form.weight,
+        height: +form.height,
+        age: +form.age,
         gender: form.gender as Gender,
         goal: form.goal as Goal,
+        experienceLevel: form.experienceLevel as ExperienceLevel,
       },
       { onSuccess: () => onSaved?.() },
     );
@@ -112,7 +126,9 @@ export function OnboardingForm({ onSaved }: { onSaved?: () => void }) {
           <button
             key={g.value}
             type="button"
-            className={form.gender === g.value ? styles.choiceActive : styles.choice}
+            className={
+              form.gender === g.value ? styles.choiceActive : styles.choice
+            }
             onClick={() => setForm({ ...form, gender: g.value })}
           >
             {g.label}
@@ -126,10 +142,30 @@ export function OnboardingForm({ onSaved }: { onSaved?: () => void }) {
           <button
             key={g.value}
             type="button"
-            className={form.goal === g.value ? styles.choiceActive : styles.choice}
+            className={
+              form.goal === g.value ? styles.choiceActive : styles.choice
+            }
             onClick={() => setForm({ ...form, goal: g.value })}
           >
             {g.label}
+          </button>
+        ))}
+      </fieldset>
+
+      <fieldset className={styles.choices}>
+        <legend>Experience level</legend>
+        {EXPERIENCE_LEVELS.map((l) => (
+          <button
+            key={l.value}
+            type="button"
+            className={
+              form.experienceLevel === l.value
+                ? styles.choiceActive
+                : styles.choice
+            }
+            onClick={() => setForm({ ...form, experienceLevel: l.value })}
+          >
+            {l.label}
           </button>
         ))}
       </fieldset>

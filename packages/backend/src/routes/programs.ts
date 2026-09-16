@@ -5,6 +5,9 @@ import {
   listPrograms,
   getProgram,
   updateProgram,
+  deleteProgram,
+  copyProgram,
+  renameProgram,
 } from "../handlers/programs.js";
 import type { CreateProgramRequest, UpdateProgramRequest } from "../types.js";
 
@@ -27,6 +30,24 @@ const ProgramsRoutes: FastifyPluginAsync = async (server) => {
     "/:id",
     { preHandler: requireAuth },
     updateProgram,
+  );
+
+  server.delete<{ Params: { id: string } }>(
+    "/:id",
+    { preHandler: requireAuth },
+    deleteProgram,
+  );
+
+  server.post<{ Params: { id: string } }>(
+    "/:id/copy",
+    { preHandler: requireAuth },
+    copyProgram,
+  );
+
+  server.patch<{ Params: { id: string }; Body: { name: string } }>(
+    "/:id/rename",
+    { preHandler: requireAuth },
+    renameProgram,
   );
 };
 

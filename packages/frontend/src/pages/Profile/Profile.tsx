@@ -314,16 +314,16 @@ const Profile = () => {
                       <Line
                         type="monotone"
                         dataKey="weight"
-                        stroke="#3b82f6"
+                        stroke="var(--accent-green)"
                         strokeWidth={2}
                         dot={{
                           fill: "var(--bg-primary)",
-                          stroke: "#3b82f6",
+                          stroke: "var(--accent-green)",
                           strokeWidth: 2,
                           r: 3,
                         }}
                         activeDot={{
-                          fill: "#3b82f6",
+                          fill: "var(--accent-green)",
                           stroke: "var(--bg-primary)",
                           strokeWidth: 2,
                           r: 5,

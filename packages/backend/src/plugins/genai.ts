@@ -61,6 +61,27 @@ class GenAIService {
     console.timeEnd("generateWorkoutTip1");
     return tip;
   }
+
+  async generateProgram<T>(prompt: string): Promise<T> {
+    const response = await this.client.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("Gemini returned an empty program");
+    }
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      throw new Error("Gemini returned an invalid program response");
+    }
+  }
 }
 
 const genaiPlugin: FastifyPluginAsync = async (fastify) => {

@@ -50,7 +50,9 @@ const Login = () => {
 
         <div className={styles.kicker}>TRAIN WITH INTENT</div>
         <h1 className={styles.title}>Welcome back</h1>
-        <p className={styles.subtitle}>Sign in to manage your workout programs</p>
+        <p className={styles.subtitle}>
+          Sign in to manage your workout programs
+        </p>
 
         <button onClick={login} className={styles.googleButton}>
           <GoogleIcon />
@@ -58,7 +60,9 @@ const Login = () => {
         </button>
 
         <p className={styles.terms}>
-          By continuing, you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>
+          By continuing, you agree to our <br />
+          <Link to="/terms">Terms of Service</Link> and{" "}
+          <Link to="/privacy">Privacy Policy</Link>
         </p>
       </div>
 

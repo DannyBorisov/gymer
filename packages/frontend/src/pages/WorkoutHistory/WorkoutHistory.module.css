@@ -11,6 +11,15 @@
   }
 }
 
+.eyebrow {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--accent-green);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
 .title {
   font-size: 1.5rem;
   font-weight: 600;
@@ -43,7 +52,7 @@
 }
 
 .statsHeader svg {
-  color: var(--accent-orange);
+  color: var(--accent-green);
 }
 
 .statsEyebrow {

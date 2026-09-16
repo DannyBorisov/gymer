@@ -4,7 +4,6 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Loader2,
   Dumbbell,
   Calendar,
@@ -15,9 +14,11 @@ import {
 import { DndContext, DragOverlay, closestCorners } from "@dnd-kit/core";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
+import { useSettings } from "../../contexts/SettingsContext";
 import { useCreateProgram as useCreateProgramMutation } from "../../api/programs";
 import { presets } from "../../data/presets";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
+import { InfoTooltip } from "../../components/InfoTooltip/InfoTooltip";
 import type { Program } from "../../types/program";
 import { WorkoutSection } from "./components/WorkoutSection";
 import { ExerciseRow } from "./components/ExerciseRow";
@@ -52,12 +53,12 @@ const CreateProgram = () => {
 
   const exerciseDnd = useExerciseDnd({ program, moveExercise });
   const { setFloatingAction } = useQuickWorkout();
+  const { setActiveProgram } = useSettings();
   const createProgram = useCreateProgramMutation<Program>();
 
   const [mode, setMode] = useState<"templates" | "edit">("templates");
   const [result, setResult] = useState<{
     success: boolean;
-    url?: string;
     error?: string;
   } | null>(null);
 
@@ -149,7 +150,8 @@ const CreateProgram = () => {
 
     try {
       const data = await createProgram.mutateAsync(getProgramForSubmit());
-      setResult({ success: true, url: data.url });
+      setActiveProgram({ id: data.program.id, name: data.program.name });
+      navigate("/programs", { replace: true });
     } catch (error) {
       setResult({
         success: false,
@@ -178,6 +180,19 @@ const CreateProgram = () => {
               Start with a proven split, then tailor every session to your goals.
             </p>
           </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleCreateFromScratch}
+          className={styles.createFromScratchBtn}
+        >
+          <Plus size={18} />
+          Start from scratch
+        </button>
+
+        <div className={styles.orDivider}>
+          <span>OR</span>
         </div>
 
         <div className={styles.sectionIntro}>
@@ -222,19 +237,6 @@ const CreateProgram = () => {
             </div>
           ))}
         </div>
-
-        <div className={styles.orDivider}>
-          <span>OR</span>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleCreateFromScratch}
-          className={styles.createFromScratchBtn}
-        >
-          <Plus size={18} />
-          Start from scratch
-        </button>
       </div>
     );
   }
@@ -331,6 +333,10 @@ const CreateProgram = () => {
               <label className={styles.settingLabel}>
                 <Gauge size={14} />
                 Effort target
+                <InfoTooltip
+                  label="What is RIR?"
+                  text="RIR (Reps in Reserve) is how many more reps you could have done before failure. Lower RIR means training closer to failure."
+                />
               </label>
               <select
                 value={
@@ -426,53 +432,29 @@ const CreateProgram = () => {
         </div>
 
         <div className={styles.formActions}>
-          {result?.success ? (
-            <div className={styles.successMessage}>
-              <span>Program created!</span>
-              <a
-                href={result.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={styles.sheetLink}
-              >
-                Open in Google Sheets
-                <ExternalLink size={14} />
-              </a>
-              <button
-                type="button"
-                onClick={() => navigate("/programs")}
-                className={styles.goBackBtn}
-              >
-                Go to Programs
-              </button>
-            </div>
-          ) : (
-            <>
-              {result?.error && (
-                <span className={styles.errorMessage}>{result.error}</span>
-              )}
-              {!isProgramReady && (
-                <span className={styles.formHint}>
-                  Add a program name, session names, and at least one exercise
-                  to each session.
-                </span>
-              )}
-              <button
-                type="submit"
-                className={styles.submitButton}
-                disabled={isSubmitting || !isProgramReady}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={16} className={styles.spinner} />
-                    Creating...
-                  </>
-                ) : (
-                  "Create Program"
-                )}
-              </button>
-            </>
+          {result?.error && (
+            <span className={styles.errorMessage}>{result.error}</span>
           )}
+          {!isProgramReady && (
+            <span className={styles.formHint}>
+              Add a program name, session names, and at least one exercise
+              to each session.
+            </span>
+          )}
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={isSubmitting || !isProgramReady}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 size={16} className={styles.spinner} />
+                Creating...
+              </>
+            ) : (
+              "Create Program"
+            )}
+          </button>
         </div>
       </form>
 

@@ -1,10 +1,20 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Dialog } from "@capacitor/dialog";
 import { ChevronRight, Loader2, Plus, Play, CheckCircle2 } from "lucide-react";
 import { useSettings } from "../../contexts/SettingsContext";
-import { useGetProgram, useGetPrograms, type ProgramSummary } from "../../api/programs";
+import {
+  useGetProgram,
+  useGetPrograms,
+  useDeleteProgram,
+  useCopyProgram,
+  useRenameProgram,
+  type ProgramSummary,
+} from "../../api/programs";
 import type { Workout } from "../../api/workouts";
 import { formatDate } from "../../lib/date";
+import { ProgramMenu } from "./ProgramMenu";
+import { EditableProgramName } from "./EditableProgramName";
 import styles from "./Programs.module.css";
 
 interface Program {
@@ -22,6 +32,12 @@ const Programs = () => {
   const { data: activeProgramResponse } = useGetProgram<Program>(activeProgram?.id);
   const programs = programsData?.programs || [];
   const activeProgramData = activeProgramResponse?.program || null;
+  const deleteProgram = useDeleteProgram();
+  const copyProgram = useCopyProgram();
+  const renameProgram = useRenameProgram();
+  const pendingDeleteId = deleteProgram.isPending ? deleteProgram.variables : undefined;
+  const pendingCopyId = copyProgram.isPending ? copyProgram.variables : undefined;
+  const pendingRenameId = renameProgram.isPending ? renameProgram.variables.id : undefined;
 
   // Calculate progress for active program
   const activeProgress = useMemo(() => {
@@ -60,12 +76,42 @@ const Programs = () => {
   }, [activeProgramData]);
 
   const handleProgramClick = (program: ProgramSummary) => {
+    if (renameProgram.isPending && renameProgram.variables.id === program.id) return;
     navigate(`/programs/${program.id}`);
   };
 
   const handleSetActive = (program: ProgramSummary, e: React.MouseEvent) => {
     e.stopPropagation();
     setActiveProgram({ id: program.id, name: program.name });
+  };
+
+  const handleEdit = (program: ProgramSummary) => {
+    navigate(`/programs/${program.id}`);
+  };
+
+  const handleCopy = (program: ProgramSummary) => {
+    copyProgram.mutate(program.id);
+  };
+
+  const handleRename = (program: ProgramSummary, name: string) => {
+    renameProgram.mutate({ id: program.id, name });
+  };
+
+  const handleDelete = async (program: ProgramSummary) => {
+    const { value: confirmed } = await Dialog.confirm({
+      title: "Delete program",
+      message: `Delete "${program.name}"? This can't be undone.`,
+      okButtonTitle: "Delete",
+    });
+    if (!confirmed) return;
+
+    deleteProgram.mutate(program.id, {
+      onSuccess: () => {
+        if (activeProgram?.id === program.id) {
+          setActiveProgram(null);
+        }
+      },
+    });
   };
 
   const activeProgramInfo = programs.find((p) => p.id === activeProgram?.id);
@@ -92,14 +138,32 @@ const Programs = () => {
           {activeProgramInfo && (
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>Active Program</h2>
-              <button
+              <div
                 className={styles.activeCard}
+                role="button"
+                tabIndex={0}
                 onClick={() => handleProgramClick(activeProgramInfo)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleProgramClick(activeProgramInfo);
+                }}
               >
                 <div className={styles.activeCardHeader}>
                   <div className={styles.activeNameRow}>
-                    <span className={styles.activeName}>{activeProgramInfo.name}</span>
+                    <EditableProgramName
+                      name={activeProgramInfo.name}
+                      className={styles.activeName}
+                      onRename={(name) => handleRename(activeProgramInfo, name)}
+                      isSaving={pendingRenameId === activeProgramInfo.id}
+                    />
                     <span className={styles.activeBadge}>Active</span>
+                    <ProgramMenu
+                      programName={activeProgramInfo.name}
+                      onEdit={() => handleEdit(activeProgramInfo)}
+                      onCopy={() => handleCopy(activeProgramInfo)}
+                      onDelete={() => handleDelete(activeProgramInfo)}
+                      isCopying={pendingCopyId === activeProgramInfo.id}
+                      isDeleting={pendingDeleteId === activeProgramInfo.id}
+                    />
                   </div>
                   {activeProgress && (
                     <span className={styles.activeWeek}>
@@ -134,7 +198,7 @@ const Programs = () => {
                   </button>
                   <ChevronRight size={18} className={styles.chevronIcon} />
                 </div>
-              </button>
+              </div>
             </div>
           )}
 
@@ -146,13 +210,23 @@ const Programs = () => {
               </h2>
               <div className={styles.programsList}>
                 {otherPrograms.map((program) => (
-                  <button
+                  <div
                     key={program.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleProgramClick(program)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleProgramClick(program);
+                    }}
                     className={styles.programCard}
                   >
                     <div className={styles.programInfo}>
-                      <span className={styles.programName}>{program.name}</span>
+                      <EditableProgramName
+                        name={program.name}
+                        className={styles.programName}
+                        onRename={(name) => handleRename(program, name)}
+                        isSaving={pendingRenameId === program.id}
+                      />
                       <span className={styles.programDate}>
                         Created {program.createdTime ? formatDate(program.createdTime) : "Unknown date"}
                       </span>
@@ -165,9 +239,17 @@ const Programs = () => {
                         <CheckCircle2 size={16} />
                         <span>Set Active</span>
                       </button>
+                      <ProgramMenu
+                        programName={program.name}
+                        onEdit={() => handleEdit(program)}
+                        onCopy={() => handleCopy(program)}
+                        onDelete={() => handleDelete(program)}
+                        isCopying={pendingCopyId === program.id}
+                        isDeleting={pendingDeleteId === program.id}
+                      />
                       <ChevronRight size={16} className={styles.chevronIcon} />
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>

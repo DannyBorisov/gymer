@@ -135,6 +135,7 @@ const WorkoutHistory = () => {
 
   return (
     <div className={styles.container}>
+      <span className={styles.eyebrow}>GYMERR / LOG</span>
       <h1 className={styles.title}>History</h1>
 
       {/* Stats Section */}

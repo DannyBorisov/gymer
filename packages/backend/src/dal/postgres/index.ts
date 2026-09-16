@@ -16,4 +16,4 @@ export const prisma = {
 
 export type { OnboardingInput } from "./OnboardingModel.js";
 export type { AiTipInput } from "./AiTipModel.js";
-export { Gender, Goal } from "@prisma/client";
+export { Gender, Goal, ExperienceLevel } from "@prisma/client";

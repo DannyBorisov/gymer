@@ -422,8 +422,39 @@ export class ProgramModel extends BaseModel {
    * Delete a program
    */
   async delete(id: string): Promise<void> {
-    // Note: This would require Drive API delete permission
-    // For now, we don't implement actual deletion
-    throw new Error('Delete not implemented - use Google Drive directly');
+    await this.sheets.deleteFile(this.tokens, id);
+  }
+
+  /**
+   * Duplicate a program (copies the underlying spreadsheet as-is)
+   */
+  async copy(id: string): Promise<ProgramSummary> {
+    const originalName = await this.sheets.getFileName(this.tokens, id);
+    const newId = await this.sheets.copyFile(this.tokens, id, `${originalName} (Copy)`);
+
+    // Drive's files.copy doesn't reliably carry over custom appProperties,
+    // so the copy would otherwise be invisible to findAll()'s query.
+    await this.sheets.setFileProperties(this.tokens, newId, {
+      [ProgramSchema.appProperty.key]: ProgramSchema.appProperty.value,
+    });
+
+    return {
+      id: newId,
+      name: `${originalName} (Copy)`,
+      url: `https://docs.google.com/spreadsheets/d/${newId}`,
+    };
+  }
+
+  /**
+   * Rename a program
+   */
+  async rename(id: string, name: string): Promise<ProgramSummary> {
+    await this.sheets.renameFile(this.tokens, id, name);
+
+    return {
+      id,
+      name,
+      url: `https://docs.google.com/spreadsheets/d/${id}`,
+    };
   }
 }

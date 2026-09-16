@@ -1,4 +1,10 @@
-import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  useLocation,
+  useNavigate,
+  Navigate,
+} from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
@@ -39,7 +45,8 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => {
 const WorkoutDrawerOverlay = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { activeWorkout, workoutData, timer, currentExerciseIndex } = useWorkout();
+  const { activeWorkout, workoutData, timer, currentExerciseIndex } =
+    useWorkout();
   const isWorkoutRoute = location.pathname === "/workout";
 
   const handleClose = () => {
@@ -91,13 +98,15 @@ const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
 
   const isComplete = data?.onboarding?.isComplete ?? false;
   const onOnboarding = location.pathname === "/onboarding";
+  const skipRedirect = import.meta.env.DEV;
 
-  if (!isComplete && !onOnboarding) {
+  if (!isComplete && !onOnboarding && !skipRedirect) {
     return <Navigate to="/onboarding" replace />;
   }
-  if (isComplete && onOnboarding) {
-    return <Navigate to="/home" replace />;
-  }
+  // Note: a completed user can still be on /onboarding mid-flow (the
+  // notifications/plan steps run after isComplete flips true), so we don't
+  // bounce away from here. OnboardingSetup itself starts a completed user
+  // straight at the notifications step instead of re-showing the form.
 
   return <>{children}</>;
 };
@@ -130,9 +139,18 @@ const ProtectedRoutes = () => {
             <Route path="/profile" element={<Profile />} />
 
             {/* Legacy redirects */}
-            <Route path="/workouts" element={<Navigate to="/history" replace />} />
-            <Route path="/start-workout" element={<Navigate to="/home" replace />} />
-            <Route path="/weight" element={<Navigate to="/profile" replace />} />
+            <Route
+              path="/workouts"
+              element={<Navigate to="/history" replace />}
+            />
+            <Route
+              path="/start-workout"
+              element={<Navigate to="/home" replace />}
+            />
+            <Route
+              path="/weight"
+              element={<Navigate to="/profile" replace />}
+            />
 
             {/* Default redirect */}
             <Route path="*" element={<Navigate to="/home" replace />} />

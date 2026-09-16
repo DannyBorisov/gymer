@@ -140,6 +140,12 @@
   background: var(--bg-hover);
 }
 
+.activeCard:focus-visible,
+.programCard:focus-visible {
+  outline: 2px solid var(--border-emphasis);
+  outline-offset: 2px;
+}
+
 .activeCardHeader {
   display: flex;
   flex-direction: column;
@@ -153,10 +159,16 @@
   gap: 0.5rem;
 }
 
+.activeNameRow > :last-child {
+  margin-left: auto;
+}
+
 .activeName {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--text-primary);
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .activeBadge {
@@ -212,14 +224,18 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 1rem;
-  background: var(--text-primary);
+  background: var(--accent-gradient);
   border: none;
   border-radius: var(--radius-md);
-  color: var(--bg-primary);
+  color: #fff;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.continueBtn:hover {
+  filter: brightness(1.05);
 }
 
 .continueBtn:active {
@@ -313,9 +329,7 @@
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
 
 .programDate {

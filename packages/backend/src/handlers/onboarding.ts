@@ -1,7 +1,7 @@
 import type { RouteHandler } from "fastify";
 import { z } from "zod";
 import { getAuthSession } from "../middlewares/auth.js";
-import { prisma, Gender, Goal } from "../dal/index.js";
+import { prisma, Gender, Goal, ExperienceLevel } from "../dal/index.js";
 
 const OnboardingBody = z.object({
   weight: z.number().positive(),
@@ -9,6 +9,7 @@ const OnboardingBody = z.object({
   age: z.number().int().positive(),
   gender: z.nativeEnum(Gender),
   goal: z.nativeEnum(Goal),
+  experienceLevel: z.nativeEnum(ExperienceLevel),
   isComplete: z.boolean().default(true),
 });
 

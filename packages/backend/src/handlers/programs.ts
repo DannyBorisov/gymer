@@ -48,6 +48,60 @@ export const getProgram: RouteHandler<{
   }
 };
 
+export const deleteProgram: RouteHandler<{
+  Params: { id: string };
+}> = async function (request, reply) {
+  const { tokens } = getAuthSession(request);
+  const { id } = request.params;
+
+  try {
+    const gsql = createGSQL(tokens, this.sheets);
+    await gsql.programs.delete(id);
+    return { success: true };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to delete program" });
+  }
+};
+
+export const copyProgram: RouteHandler<{
+  Params: { id: string };
+}> = async function (request, reply) {
+  const { tokens } = getAuthSession(request);
+  const { id } = request.params;
+
+  try {
+    const gsql = createGSQL(tokens, this.sheets);
+    const program = await gsql.programs.copy(id);
+    return { success: true, program };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to copy program" });
+  }
+};
+
+export const renameProgram: RouteHandler<{
+  Params: { id: string };
+  Body: { name: string };
+}> = async function (request, reply) {
+  const { tokens } = getAuthSession(request);
+  const { id } = request.params;
+  const { name } = request.body ?? {};
+
+  if (!name?.trim()) {
+    return reply.status(400).send({ error: "Name is required" });
+  }
+
+  try {
+    const gsql = createGSQL(tokens, this.sheets);
+    const program = await gsql.programs.rename(id, name.trim());
+    return { success: true, program };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to rename program" });
+  }
+};
+
 export const updateProgram: RouteHandler<{
   Params: { id: string };
   Body: UpdateProgramRequest;

@@ -115,6 +115,14 @@ export class GoogleSheets {
     });
   }
 
+  async renameFile(tokens: Tokens, fileId: string, name: string): Promise<void> {
+    const drive = this.getDriveClient(tokens);
+    await drive.files.update({
+      fileId,
+      requestBody: { name },
+    });
+  }
+
   async listFiles(
     tokens: Tokens,
     query: string,
@@ -144,6 +152,24 @@ export class GoogleSheets {
       fields: "name",
     });
     return response.data.name || "";
+  }
+
+  async deleteFile(tokens: Tokens, fileId: string): Promise<void> {
+    const drive = this.getDriveClient(tokens);
+    await drive.files.delete({ fileId });
+  }
+
+  async copyFile(
+    tokens: Tokens,
+    fileId: string,
+    name: string,
+  ): Promise<string> {
+    const drive = this.getDriveClient(tokens);
+    const response = await drive.files.copy({
+      fileId,
+      requestBody: { name },
+    });
+    return response.data.id!;
   }
 
   async addSheet(

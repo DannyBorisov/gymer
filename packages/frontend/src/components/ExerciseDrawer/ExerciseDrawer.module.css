@@ -154,11 +154,11 @@
 }
 
 .exerciseItemSelected {
-  background: var(--bg-interactive);
+  background: var(--accent-green-soft);
 }
 
 .exerciseItemSelected:hover {
-  background: var(--bg-hover);
+  background: var(--accent-green-soft);
 }
 
 .exerciseName {
@@ -179,8 +179,8 @@
 }
 
 .checkboxChecked {
-  background: var(--text-primary);
-  border-color: var(--text-primary);
+  background: var(--accent-green);
+  border-color: var(--accent-green);
   color: var(--bg-primary);
 }
 
@@ -202,22 +202,22 @@
 .confirmBtn {
   width: 100%;
   padding: 0.875rem 1.5rem;
-  background: var(--text-primary);
-  color: var(--bg-primary);
+  background: var(--accent-gradient);
+  color: #fff;
   border: none;
   border-radius: var(--radius-md);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: filter var(--transition-fast);
 }
 
 .confirmBtn:hover {
-  background: rgba(255, 255, 255, 0.9);
+  filter: brightness(1.05);
 }
 
 .confirmBtn:active {
-  background: rgba(255, 255, 255, 0.8);
+  filter: brightness(0.95);
 }
 
 .confirmBtn:disabled {

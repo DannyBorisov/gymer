@@ -90,6 +90,10 @@
     padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px));
   }
 
+  .mainNoNav {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
   .mainWorkout {
     padding: 0;
     margin-top: calc(-1 * env(safe-area-inset-top, 0px));
