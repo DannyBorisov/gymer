@@ -1,12 +1,17 @@
-import { BaseModel } from './BaseModel.js';
-import { ProgramSchema } from '../schemas/program.js';
+import { BaseModel } from "./BaseModel.js";
+import { ProgramSchema } from "../schemas/program.js";
 import {
   parseProgramRows,
   stripRowIndex,
   formatExerciseName,
   type ProgramWithRowIndex,
-} from '../utils/parser.js';
-import { formatDateTime, parseDate, isDateFormat, isDuration } from '../utils/dateUtils.js';
+} from "../utils/parser.js";
+import {
+  formatDateTime,
+  parseDate,
+  isDateFormat,
+  isDuration,
+} from "../utils/dateUtils.js";
 import type {
   Program,
   ProgramSummary,
@@ -15,7 +20,7 @@ import type {
   SetUpdateData,
   WorkoutUpdateData,
   CompletedSet,
-} from '../types.js';
+} from "../types.js";
 
 export class ProgramModel extends BaseModel {
   /**
@@ -68,14 +73,18 @@ export class ProgramModel extends BaseModel {
     const rows: (string | number)[][] = [[...ProgramSchema.headers]];
 
     // Determine sessions per week
-    const sessionsPerWeek = input.frequency === 'every-other-day' ? 4 : input.frequency;
+    const sessionsPerWeek =
+      input.frequency === "every-other-day" ? 4 : input.frequency;
 
     for (let week = 1; week <= input.durationWeeks; week++) {
       // Calculate RIR for this week if dynamic
       let weekRir = input.startingRir;
       if (input.dynamicRir && input.durationWeeks > 1) {
         const rirDecrement = input.startingRir / (input.durationWeeks - 1);
-        weekRir = Math.max(0, Math.round(input.startingRir - rirDecrement * (week - 1)));
+        weekRir = Math.max(
+          0,
+          Math.round(input.startingRir - rirDecrement * (week - 1)),
+        );
       }
 
       // Cycle through workouts
@@ -89,22 +98,26 @@ export class ProgramModel extends BaseModel {
         for (const exercise of workout.exercises) {
           const targetRir =
             input.dynamicRir && !exercise.customRir ? weekRir : exercise.rir;
-          const rirDisplay = targetRir === 0 ? 'To Failure' : targetRir.toString();
-          const exerciseName = formatExerciseName(exercise.name, exercise.variant);
+          const rirDisplay =
+            targetRir === 0 ? "To Failure" : targetRir.toString();
+          const exerciseName = formatExerciseName(
+            exercise.name,
+            exercise.variant,
+          );
 
           for (let set = 1; set <= exercise.sets; set++) {
             rows.push([
-              '',           // Date
-              week,         // Week
-              workoutName,  // Workout
+              "", // Date
+              week, // Week
+              workoutName, // Workout
               exerciseName, // Exercise
-              set,          // Set
-              exercise.reps,// Target Reps
-              rirDisplay,   // RIR
-              '',           // Weight
-              '',           // Reps Achieved
-              '',           // RIR Achieved
-              '',           // Notes
+              set, // Set
+              exercise.reps, // Target Reps
+              rirDisplay, // RIR
+              "", // Weight
+              "", // Reps Achieved
+              "", // RIR Achieved
+              "", // Notes
             ]);
           }
         }
@@ -117,8 +130,16 @@ export class ProgramModel extends BaseModel {
       [ProgramSchema.appProperty.key]: ProgramSchema.appProperty.value,
     });
 
-    const { sheetName } = await this.sheets.getSpreadsheetMetadata(this.tokens, spreadsheetId);
-    await this.sheets.update(this.tokens, spreadsheetId, `${sheetName}!A1`, rows);
+    const { sheetName } = await this.sheets.getSpreadsheetMetadata(
+      this.tokens,
+      spreadsheetId,
+    );
+    await this.sheets.update(
+      this.tokens,
+      spreadsheetId,
+      `${sheetName}!A1`,
+      rows,
+    );
 
     return {
       id: spreadsheetId,
@@ -132,32 +153,47 @@ export class ProgramModel extends BaseModel {
    */
   async update(id: string, input: ProgramUpdateInput): Promise<void> {
     const program = await this.findInternal(id);
-    if (!program) throw new Error('Program not found');
+    if (!program) throw new Error("Program not found");
 
-    const { sheetName } = await this.sheets.getSpreadsheetMetadata(this.tokens, id);
+    const { sheetName } = await this.sheets.getSpreadsheetMetadata(
+      this.tokens,
+      id,
+    );
     const { where, data } = input;
 
     // Find the target workout
     const workout = program.workouts.find(
-      (w) => w.week === where.week && (!where.workout || w.name === where.workout.name)
+      (w) =>
+        w.week === where.week &&
+        (!where.workout || w.name === where.workout.name),
     );
     if (!workout) {
-      throw new Error(`Workout not found for week ${where.week}${where.workout ? ` name "${where.workout.name}"` : ''}`);
+      throw new Error(
+        `Workout not found for week ${where.week}${where.workout ? ` name "${where.workout.name}"` : ""}`,
+      );
     }
 
     // If no workout.exercise specified, this is workout-level update (date/duration)
     if (!where.workout?.exercise) {
-      await this.updateWorkout(id, sheetName, workout, data as WorkoutUpdateData);
+      await this.updateWorkout(
+        id,
+        sheetName,
+        workout,
+        data as WorkoutUpdateData,
+      );
       return;
     }
 
     // Find the exercise
     const exercise = workout.exercises.find(
-      (e) => e.name === where.workout!.exercise!.name ||
-             formatExerciseName(e.name, e.variant) === where.workout!.exercise!.name
+      (e) =>
+        e.name === where.workout!.exercise!.name ||
+        formatExerciseName(e.name, e.variant) === where.workout!.exercise!.name,
     );
     if (!exercise) {
-      throw new Error(`Exercise "${where.workout.exercise.name}" not found in workout "${where.workout.name}"`);
+      throw new Error(
+        `Exercise "${where.workout.exercise.name}" not found in workout "${where.workout.name}"`,
+      );
     }
 
     // If set is specified, update single set
@@ -170,7 +206,7 @@ export class ProgramModel extends BaseModel {
     }
 
     // No set specified - could update all sets (not implemented)
-    throw new Error('Set index must be specified for set-level updates');
+    throw new Error("Set index must be specified for set-level updates");
   }
 
   /**
@@ -178,9 +214,12 @@ export class ProgramModel extends BaseModel {
    */
   async updateMany(id: string, inputs: ProgramUpdateInput[]): Promise<void> {
     const program = await this.findInternal(id);
-    if (!program) throw new Error('Program not found');
+    if (!program) throw new Error("Program not found");
 
-    const { sheetName } = await this.sheets.getSpreadsheetMetadata(this.tokens, id);
+    const { sheetName } = await this.sheets.getSpreadsheetMetadata(
+      this.tokens,
+      id,
+    );
     const updates: { range: string; values: (string | number)[][] }[] = [];
 
     for (const input of inputs) {
@@ -188,7 +227,9 @@ export class ProgramModel extends BaseModel {
 
       // Find the target workout
       const workout = program.workouts.find(
-        (w) => w.week === where.week && (!where.workout || w.name === where.workout.name)
+        (w) =>
+          w.week === where.week &&
+          (!where.workout || w.name === where.workout.name),
       );
       if (!workout) continue;
 
@@ -215,8 +256,10 @@ export class ProgramModel extends BaseModel {
 
       // Find exercise
       const exercise = workout.exercises.find(
-        (e) => e.name === where.workout!.exercise!.name ||
-               formatExerciseName(e.name, e.variant) === where.workout!.exercise!.name
+        (e) =>
+          e.name === where.workout!.exercise!.name ||
+          formatExerciseName(e.name, e.variant) ===
+            where.workout!.exercise!.name,
       );
       if (!exercise) continue;
 
@@ -267,7 +310,7 @@ export class ProgramModel extends BaseModel {
     spreadsheetId: string,
     sheetName: string,
     workout: { exercises: { sets: { rowIndex: number }[] }[] },
-    data: WorkoutUpdateData
+    data: WorkoutUpdateData,
   ): Promise<void> {
     // Find the first row of this workout (where date goes)
     const firstSetRowIndex = workout.exercises[0]?.sets[0]?.rowIndex;
@@ -302,7 +345,7 @@ export class ProgramModel extends BaseModel {
     spreadsheetId: string,
     sheetName: string,
     rowIndex: number,
-    data: SetUpdateData
+    data: SetUpdateData,
   ): Promise<void> {
     const cols = ProgramSchema.columns;
     const updates: { range: string; values: (string | number)[][] }[] = [];
@@ -350,20 +393,27 @@ export class ProgramModel extends BaseModel {
 
     const fetchPromises = programs.map(async (program) => {
       try {
-        const { sheetName } = await this.sheets.getSpreadsheetMetadata(this.tokens, program.id);
-        const rows = await this.sheets.get(this.tokens, program.id, `${sheetName}!A:I`);
+        const { sheetName } = await this.sheets.getSpreadsheetMetadata(
+          this.tokens,
+          program.id,
+        );
+        const rows = await this.sheets.get(
+          this.tokens,
+          program.id,
+          `${sheetName}!A:I`,
+        );
         if (!rows || rows.length < 2) return;
 
         let currentDate: Date | null = null;
-        let currentWorkout = '';
+        let currentWorkout = "";
 
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          const dateOrDuration = String(row[cols.date.index] || '').trim();
-          const workout = String(row[cols.workout.index] || '').trim();
-          const exercise = String(row[cols.exercise.index] || '').trim();
-          const weightStr = String(row[cols.weight.index] || '').trim();
-          const repsStr = String(row[cols.repsAchieved.index] || '').trim();
+          const dateOrDuration = String(row[cols.date.index] || "").trim();
+          const workout = String(row[cols.workout.index] || "").trim();
+          const exercise = String(row[cols.exercise.index] || "").trim();
+          const weightStr = String(row[cols.weight.index] || "").trim();
+          const repsStr = String(row[cols.repsAchieved.index] || "").trim();
 
           // Track date
           if (isDateFormat(dateOrDuration)) {
@@ -401,12 +451,19 @@ export class ProgramModel extends BaseModel {
 
     const fetchPromises = programs.map(async (program) => {
       try {
-        const { sheetName } = await this.sheets.getSpreadsheetMetadata(this.tokens, program.id);
-        const rows = await this.sheets.get(this.tokens, program.id, `${sheetName}!D:D`);
+        const { sheetName } = await this.sheets.getSpreadsheetMetadata(
+          this.tokens,
+          program.id,
+        );
+        const rows = await this.sheets.get(
+          this.tokens,
+          program.id,
+          `${sheetName}!D:D`,
+        );
         if (!rows) return;
 
         for (let i = 1; i < rows.length; i++) {
-          const name = String(rows[i][0] || '').trim();
+          const name = String(rows[i][0] || "").trim();
           if (name) exercises.add(name);
         }
       } catch {
@@ -416,6 +473,81 @@ export class ProgramModel extends BaseModel {
 
     await Promise.all(fetchPromises);
     return Array.from(exercises);
+  }
+
+  /**
+   * Add one extra set to an exercise, for this occurrence only (this week's
+   * workout) — not the exercise's other occurrences in later weeks.
+   *
+   * Inserts a real spreadsheet row directly below the exercise's last
+   * existing set row in this workout, shifting every row below it (including
+   * all later weeks) down by one. Since `findInternal`/`find` always
+   * re-derive row positions from a fresh read, nothing else needs to change
+   * for that shift to be picked up correctly on the next read.
+   */
+  async addSet(
+    id: string,
+    week: number,
+    workoutName: string,
+    exerciseName: string,
+    targetReps?: number,
+    targetRir?: string,
+  ): Promise<void> {
+    const { sheetName, sheetId } = await this.sheets.getSpreadsheetMetadata(
+      this.tokens,
+      id,
+    );
+    const rows = await this.sheets.get(this.tokens, id, `${sheetName}!A:K`);
+    if (!rows || rows.length < 2) throw new Error("Program not found or empty");
+
+    const cols = ProgramSchema.columns;
+
+    // Find every row for this exercise, in this workout, in this week.
+    const matchingRowNumbers: number[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const rowWeek = Number(row[cols.week.index]) || 0;
+      const rowWorkout = String(row[cols.workout.index] || "").trim();
+      const rowExercise = String(row[cols.exercise.index] || "").trim();
+      if (
+        rowWeek === week &&
+        rowWorkout === workoutName &&
+        rowExercise === exerciseName
+      ) {
+        matchingRowNumbers.push(i + 1); // 1-indexed sheet row
+      }
+    }
+
+    if (matchingRowNumbers.length === 0) {
+      throw new Error(
+        `Exercise "${exerciseName}" not found in week ${week}, workout "${workoutName}"`,
+      );
+    }
+
+    const lastRowNumber = Math.max(...matchingRowNumbers);
+    const lastRow = rows[lastRowNumber - 1];
+    const nextSetNumber = matchingRowNumbers.length + 1;
+    const newRowNumber = lastRowNumber + 1;
+
+    // Insert a blank row right after the exercise's last set, then fill it
+    // in — with the caller's target reps/RIR if given, otherwise the same
+    // values as the last set — and no achieved data yet.
+    await this.sheets.insertRow(this.tokens, id, sheetId, newRowNumber);
+    await this.sheets.update(this.tokens, id, `${sheetName}!A${newRowNumber}`, [
+      [
+        "", // Date
+        week, // Week
+        workoutName, // Workout
+        exerciseName, // Exercise
+        nextSetNumber, // Set
+        targetReps ?? String(lastRow[cols.targetReps.index] || ""), // Target Reps
+        targetRir ?? String(lastRow[cols.rir.index] || ""), // RIR
+        "", // Weight
+        "", // Reps Achieved
+        "", // RIR Achieved
+        "", // Notes
+      ],
+    ]);
   }
 
   /**
@@ -430,7 +562,8 @@ export class ProgramModel extends BaseModel {
    */
   async copy(id: string): Promise<ProgramSummary> {
     const originalName = await this.sheets.getFileName(this.tokens, id);
-    const newId = await this.sheets.copyFile(this.tokens, id, `${originalName} (Copy)`);
+    const newName = `${originalName} (Copy)`;
+    const newId = await this.sheets.copyFile(this.tokens, id, newName);
 
     // Drive's files.copy doesn't reliably carry over custom appProperties,
     // so the copy would otherwise be invisible to findAll()'s query.
@@ -440,7 +573,7 @@ export class ProgramModel extends BaseModel {
 
     return {
       id: newId,
-      name: `${originalName} (Copy)`,
+      name: newName,
       url: `https://docs.google.com/spreadsheets/d/${newId}`,
     };
   }

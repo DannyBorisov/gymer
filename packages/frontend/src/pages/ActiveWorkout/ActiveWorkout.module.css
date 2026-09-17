@@ -356,6 +356,30 @@
   transform: scale(1.12);
 }
 
+.setDotAdd {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: none;
+  border: 1.5px dashed var(--border-emphasis);
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.setDotAdd:active {
+  transform: scale(0.92);
+}
+
+.setDotAdd:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Quick fill buttons */
 .quickFillContainer {
   display: flex;
@@ -625,72 +649,6 @@
     opacity: 0;
     transform: scale(1);
   }
-}
-
-/* Progression celebration */
-.progressionOverlay {
-  background: linear-gradient(
-    135deg,
-    rgba(34, 197, 94, 0.15) 0%,
-    rgba(34, 197, 94, 0.25) 100%
-  );
-  animation: progressionPulse 1.5s ease-out;
-}
-
-@keyframes progressionPulse {
-  0% {
-    opacity: 0;
-  }
-  15% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.progressionOverlay .setCompleteIcon {
-  flex-direction: column;
-  gap: 8px;
-  animation: progressionBounce 1.5s ease-out;
-}
-
-@keyframes progressionBounce {
-  0% {
-    opacity: 0;
-    transform: scale(0.5) translateY(10px);
-  }
-  25% {
-    opacity: 1;
-    transform: scale(1.1) translateY(-5px);
-  }
-  50% {
-    transform: scale(0.98) translateY(0);
-  }
-  75% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1);
-  }
-}
-
-.progressionIcon {
-  color: var(--accent-green);
-  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.5));
-}
-
-.progressionBadge {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--accent-green);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 /* Back to program button */
@@ -1044,7 +1002,8 @@
 }
 
 /* AI Tip */
-.tipContainer {
+.tipContainer,
+.progressionToast {
   position: fixed;
   left: 1rem;
   right: 1rem;
@@ -1059,6 +1018,27 @@
   border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   animation: tipSlideDown 0.2s ease-out;
+}
+
+.progressionToast {
+  top: calc(1.25rem + env(safe-area-inset-top));
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.progressionToastIcon {
+  flex-shrink: 0;
+  color: var(--accent-green);
+  margin-top: 3px;
+}
+
+.progressionToastLabel {
+  display: block;
+  margin-bottom: 0.1875rem;
+  color: var(--accent-green);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 @keyframes tipSlideDown {
@@ -1155,4 +1135,51 @@
   font-weight: 600;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+/* Add Set Drawer */
+.addSetDrawer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+.addSetTitle {
+  margin: 0 0 0.25rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.addSetSubtitle {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.addSetInputs {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.addSetConfirmBtn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--accent-gradient);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: var(--touch-target);
+}
+
+.addSetConfirmBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

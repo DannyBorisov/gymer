@@ -72,6 +72,19 @@ export const programsApi = {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
   }),
+  addSet: (
+    id: string,
+    week: number,
+    workoutName: string,
+    exerciseName: string,
+    targetReps?: number,
+    targetRir?: string,
+  ) =>
+    request<{ success: boolean }>(`/api/programs/${id}/add-set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ week, workoutName, exerciseName, targetReps, targetRir }),
+    }),
 };
 
 export const programQueryKeys = {
@@ -127,6 +140,30 @@ export function useRenameProgram() {
         queryClient.invalidateQueries({ queryKey: programQueryKeys.detail(variables.id) }),
         queryClient.invalidateQueries({ queryKey: programQueryKeys.list }),
       ]);
+    },
+  });
+}
+
+export function useAddSet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      week,
+      workoutName,
+      exerciseName,
+      targetReps,
+      targetRir,
+    }: {
+      id: string;
+      week: number;
+      workoutName: string;
+      exerciseName: string;
+      targetReps?: number;
+      targetRir?: string;
+    }) => programsApi.addSet(id, week, workoutName, exerciseName, targetReps, targetRir),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: programQueryKeys.detail(variables.id) });
     },
   });
 }

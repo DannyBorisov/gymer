@@ -102,6 +102,45 @@ export const renameProgram: RouteHandler<{
   }
 };
 
+export const addSet: RouteHandler<{
+  Params: { id: string };
+  Body: {
+    week: number;
+    workoutName: string;
+    exerciseName: string;
+    targetReps?: number;
+    targetRir?: string;
+  };
+}> = async function (request, reply) {
+  const { tokens } = getAuthSession(request);
+  const { id } = request.params;
+  const { week, workoutName, exerciseName, targetReps, targetRir } =
+    request.body ?? {};
+
+  if (!week || !workoutName || !exerciseName) {
+    return reply
+      .status(400)
+      .send({ error: "week, workoutName, and exerciseName are required" });
+  }
+
+  try {
+    const gsql = createGSQL(tokens, this.sheets);
+    await gsql.programs.addSet(
+      id,
+      week,
+      workoutName,
+      exerciseName,
+      targetReps,
+      targetRir,
+    );
+    const program = await gsql.programs.find(id);
+    return { success: true, program };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to add set" });
+  }
+};
+
 export const updateProgram: RouteHandler<{
   Params: { id: string };
   Body: UpdateProgramRequest;

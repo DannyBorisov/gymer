@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Play, CheckCircle2, Circle, Dumbbell, X } from "lucide-react";
-import { SwipeableDrawer } from "../SwipeableDrawer";
+import { Play, CheckCircle2, Circle, Dumbbell } from "lucide-react";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import { formatDateWithDay } from "../../lib/date";
 import { parseExerciseName } from "../../types/shared";
@@ -15,13 +14,37 @@ interface WeeksListProps {
   disabled?: boolean;
 }
 
-// Days of week labels (Sun-Sat)
-const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const getExercisesForWorkout = (workout: Workout) => {
+  return Array.from(
+    workout.exercises.reduce((exercises, exercise) => {
+      const existing = exercises.get(exercise.name);
+      if (existing) {
+        existing.totalSets += exercise.sets.length;
+      } else {
+        exercises.set(exercise.name, {
+          name: exercise.name,
+          totalSets: exercise.sets.length,
+          reps: exercise.sets[0]?.targetReps || 0,
+          rir: exercise.sets[0]?.targetRir || "0",
+        });
+      }
+      return exercises;
+    }, new Map<string, { name: string; totalSets: number; reps: number; rir: string }>()),
+  ).map(([, exercise]) => exercise);
+};
 
-// Get day of week (0=Sun, 6=Sat) from ISO date string
-const getDayOfWeek = (dateStr: string): number => {
-  const date = new Date(dateStr);
-  return date.getDay();
+// Format duration for display
+const formatDuration = (duration: string) => {
+  if (duration.includes(":")) {
+    const parts = duration.split(":");
+    if (parts.length === 3) {
+      const hours = parseInt(parts[0], 10);
+      const mins = parseInt(parts[1], 10);
+      if (hours > 0) return `${hours}h ${mins}m`;
+      return `${mins}m`;
+    }
+  }
+  return duration;
 };
 
 export const WeeksList = ({
@@ -32,22 +55,10 @@ export const WeeksList = ({
 }: WeeksListProps) => {
   const navigate = useNavigate();
   const { startWorkout } = useWorkout();
-  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
   const handleStartWorkout = (workout: Workout) => {
-    setSelectedWorkout(null);
     startWorkout(programId, workout, workouts, programName);
     navigate("/workout");
-  };
-
-  const handleWorkoutClick = (workout: Workout) => {
-    if (workout.date) {
-      // Completed workout - go directly to workout page
-      handleStartWorkout(workout);
-    } else {
-      // Incomplete workout - show exercise preview drawer
-      setSelectedWorkout(workout);
-    }
   };
 
   // Group workouts by week
@@ -65,89 +76,45 @@ export const WeeksList = ({
     return [...groupedByWeek.keys()].sort((a, b) => a - b);
   }, [groupedByWeek]);
 
-  // Calculate activity days for each week
-  const weekActivityDays = useMemo(() => {
-    const result: Record<number, boolean[]> = {};
-    for (const [week, weekWorkouts] of groupedByWeek) {
-      const days = [false, false, false, false, false, false, false];
-      for (const workout of weekWorkouts) {
-        if (workout.date) {
-          const dayIndex = getDayOfWeek(workout.date);
-          days[dayIndex] = true;
-        }
-      }
-      result[week] = days;
-    }
-    return result;
-  }, [groupedByWeek]);
+  const [selectedWeek, setSelectedWeek] = useState<number | null>(
+    sortedWeeks[0] ?? null,
+  );
+  const activeWeek =
+    selectedWeek !== null && groupedByWeek.has(selectedWeek)
+      ? selectedWeek
+      : (sortedWeeks[0] ?? null);
 
-  const workoutExercises = useMemo(() => {
-    if (!selectedWorkout) return [];
-
-    return Array.from(
-      selectedWorkout.exercises.reduce((exercises, exercise) => {
-        const existing = exercises.get(exercise.name);
-        if (existing) {
-          existing.totalSets += exercise.sets.length;
-        } else {
-          exercises.set(exercise.name, {
-            name: exercise.name,
-            totalSets: exercise.sets.length,
-            reps: exercise.sets[0]?.targetReps || 0,
-            rir: exercise.sets[0]?.targetRir || "0",
-          });
-        }
-        return exercises;
-      }, new Map<string, { name: string; totalSets: number; reps: number; rir: string }>()),
-    ).map(([, exercise]) => exercise);
-  }, [selectedWorkout]);
-
-  // Format duration for display
-  const formatDuration = (duration: string) => {
-    if (duration.includes(":")) {
-      const parts = duration.split(":");
-      if (parts.length === 3) {
-        const hours = parseInt(parts[0], 10);
-        const mins = parseInt(parts[1], 10);
-        if (hours > 0) return `${hours}h ${mins}m`;
-        return `${mins}m`;
-      }
-    }
-    return duration;
-  };
+  const weekWorkouts = activeWeek !== null ? groupedByWeek.get(activeWeek) || [] : [];
 
   return (
     <div className={styles.weeksList}>
-      {sortedWeeks.map((week) => (
-        <div key={week} className={styles.weekCard}>
-          <div className={styles.weekHeader}>
-            <span className={styles.weekTitle}>Week {week}</span>
-            <div className={styles.activitySquares}>
-              {DAYS.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`${styles.activitySquare} ${weekActivityDays[week]?.[idx] ? styles.activitySquareFilled : ""}`}
-                  title={["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][idx]}
-                />
-              ))}
-            </div>
-          </div>
-          <div className={styles.workoutsList}>
-            {groupedByWeek.get(week)?.map((workout) => (
-              <button
-                key={workout.name}
-                onClick={() => handleWorkoutClick(workout)}
-                className={styles.workoutCard}
-                disabled={disabled}
-              >
-                <div className={styles.workoutCardInfo}>
+      <div className={styles.weekPills}>
+        {sortedWeeks.map((week) => (
+          <button
+            key={week}
+            type="button"
+            className={`${styles.weekPill} ${week === activeWeek ? styles.weekPillActive : ""}`}
+            onClick={() => setSelectedWeek(week)}
+          >
+            Week {week}
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.weekWorkouts}>
+        {weekWorkouts.map((workout) => {
+          const exercises = getExercisesForWorkout(workout);
+          return (
+            <div key={workout.name} className={styles.dayCard}>
+              <div className={styles.dayHeader}>
+                <div className={styles.dayHeaderInfo}>
                   {workout.date ? (
                     <CheckCircle2 size={18} className={styles.completeIcon} />
                   ) : (
                     <Circle size={18} className={styles.incompleteIcon} />
                   )}
-                  <div className={styles.workoutCardText}>
-                    <span className={styles.workoutName}>{workout.name}</span>
+                  <div className={styles.dayHeaderText}>
+                    <span className={styles.dayName}>{workout.name}</span>
                     {workout.date && (
                       <span className={styles.workoutDate}>
                         {formatDateWithDay(workout.date)}
@@ -157,74 +124,46 @@ export const WeeksList = ({
                     )}
                   </div>
                 </div>
-                <Play size={16} className={styles.playIcon} />
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
-
-      <SwipeableDrawer
-        isOpen={selectedWorkout !== null}
-        onClose={() => setSelectedWorkout(null)}
-        maxHeight="100vh"
-        dark
-      >
-        {selectedWorkout && (
-          <div className={styles.workoutDrawer}>
-            <div className={styles.drawerHeader}>
-              <div>
-                <span className={styles.drawerEyebrow}>
-                  Week {selectedWorkout.week}
-                </span>
-                <h2 className={styles.drawerTitle}>{selectedWorkout.name}</h2>
               </div>
+
+              <div className={styles.exercisePreviewList}>
+                {exercises.map((exercise, index) => {
+                  const { name, variant } = parseExerciseName(exercise.name);
+                  return (
+                    <div key={exercise.name} className={styles.exercisePreview}>
+                      <span className={styles.exerciseNumber}>{index + 1}</span>
+                      <div className={styles.exerciseDetails}>
+                        <span className={styles.exerciseName}>
+                          <span className={styles.exerciseNameText}>{name}</span>
+                          {variant && (
+                            <span className={styles.exerciseVariant}>{variant}</span>
+                          )}
+                        </span>
+                        <span className={styles.exerciseMeta}>
+                          {exercise.totalSets} set
+                          {exercise.totalSets === 1 ? "" : "s"} x {exercise.reps}{" "}
+                          reps at {exercise.rir} RIR
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               <button
                 type="button"
-                className={styles.drawerClose}
-                onClick={() => setSelectedWorkout(null)}
-                aria-label="Close workout preview"
+                className={styles.startWorkoutButton}
+                onClick={() => handleStartWorkout(workout)}
+                disabled={disabled}
               >
-                <X size={20} />
+                <Dumbbell size={19} />
+                {workout.date ? "View Workout" : "Start Workout"}
+                <Play size={17} fill="currentColor" />
               </button>
             </div>
-
-            <div className={styles.exercisePreviewList}>
-              {workoutExercises.map((exercise, index) => {
-                const { name, variant } = parseExerciseName(exercise.name);
-                return (
-                <div key={exercise.name} className={styles.exercisePreview}>
-                  <span className={styles.exerciseNumber}>{index + 1}</span>
-                  <div className={styles.exerciseDetails}>
-                    <span className={styles.exerciseName}>
-                      <span className={styles.exerciseNameText}>{name}</span>
-                      {variant && (
-                        <span className={styles.exerciseVariant}>{variant}</span>
-                      )}
-                    </span>
-                    <span className={styles.exerciseMeta}>
-                      {exercise.totalSets} set
-                      {exercise.totalSets === 1 ? "" : "s"} x {exercise.reps}{" "}
-                      reps at {exercise.rir} RIR
-                    </span>
-                  </div>
-                </div>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              className={styles.startWorkoutButton}
-              onClick={() => handleStartWorkout(selectedWorkout)}
-            >
-              <Dumbbell size={19} />
-              Start Workout
-              <Play size={17} fill="currentColor" />
-            </button>
-          </div>
-        )}
-      </SwipeableDrawer>
+          );
+        })}
+      </div>
     </div>
   );
 };

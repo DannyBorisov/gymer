@@ -5,12 +5,13 @@ import type { SessionData } from "./encryption.js";
 
 export function setSession(reply: FastifyReply, data: SessionData) {
   const isProduction = process.env.NODE_ENV === NodeEnv.Production;
+
   reply.setCookie("session", encrypt(data), {
     path: "/",
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * 7, // 1 week
   });
 }
 
@@ -26,6 +27,8 @@ export function getSession(request: {
   }
 
   const sessionCookie = request.cookies.session;
-  if (!sessionCookie) return {};
+  if (!sessionCookie) {
+    return {};
+  }
   return decrypt(sessionCookie) || {};
 }

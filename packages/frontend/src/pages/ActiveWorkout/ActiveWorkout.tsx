@@ -57,11 +57,20 @@ const ActiveWorkout = () => {
     setCurrentExerciseIndex,
     setCurrentSetIndex,
     addExerciseToWorkout,
+    addSetToExercise,
   } = useWorkout();
 
   const [showNotes, setShowNotes] = useState(false);
+  const [isAddingSet, setIsAddingSet] = useState(false);
+  const [showAddSetDrawer, setShowAddSetDrawer] = useState(false);
+  const [newSetReps, setNewSetReps] = useState("");
+  const [newSetRir, setNewSetRir] = useState("");
   const [showSetComplete, setShowSetComplete] = useState(false);
-  const [isProgression, setIsProgression] = useState(false);
+  const [progressionExercise, setProgressionExercise] = useState<{
+    name: string;
+    type: "weight" | "reps";
+    delta: number;
+  } | null>(null);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showPreviousWorkout, setShowPreviousWorkout] = useState(false);
@@ -200,15 +209,18 @@ const ActiveWorkout = () => {
     }
   }, [currentExerciseIndex, activeWorkout, isRestTimerActive, workoutData]);
 
-  // Check for progression (beating previous workout's weight or reps)
-  const checkForProgression = (exerciseName: string): boolean => {
+  // Check for progression (beating previous workout's weight or reps),
+  // returning what actually improved so the celebration can be specific.
+  const checkForProgression = (
+    exerciseName: string,
+  ): { type: "weight" | "reps"; delta: number } | null => {
     // Already celebrated this exercise
     if (celebratedProgressionExercises.current.has(exerciseName)) {
-      return false;
+      return null;
     }
 
     const prevStats = previousStats[exerciseName];
-    if (!prevStats) return false; // No previous data to compare
+    if (!prevStats) return null; // No previous data to compare
 
     // Get current exercise sets
     const currentSets = workoutData.filter((r) => r.exercise === exerciseName);
@@ -224,66 +236,57 @@ const ActiveWorkout = () => {
       const prevWeight = parseFloat(prevSet.weight) || 0;
       const prevReps = parseFloat(prevSet.reps) || 0;
 
-      // Progression: more weight OR (same weight AND more reps)
-      if (
-        currentWeight > prevWeight ||
-        (currentWeight === prevWeight && currentReps > prevReps)
-      ) {
+      if (currentWeight > prevWeight) {
         celebratedProgressionExercises.current.add(exerciseName);
-        return true;
+        return { type: "weight", delta: currentWeight - prevWeight };
+      }
+      if (currentWeight === prevWeight && currentReps > prevReps) {
+        celebratedProgressionExercises.current.add(exerciseName);
+        return { type: "reps", delta: currentReps - prevReps };
       }
     }
 
-    return false;
+    return null;
+  };
+
+  // Shows the progression toast for a few seconds, then auto-dismisses.
+  const celebrateProgression = (
+    exerciseName: string,
+    progression: { type: "weight" | "reps"; delta: number },
+  ) => {
+    setProgressionExercise({ name: exerciseName, ...progression });
+    void Haptics.notification({ type: NotificationType.Success });
+    setTimeout(() => setProgressionExercise(null), 5000);
   };
 
   // Handle completing a set, celebrating progression at the end of an exercise.
   const handleCompleteSet = (rowIndex: number, isExerciseComplete: boolean) => {
     completeSet(rowIndex);
+    setShowSetComplete(true);
+    setTimeout(() => setShowSetComplete(false), 400);
 
-    if (!isExerciseComplete) {
-      setIsProgression(false);
-      setShowSetComplete(true);
-      setTimeout(() => setShowSetComplete(false), 400);
-      return;
-    }
+    if (!isExerciseComplete) return;
 
     // Check progression at end of exercise
     const row = workoutData.find((r) => r.rowIndex === rowIndex);
-    const progression = row ? checkForProgression(row.exercise) : false;
-    setIsProgression(progression);
-    setShowSetComplete(true);
-    if (progression) {
-      void Haptics.notification({ type: NotificationType.Success });
+    const progression = row ? checkForProgression(row.exercise) : null;
+    if (row && progression) {
+      celebrateProgression(row.exercise, progression);
     }
-
-    setTimeout(
-      () => {
-        setShowSetComplete(false);
-        setIsProgression(false);
-      },
-      progression ? 1500 : 400,
-    );
   };
 
   // Handle complete workout (last set)
   const handleCompleteWorkout = async (rowIndex: number) => {
-    const row = workoutData.find((r) => r.rowIndex === rowIndex);
-    const progression = row ? checkForProgression(row.exercise) : false;
-    setIsProgression(progression);
     setShowSetComplete(true);
-    if (progression) {
-      void Haptics.notification({ type: NotificationType.Success });
-    }
+    setTimeout(() => setShowSetComplete(false), 400);
+
+    const row = workoutData.find((r) => r.rowIndex === rowIndex);
+    const progression = row ? checkForProgression(row.exercise) : null;
     await completeWorkout(rowIndex);
 
-    setTimeout(
-      () => {
-        setShowSetComplete(false);
-        setIsProgression(false);
-      },
-      progression ? 1500 : 400,
-    );
+    if (progression && row) {
+      celebrateProgression(row.exercise, progression);
+    }
   };
 
   const handleStopWorkout = async () => {
@@ -404,6 +407,32 @@ const ActiveWorkout = () => {
   const currentSetData = currentSet ? getRow(currentSet.rowIndex) : null;
   const isSetCompleted = currentSetData?.weight && currentSetData?.repsAchieved;
   const prevStats = previousStats[currentExerciseName];
+
+  const handleOpenAddSet = () => {
+    if (!currentExerciseName) return;
+    const lastSet = currentExerciseSets[currentExerciseSets.length - 1];
+    setNewSetReps(lastSet ? String(lastSet.targetReps) : "");
+    setNewSetRir(lastSet ? lastSet.targetRir : "");
+    setShowAddSetDrawer(true);
+  };
+
+  const handleConfirmAddSet = async () => {
+    if (!currentExerciseName || isAddingSet) return;
+    setIsAddingSet(true);
+    try {
+      const reps = parseInt(newSetReps, 10);
+      await addSetToExercise(
+        currentExerciseName,
+        isNaN(reps) ? undefined : reps,
+        newSetRir.trim() || undefined,
+      );
+      setShowAddSetDrawer(false);
+    } catch (error) {
+      console.error("Failed to add set:", error);
+    } finally {
+      setIsAddingSet(false);
+    }
+  };
 
   // Check if all OTHER sets are complete
   const isLastSet =
@@ -647,6 +676,33 @@ const ActiveWorkout = () => {
         </div>
       )}
 
+      {/* Progression notification */}
+      {progressionExercise && (
+        <div
+          className={styles.progressionToast}
+          role="status"
+          aria-live="polite"
+        >
+          <TrendingUp size={16} className={styles.progressionToastIcon} />
+          <div className={styles.tipContent}>
+            <span className={styles.progressionToastLabel}>Progression</span>
+            <p className={styles.tipText}>
+              {parseExerciseName(progressionExercise.name).name} —{" "}
+              {progressionExercise.type === "weight"
+                ? `+${progressionExercise.delta}${weightUnit} heavier than last time`
+                : `${progressionExercise.delta} more rep${progressionExercise.delta === 1 ? "" : "s"} than last time`}
+            </p>
+          </div>
+          <button
+            className={styles.tipClose}
+            onClick={() => setProgressionExercise(null)}
+            aria-label="Dismiss"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Main content area */}
       <div className={styles.mainContent}>
         {currentSet && (
@@ -660,24 +716,9 @@ const ActiveWorkout = () => {
           >
             {/* Set complete animation overlay */}
             {showSetComplete && (
-              <div
-                className={`${styles.setCompleteOverlay} ${isProgression ? styles.progressionOverlay : ""}`}
-              >
+              <div className={styles.setCompleteOverlay}>
                 <div className={styles.setCompleteIcon}>
-                  {isProgression ? (
-                    <>
-                      <TrendingUp
-                        size={48}
-                        strokeWidth={2.5}
-                        className={styles.progressionIcon}
-                      />
-                      <span className={styles.progressionBadge}>
-                        Progression!
-                      </span>
-                    </>
-                  ) : (
-                    <Check size={48} strokeWidth={3} />
-                  )}
+                  <Check size={48} strokeWidth={3} />
                 </div>
               </div>
             )}
@@ -703,6 +744,16 @@ const ActiveWorkout = () => {
                     </button>
                   );
                 })}
+                {!isQuickWorkout && (
+                  <button
+                    onClick={handleOpenAddSet}
+                    disabled={isAddingSet}
+                    className={styles.setDotAdd}
+                    aria-label="Add a set"
+                  >
+                    <Plus size={14} />
+                  </button>
+                )}
               </div>
 
               {/* Quick fill options */}
@@ -957,6 +1008,57 @@ const ActiveWorkout = () => {
               );
             })}
           </div>
+        </div>
+      </SwipeableDrawer>
+
+      {/* Add Set Drawer */}
+      <SwipeableDrawer
+        isOpen={showAddSetDrawer}
+        onClose={() => setShowAddSetDrawer(false)}
+        maxHeight="60vh"
+        dark
+      >
+        <div className={styles.addSetDrawer}>
+          <h2 className={styles.addSetTitle}>Add a set</h2>
+          <p className={styles.addSetSubtitle}>{currentExerciseName}</p>
+
+          <div className={styles.addSetInputs}>
+            <ScrollableInput
+              label="Reps"
+              value={newSetReps}
+              onChange={setNewSetReps}
+              onAdjust={(delta) =>
+                setNewSetReps((prev) =>
+                  String(Math.max(0, (parseInt(prev, 10) || 0) + delta)),
+                )
+              }
+              step={1}
+              dark
+            />
+            <ScrollableInput
+              label="RIR"
+              labelInfo="Reps in Reserve — how many more reps you could have done before failure."
+              value={newSetRir}
+              onChange={setNewSetRir}
+              onAdjust={(delta) =>
+                setNewSetRir((prev) =>
+                  String(Math.max(0, (parseInt(prev, 10) || 0) + delta)),
+                )
+              }
+              step={1}
+              max={10}
+              dark
+            />
+          </div>
+
+          <button
+            type="button"
+            className={styles.addSetConfirmBtn}
+            onClick={handleConfirmAddSet}
+            disabled={isAddingSet}
+          >
+            {isAddingSet ? "Adding..." : "Add Set"}
+          </button>
         </div>
       </SwipeableDrawer>
     </div>

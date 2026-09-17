@@ -8,6 +8,7 @@ import {
   deleteProgram,
   copyProgram,
   renameProgram,
+  addSet,
 } from "../handlers/programs.js";
 import type { CreateProgramRequest, UpdateProgramRequest } from "../types.js";
 
@@ -49,6 +50,17 @@ const ProgramsRoutes: FastifyPluginAsync = async (server) => {
     { preHandler: requireAuth },
     renameProgram,
   );
+
+  server.post<{
+    Params: { id: string };
+    Body: {
+      week: number;
+      workoutName: string;
+      exerciseName: string;
+      targetReps?: number;
+      targetRir?: string;
+    };
+  }>("/:id/add-set", { preHandler: requireAuth }, addSet);
 };
 
 export default ProgramsRoutes;

@@ -1002,16 +1002,10 @@
 }
 
 /* Program builder */
-.container {
+.builderContainer {
   max-width: 960px;
   margin: 0 auto;
   padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
-}
-
-.stickyHeader {
-  top: -1.25rem;
-  margin: -1.25rem -1.25rem 1.5rem;
-  padding: 1.25rem 1.25rem 0.875rem;
 }
 
 .pageHeader,

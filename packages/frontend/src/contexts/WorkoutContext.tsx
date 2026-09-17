@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useSaveQuickWorkout } from "../api/workouts";
 import { useGetExerciseBests } from "../api/analytics";
-import { useUpdateProgram, type ProgramUpdateInput } from "../api/programs";
+import { useUpdateProgram, useAddSet, type ProgramUpdateInput } from "../api/programs";
 import type { Workout as ApiWorkout, QuickWorkoutPayload } from "../api/workouts";
 import { formatExerciseName } from "../types/shared";
 import { formatDuration } from "../lib/time";
@@ -102,6 +102,11 @@ interface WorkoutContextType {
   ) => void;
   startQuickWorkout: (exercises: QuickExercise[]) => void;
   addExerciseToWorkout: (exercise: QuickExercise) => void;
+  addSetToExercise: (
+    exerciseName: string,
+    targetReps?: number,
+    targetRir?: string,
+  ) => Promise<void>;
   stopWorkout: () => Promise<void>;
   setIsTimerRunning: (running: boolean) => void;
   updateExercise: (
@@ -214,6 +219,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
   // Server calls
   const updateProgram = useUpdateProgram();
+  const addSetMutation = useAddSet();
   const saveQuickWorkout = useSaveQuickWorkout();
   // Reference data for PR detection; only fetched once a workout is active
   const { data: bestsData } = useGetExerciseBests(Boolean(activeWorkout));
@@ -609,6 +615,69 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setWorkoutData(workoutDataRef.current);
   };
 
+  // Adds one extra set to an exercise in the current program workout, for
+  // this session only. Inserts a real row into the spreadsheet (server-side,
+  // shifting every later row down) then mirrors it into local state right
+  // after that exercise's last existing set, renumbering rowIndex so it
+  // stays a contiguous sequence across the whole workout.
+  const addSetToExercise = async (
+    exerciseName: string,
+    targetReps?: number,
+    targetRir?: string,
+  ) => {
+    if (!activeWorkout || isQuickWorkout) return;
+
+    const rows = workoutDataRef.current;
+    const exerciseRows = rows.filter((r) => r.exercise === exerciseName);
+    if (exerciseRows.length === 0) return;
+
+    const lastRow = exerciseRows[exerciseRows.length - 1];
+    const insertAt = rows.findIndex((r) => r === lastRow) + 1;
+
+    await addSetMutation.mutateAsync({
+      id: activeWorkout.programId,
+      week: activeWorkout.week,
+      workoutName: activeWorkout.workoutName,
+      exerciseName,
+      targetReps,
+      targetRir,
+    });
+
+    const newRow: ExerciseRow = {
+      rowIndex: -1, // placeholder, renumbered below
+      exercise: exerciseName,
+      set: lastRow.set + 1,
+      targetReps: targetReps ?? lastRow.targetReps,
+      rir: targetRir ?? lastRow.rir,
+      weight: "",
+      repsAchieved: "",
+      rirAchieved: "",
+      notes: "",
+    };
+
+    const spliced = [
+      ...rows.slice(0, insertAt),
+      newRow,
+      ...rows.slice(insertAt),
+    ];
+
+    // Rows before the insertion point keep their old rowIndex; everything
+    // from the new row onward shifts up by one. Remap completedSets (keyed
+    // by rowIndex) the same way so it still points at the right rows.
+    const updatedRows = spliced.map((row, idx) => ({ ...row, rowIndex: idx }));
+    setCompletedSets(
+      (prev) =>
+        new Set(
+          [...prev].map((oldRowIndex) =>
+            oldRowIndex >= insertAt ? oldRowIndex + 1 : oldRowIndex,
+          ),
+        ),
+    );
+
+    workoutDataRef.current = updatedRows;
+    setWorkoutData(updatedRows);
+  };
+
   const stopWorkout = async () => {
     setIsTimerRunning(false);
     timerStartRef.current = 0;
@@ -844,6 +913,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         startWorkout,
         startQuickWorkout,
         addExerciseToWorkout,
+        addSetToExercise,
         stopWorkout,
         setIsTimerRunning,
         updateExercise,

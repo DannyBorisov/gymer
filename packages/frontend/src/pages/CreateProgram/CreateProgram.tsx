@@ -243,7 +243,7 @@ const CreateProgram = () => {
 
   // Edit Program Screen
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${styles.builderContainer}`}>
       <button type="button" onClick={handleBack} className={styles.backLink}>
         <ChevronLeft size={16} />
         Back to Templates

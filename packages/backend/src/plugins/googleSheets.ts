@@ -115,7 +115,11 @@ export class GoogleSheets {
     });
   }
 
-  async renameFile(tokens: Tokens, fileId: string, name: string): Promise<void> {
+  async renameFile(
+    tokens: Tokens,
+    fileId: string,
+    name: string,
+  ): Promise<void> {
     const drive = this.getDriveClient(tokens);
     await drive.files.update({
       fileId,
@@ -236,14 +240,52 @@ export class GoogleSheets {
   async getSpreadsheetMetadata(
     tokens: Tokens,
     spreadsheetId: string,
-  ): Promise<{ sheetName: string }> {
+  ): Promise<{ sheetName: string; sheetId: number }> {
     const sheets = this.getSheetsClient(tokens);
     const response = await sheets.spreadsheets.get({
       spreadsheetId,
-      fields: "sheets.properties.title",
+      fields: "sheets.properties.title,sheets.properties.sheetId",
     });
-    const sheetName = response.data.sheets?.[0]?.properties?.title || "Sheet1";
-    return { sheetName };
+    const properties = response.data.sheets?.[0]?.properties;
+    return {
+      sheetName: properties?.title || "Sheet1",
+      sheetId: properties?.sheetId ?? 0,
+    };
+  }
+
+  /**
+   * Insert a single blank row at the given 1-indexed sheet row position,
+   * shifting all rows at or below it down by one. Use `sheets.update()`
+   * afterward to fill in the new row's values.
+   */
+  async insertRow(
+    tokens: Tokens,
+    spreadsheetId: string,
+    sheetId: number,
+    rowIndex: number,
+  ): Promise<void> {
+    const sheets = this.getSheetsClient(tokens);
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            insertDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                // Sheets API ranges are 0-indexed and end-exclusive; a
+                // 1-indexed sheet row `rowIndex` sits at array index
+                // rowIndex - 1.
+                startIndex: rowIndex - 1,
+                endIndex: rowIndex,
+              },
+              inheritFromBefore: false,
+            },
+          },
+        ],
+      },
+    });
   }
 
   async appendRows(
