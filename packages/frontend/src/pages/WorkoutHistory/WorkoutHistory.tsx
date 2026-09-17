@@ -82,7 +82,7 @@ const WorkoutHistory = () => {
     }
 
     const groups: { label: string; workouts: Workout[] }[] = [];
-    const groupIndexByLabel = new Map<string, number>();
+    const groupIndexByLabel: Record<string, number> = {};
 
     for (const workout of sortedWorkouts) {
       const label =
@@ -95,10 +95,10 @@ const WorkoutHistory = () => {
                 year: "numeric",
               });
 
-      let index = groupIndexByLabel.get(label);
+      let index = groupIndexByLabel[label];
       if (index === undefined) {
         index = groups.length;
-        groupIndexByLabel.set(label, index);
+        groupIndexByLabel[label] = index;
         groups.push({ label, workouts: [] });
       }
       groups[index].workouts.push(workout);
@@ -109,7 +109,7 @@ const WorkoutHistory = () => {
 
   const totalWorkouts = data.workouts.length;
   const { completedSetCount, bestWeekCount } = useMemo(() => {
-    const weekCounts = new Map<string, number>();
+    const weekCounts: Record<string, number> = {};
     let completedSetCount = 0;
 
     for (const workout of data.workouts) {
@@ -124,12 +124,12 @@ const WorkoutHistory = () => {
       const weekStart = new Date(date);
       weekStart.setDate(weekStart.getDate() - weekStart.getDay());
       const weekKey = weekStart.toISOString().slice(0, 10);
-      weekCounts.set(weekKey, (weekCounts.get(weekKey) ?? 0) + 1);
+      weekCounts[weekKey] = (weekCounts[weekKey] ?? 0) + 1;
     }
 
     return {
       completedSetCount,
-      bestWeekCount: Math.max(...weekCounts.values(), 0),
+      bestWeekCount: Math.max(...Object.values(weekCounts), 0),
     };
   }, [data.workouts]);
 

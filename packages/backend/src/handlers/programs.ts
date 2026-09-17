@@ -1,11 +1,22 @@
 import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
-import type { CreateProgramRequest, UpdateProgramRequest } from "../types.js";
 import { createGSQL } from "../dal/index.js";
+import type {
+  CreateProgramBodyType,
+  GetProgramParamsType,
+  UpdateProgramParamsType,
+  UpdateProgramBodyType,
+  DeleteProgramParamsType,
+  CopyProgramParamsType,
+  RenameProgramParamsType,
+  RenameProgramBodyType,
+  AddSetParamsType,
+  AddSetBodyType,
+} from "../schemas/programs.js";
 
 export const createProgram: RouteHandler<{
-  Body: CreateProgramRequest;
-}> = async function (request, reply) {
+  Body: CreateProgramBodyType;
+}> = async function (request) {
   const { tokens } = getAuthSession(request);
 
   const gsql = createGSQL(tokens, this.sheets);
@@ -20,15 +31,16 @@ export const createProgram: RouteHandler<{
   return { success: true, program };
 };
 
-export const listPrograms: RouteHandler = async function (request, reply) {
+export const listPrograms: RouteHandler = async function (request) {
   const { tokens } = getAuthSession(request);
+
   const gsql = createGSQL(tokens, this.sheets);
   const programs = await gsql.programs.findAll();
   return { programs };
 };
 
 export const getProgram: RouteHandler<{
-  Params: { id: string };
+  Params: GetProgramParamsType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { id } = request.params;
@@ -49,7 +61,7 @@ export const getProgram: RouteHandler<{
 };
 
 export const deleteProgram: RouteHandler<{
-  Params: { id: string };
+  Params: DeleteProgramParamsType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { id } = request.params;
@@ -65,7 +77,7 @@ export const deleteProgram: RouteHandler<{
 };
 
 export const copyProgram: RouteHandler<{
-  Params: { id: string };
+  Params: CopyProgramParamsType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { id } = request.params;
@@ -81,8 +93,8 @@ export const copyProgram: RouteHandler<{
 };
 
 export const renameProgram: RouteHandler<{
-  Params: { id: string };
-  Body: { name: string };
+  Params: RenameProgramParamsType;
+  Body: RenameProgramBodyType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { id } = request.params;
@@ -103,19 +115,13 @@ export const renameProgram: RouteHandler<{
 };
 
 export const addSet: RouteHandler<{
-  Params: { id: string };
-  Body: {
-    week: number;
-    workoutName: string;
-    exerciseName: string;
-    targetReps?: number;
-    targetRir?: string;
-  };
+  Params: AddSetParamsType;
+  Body: AddSetBodyType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { id } = request.params;
   const { week, workoutName, exerciseName, targetReps, targetRir } =
-    request.body ?? {};
+    request.body;
 
   if (!week || !workoutName || !exerciseName) {
     return reply
@@ -142,8 +148,8 @@ export const addSet: RouteHandler<{
 };
 
 export const updateProgram: RouteHandler<{
-  Params: { id: string };
-  Body: UpdateProgramRequest;
+  Params: UpdateProgramParamsType;
+  Body: UpdateProgramBodyType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { id } = request.params;

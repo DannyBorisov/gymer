@@ -98,7 +98,7 @@ const QuickWorkout = () => {
 
   return (
     <div className={styles.container}>
-      <button onClick={() => navigate("/start-workout")} className={styles.backLink}>
+      <button onClick={() => navigate("/home")} className={styles.backLink}>
         <ChevronLeft size={16} />
         Back
       </button>

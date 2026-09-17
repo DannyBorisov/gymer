@@ -2,9 +2,14 @@ import type { RouteHandler } from "fastify";
 import config from "../config.js";
 import { setSession, getSession } from "../lib/session.js";
 import { encrypt } from "../lib/encryption.js";
+import type {
+  GetAuthUrlQueryType,
+  HandleCallbackQueryType,
+  HandleNativeAuthBodyType,
+} from "../schemas/auth.js";
 
 export const getAuthUrl: RouteHandler<{
-  Querystring: { native?: string };
+  Querystring: GetAuthUrlQueryType;
 }> = async function (request, reply) {
   const { native } = request.query;
   const state = native === "true" ? "native" : "web";
@@ -13,7 +18,7 @@ export const getAuthUrl: RouteHandler<{
 };
 
 export const handleCallback: RouteHandler<{
-  Querystring: { code: string; state?: string };
+  Querystring: HandleCallbackQueryType;
 }> = async function (request, reply) {
   const { code, state } = request.query;
 
@@ -63,7 +68,7 @@ export const logout: RouteHandler = async function (_request, reply) {
 };
 
 export const handleNativeAuth: RouteHandler<{
-  Body: { code: string };
+  Body: HandleNativeAuthBodyType;
 }> = async function (request, reply) {
   const { code } = request.body;
 

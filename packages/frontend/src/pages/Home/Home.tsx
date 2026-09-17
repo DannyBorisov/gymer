@@ -110,18 +110,20 @@ const Home = () => {
     if (programWorkouts.length === 0) return { completed: 0, total: 0 };
 
     // Group by week
-    const byWeek = new Map<number, { completed: number; total: number }>();
+    const byWeek: Record<number, { completed: number; total: number }> = {};
     for (const workout of programWorkouts) {
-      const entry = byWeek.get(workout.week) || { completed: 0, total: 0 };
+      const entry = byWeek[workout.week] || { completed: 0, total: 0 };
       entry.total++;
       if (workout.date) entry.completed++;
-      byWeek.set(workout.week, entry);
+      byWeek[workout.week] = entry;
     }
 
     // Find first incomplete week
-    const weeks = [...byWeek.keys()].sort((a, b) => a - b);
+    const weeks = Object.keys(byWeek)
+      .map(Number)
+      .sort((a, b) => a - b);
     for (const week of weeks) {
-      const { completed, total } = byWeek.get(week)!;
+      const { completed, total } = byWeek[week];
       if (completed < total) {
         return { completed, total, week };
       }
@@ -129,7 +131,7 @@ const Home = () => {
 
     // All complete - return last week
     const lastWeek = weeks[weeks.length - 1];
-    const lastWeekData = byWeek.get(lastWeek)!;
+    const lastWeekData = byWeek[lastWeek];
     return {
       completed: lastWeekData.total,
       total: lastWeekData.total,

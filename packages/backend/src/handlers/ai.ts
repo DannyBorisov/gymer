@@ -2,6 +2,10 @@ import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
 import { createGSQL, prisma } from "../dal/index.js";
 import type { CreateProgramInput } from "../dal/gsql/types.js";
+import type {
+  WorkoutTipBodyType,
+  GenerateProgramBodyType,
+} from "../schemas/ai.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -21,14 +25,8 @@ const PROGRAM_GENERATOR_PROMPT = readFileSync(
   "utf-8",
 );
 
-interface WorkoutTipRequest {
-  programId: string;
-  week: number;
-  workoutName: string;
-}
-
 export const getWorkoutTip: RouteHandler<{
-  Body: WorkoutTipRequest;
+  Body: WorkoutTipBodyType;
 }> = async function (request, reply) {
   const { tokens, user } = getAuthSession(request);
   const { programId, week, workoutName } = request.body;
@@ -166,13 +164,8 @@ Based on this data, provide ONE short, insightful tip for today's workout. Make 
   }
 };
 
-interface GenerateAiProgramRequest {
-  durationWeeks: number;
-  frequency: number;
-}
-
 export const generateAiProgram: RouteHandler<{
-  Body: GenerateAiProgramRequest;
+  Body: GenerateProgramBodyType;
 }> = async function (request, reply) {
   const { tokens, user } = getAuthSession(request);
 

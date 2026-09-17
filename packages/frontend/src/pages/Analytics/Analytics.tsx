@@ -151,15 +151,15 @@ const Analytics = () => {
     const parsed = parseDate(date);
     return parsed.getMonth() === now.getMonth() && parsed.getFullYear() === now.getFullYear();
   }).length;
-  const weeklyVolume = new Map<number, number>();
+  const weeklyVolume: Record<number, number> = {};
   exercises.forEach((exercise) => exercise.entries.forEach((entry) => {
     const week = getWeekStart(parseDate(entry.date)).getTime();
-    weeklyVolume.set(week, (weeklyVolume.get(week) || 0) + entry.weight * entry.reps);
+    weeklyVolume[week] = (weeklyVolume[week] || 0) + entry.weight * entry.reps;
   }));
   const currentWeek = getWeekStart(now).getTime();
   const previousWeek = currentWeek - 7 * 24 * 60 * 60 * 1000;
-  const currentWeekVolume = weeklyVolume.get(currentWeek) || 0;
-  const previousWeekVolume = weeklyVolume.get(previousWeek) || 0;
+  const currentWeekVolume = weeklyVolume[currentWeek] || 0;
+  const previousWeekVolume = weeklyVolume[previousWeek] || 0;
   const volumeChange = previousWeekVolume > 0
     ? Math.round(((currentWeekVolume - previousWeekVolume) / previousWeekVolume) * 100)
     : null;

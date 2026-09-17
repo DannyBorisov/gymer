@@ -412,7 +412,7 @@ const ActiveWorkout = () => {
     if (!currentExerciseName) return;
     const lastSet = currentExerciseSets[currentExerciseSets.length - 1];
     setNewSetReps(lastSet ? String(lastSet.targetReps) : "");
-    setNewSetRir(lastSet ? lastSet.targetRir : "");
+    setNewSetRir(lastSet ? lastSet.rir : "");
     setShowAddSetDrawer(true);
   };
 

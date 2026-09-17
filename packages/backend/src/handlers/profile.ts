@@ -1,6 +1,7 @@
 import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
 import { createGSQL } from "../dal/index.js";
+import type { SaveBodyWeightBodyType } from "../schemas/profile.js";
 
 export const getBodyWeight: RouteHandler = async function (request, reply) {
   const { tokens } = getAuthSession(request);
@@ -10,7 +11,7 @@ export const getBodyWeight: RouteHandler = async function (request, reply) {
 };
 
 export const saveBodyWeight: RouteHandler<{
-  Body: { weight: number };
+  Body: SaveBodyWeightBodyType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
 

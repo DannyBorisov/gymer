@@ -10,57 +10,63 @@ import {
   renameProgram,
   addSet,
 } from "../handlers/programs.js";
-import type { CreateProgramRequest, UpdateProgramRequest } from "../types.js";
+import type {
+  CreateProgramBodyType,
+  GetProgramParamsType,
+  UpdateProgramParamsType,
+  UpdateProgramBodyType,
+  DeleteProgramParamsType,
+  CopyProgramParamsType,
+  RenameProgramParamsType,
+  RenameProgramBodyType,
+  AddSetParamsType,
+  AddSetBodyType,
+} from "../schemas/programs.js";
 
 const ProgramsRoutes: FastifyPluginAsync = async (server) => {
   server.get("/", { preHandler: requireAuth }, listPrograms);
 
-  server.post<{ Body: CreateProgramRequest }>(
+  server.post<{ Body: CreateProgramBodyType }>(
     "/create",
     { preHandler: requireAuth },
     createProgram,
   );
 
-  server.get<{ Params: { id: string } }>(
+  server.get<{ Params: GetProgramParamsType }>(
     "/:id",
     { preHandler: requireAuth },
     getProgram,
   );
 
-  server.patch<{ Params: { id: string }; Body: UpdateProgramRequest }>(
+  server.patch<{ Params: UpdateProgramParamsType; Body: UpdateProgramBodyType }>(
     "/:id",
     { preHandler: requireAuth },
     updateProgram,
   );
 
-  server.delete<{ Params: { id: string } }>(
+  server.delete<{ Params: DeleteProgramParamsType }>(
     "/:id",
     { preHandler: requireAuth },
     deleteProgram,
   );
 
-  server.post<{ Params: { id: string } }>(
+  server.post<{ Params: CopyProgramParamsType }>(
     "/:id/copy",
     { preHandler: requireAuth },
     copyProgram,
   );
 
-  server.patch<{ Params: { id: string }; Body: { name: string } }>(
+  server.patch<{ Params: RenameProgramParamsType; Body: RenameProgramBodyType }>(
     "/:id/rename",
     { preHandler: requireAuth },
     renameProgram,
   );
 
-  server.post<{
-    Params: { id: string };
-    Body: {
-      week: number;
-      workoutName: string;
-      exerciseName: string;
-      targetReps?: number;
-      targetRir?: string;
-    };
-  }>("/:id/add-set", { preHandler: requireAuth }, addSet);
+  server.post<{ Params: AddSetParamsType; Body: AddSetBodyType }>(
+    "/:id/add-set",
+    { preHandler: requireAuth },
+    addSet,
+  );
 };
 
 export default ProgramsRoutes;

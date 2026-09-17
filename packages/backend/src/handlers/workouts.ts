@@ -2,7 +2,11 @@ import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
 import { createGSQL } from "../dal/index.js";
 import { formatDate } from "../dal/gsql/utils/dateUtils.js";
-import type { CreateQuickWorkoutInput } from "../dal/types.js";
+import type {
+  SaveQuickWorkoutBodyType,
+  GetWorkoutDetailParamsType,
+  GetWorkoutDetailQueryType,
+} from "../schemas/workouts.js";
 
 export const getExercises: RouteHandler = async function (request, reply) {
   const { tokens } = getAuthSession(request);
@@ -18,7 +22,7 @@ export const getExercises: RouteHandler = async function (request, reply) {
 };
 
 export const saveQuickWorkout: RouteHandler<{
-  Body: CreateQuickWorkoutInput;
+  Body: SaveQuickWorkoutBodyType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { workoutId, duration, sets } = request.body;
@@ -38,13 +42,8 @@ export const saveQuickWorkout: RouteHandler<{
 };
 
 export const getWorkoutDetail: RouteHandler<{
-  Params: { id: string };
-  Querystring: {
-    type: string;
-    programId?: string;
-    week?: string;
-    workout?: string;
-  };
+  Params: GetWorkoutDetailParamsType;
+  Querystring: GetWorkoutDetailQueryType;
 }> = async function (request, reply) {
   const { tokens } = getAuthSession(request);
   const { id } = request.params;

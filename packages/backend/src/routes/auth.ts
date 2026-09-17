@@ -6,11 +6,16 @@ import {
   logout,
   handleNativeAuth,
 } from "../handlers/auth.js";
+import type {
+  GetAuthUrlQueryType,
+  HandleCallbackQueryType,
+  HandleNativeAuthBodyType,
+} from "../schemas/auth.js";
 
 export const oauthRoutes: FastifyPluginAsync = async (server) => {
-  server.get<{ Querystring: { native?: string } }>("/google", getAuthUrl);
+  server.get<{ Querystring: GetAuthUrlQueryType }>("/google", getAuthUrl);
 
-  server.get<{ Querystring: { code: string; state?: string } }>(
+  server.get<{ Querystring: HandleCallbackQueryType }>(
     "/google/callback",
     handleCallback,
   );
@@ -21,5 +26,8 @@ export const authApiRoutes: FastifyPluginAsync = async (server) => {
 
   server.post("/logout", logout);
 
-  server.post<{ Body: { code: string } }>("/google/native", handleNativeAuth);
+  server.post<{ Body: HandleNativeAuthBodyType }>(
+    "/google/native",
+    handleNativeAuth,
+  );
 };

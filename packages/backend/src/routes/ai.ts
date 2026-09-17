@@ -1,28 +1,19 @@
 import type { FastifyPluginAsync } from "fastify";
 import { requireAuth } from "../middlewares/auth.js";
 import { getWorkoutTip, generateAiProgram } from "../handlers/ai.js";
-
-interface WorkoutTipBodySchema {
-  programId: string;
-  week: number;
-  workoutName: string;
-}
-
-type WorkoutTipBody = WorkoutTipBodySchema;
-
-interface GenerateProgramBody {
-  durationWeeks: number;
-  frequency: number;
-}
+import type {
+  WorkoutTipBodyType,
+  GenerateProgramBodyType,
+} from "../schemas/ai.js";
 
 const aiRoutes: FastifyPluginAsync = async (server) => {
-  server.post<{ Body: WorkoutTipBody }>(
+  server.post<{ Body: WorkoutTipBodyType }>(
     "/workout-tip",
     { preHandler: requireAuth },
     getWorkoutTip,
   );
 
-  server.post<{ Body: GenerateProgramBody }>(
+  server.post<{ Body: GenerateProgramBodyType }>(
     "/generate-program",
     { preHandler: requireAuth },
     generateAiProgram,

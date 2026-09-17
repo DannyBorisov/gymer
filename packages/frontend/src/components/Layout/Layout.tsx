@@ -53,11 +53,22 @@ const Layout = ({ children }: LayoutProps) => {
   const [showPopover, setShowPopover] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
 
   const isOnWorkoutPage = location.pathname === "/workout";
   const hasMinimizedWorkout = activeWorkout && !isOnWorkoutPage;
   const needsDrawerPadding = isOnWorkoutPage || hasMinimizedWorkout;
   const isOnboarding = location.pathname === "/onboarding";
+
+  // The workout drawer overlays /home rather than swapping the page, so it
+  // shouldn't reset scroll. Every other route change should start at the top —
+  // otherwise the outgoing page's scroll position bleeds into the incoming
+  // page while both are still painted during the exit/enter transition
+  // (visible on Android WebView as overlapping/duplicated content).
+  useEffect(() => {
+    if (isOnWorkoutPage) return;
+    mainRef.current?.scrollTo(0, 0);
+  }, [location.pathname, isOnWorkoutPage]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -180,6 +191,7 @@ const Layout = ({ children }: LayoutProps) => {
       </aside>
 
       <main
+        ref={mainRef}
         className={`${styles.main} ${needsDrawerPadding ? styles.mainWithDrawer : ""} ${isOnboarding ? styles.mainNoNav : ""}`}
       >
         {children}

@@ -1,22 +1,16 @@
-import {
-  Routes,
-  Route,
-  useLocation,
-  useNavigate,
-  Navigate,
-} from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout/Layout";
-import { WorkoutDrawer } from "./components/WorkoutDrawer";
-import { parseExerciseName } from "./types/shared";
+import { WorkoutDrawerOverlay } from "./components/WorkoutDrawer";
+import PageWrapper from "./components/PageWrapper";
+import OnboardingGate from "./components/OnboardingGate";
 import Landing from "./pages/Landing/Landing";
 import Login from "./pages/Login/Login";
 import Home from "./pages/Home/Home";
 import Programs from "./pages/Programs/Programs";
 import ProgramDetail from "./pages/ProgramDetail/ProgramDetail";
 import CreateProgram from "./pages/CreateProgram/CreateProgram";
-import ActiveWorkout from "./pages/ActiveWorkout/ActiveWorkout";
 import QuickWorkout from "./pages/QuickWorkout/QuickWorkout";
 import WorkoutHistory from "./pages/WorkoutHistory/WorkoutHistory";
 import Analytics from "./pages/Analytics/Analytics";
@@ -24,100 +18,13 @@ import Profile from "./pages/Profile/Profile";
 import LegalPage from "./pages/Legal/LegalPage";
 import Onboarding from "./pages/Onboarding/Onboarding";
 import OnboardingSetup from "./pages/OnboardingSetup/OnboardingSetup";
-import { useWorkout } from "./contexts/WorkoutContext";
-import { useGetOnboarding } from "./api/onboarding";
-import { formatTime } from "./lib/time";
-
-const PageWrapper = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.08, ease: "easeOut" }}
-      style={{ height: "100%" }}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-const WorkoutDrawerOverlay = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { activeWorkout, workoutData, timer, currentExerciseIndex } =
-    useWorkout();
-  const isWorkoutRoute = location.pathname === "/workout";
-
-  const handleClose = () => {
-    navigate("/home");
-  };
-
-  // Get current exercise name (variant shown alongside, e.g. "Row · Wide Grip")
-  const exerciseNames = [...new Set(workoutData.map((e) => e.exercise))];
-  const currentFullName = exerciseNames[currentExerciseIndex] || "";
-  const { name: currentName, variant: currentVariant } =
-    parseExerciseName(currentFullName);
-  const currentExerciseName = currentVariant
-    ? `${currentName} · ${currentVariant}`
-    : currentName;
-
-  // Show drawer when on workout route OR when there's an active workout on other pages
-  const shouldShowDrawer = !!(isWorkoutRoute || activeWorkout);
-
-  const handlePeekTap = () => {
-    navigate("/workout");
-  };
-
-  return (
-    <WorkoutDrawer
-      isOpen={shouldShowDrawer}
-      onClose={handleClose}
-      forceCollapsed={!isWorkoutRoute && !!activeWorkout}
-      onPeekTap={!isWorkoutRoute ? handlePeekTap : undefined}
-      peekContent={
-        activeWorkout
-          ? {
-              timer: formatTime(timer),
-              exerciseName: currentExerciseName,
-            }
-          : undefined
-      }
-    >
-      <ActiveWorkout />
-    </WorkoutDrawer>
-  );
-};
-
-// Blocks the app until onboarding is complete.
-const OnboardingGate = ({ children }: { children: React.ReactNode }) => {
-  const location = useLocation();
-  const { data, isLoading } = useGetOnboarding();
-
-  if (isLoading) return null;
-
-  const isComplete = data?.onboarding?.isComplete ?? false;
-  const onOnboarding = location.pathname === "/onboarding";
-  const skipRedirect = import.meta.env.DEV;
-
-  if (!isComplete && !onOnboarding && !skipRedirect) {
-    return <Navigate to="/onboarding" replace />;
-  }
-  // Note: a completed user can still be on /onboarding mid-flow (the
-  // notifications/plan steps run after isComplete flips true), so we don't
-  // bounce away from here. OnboardingSetup itself starts a completed user
-  // straight at the notifications step instead of re-showing the form.
-
-  return <>{children}</>;
-};
 
 const ProtectedRoutes = () => {
   const location = useLocation();
   const isWorkoutRoute = location.pathname === "/workout";
 
-  // Filter out workout route from normal page transitions
   const displayLocation = isWorkoutRoute
-    ? { ...location, pathname: "/home" } // Show home behind drawer
+    ? { ...location, pathname: "/home" }
     : location;
 
   return (
@@ -137,20 +44,6 @@ const ProtectedRoutes = () => {
             <Route path="/history" element={<WorkoutHistory />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
-
-            {/* Legacy redirects */}
-            <Route
-              path="/workouts"
-              element={<Navigate to="/history" replace />}
-            />
-            <Route
-              path="/start-workout"
-              element={<Navigate to="/home" replace />}
-            />
-            <Route
-              path="/weight"
-              element={<Navigate to="/profile" replace />}
-            />
 
             {/* Default redirect */}
             <Route path="*" element={<Navigate to="/home" replace />} />

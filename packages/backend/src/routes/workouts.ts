@@ -6,12 +6,16 @@ import {
   getWorkoutHistory,
   getWorkoutDetail,
 } from "../handlers/workouts.js";
-import type { CreateQuickWorkoutInput } from "../dal/types.js";
+import type {
+  SaveQuickWorkoutBodyType,
+  GetWorkoutDetailParamsType,
+  GetWorkoutDetailQueryType,
+} from "../schemas/workouts.js";
 
 const quickWorkoutRoutes: FastifyPluginAsync = async (server) => {
   server.get("/exercises", { preHandler: requireAuth }, getExercises);
 
-  server.post<{ Body: CreateQuickWorkoutInput }>(
+  server.post<{ Body: SaveQuickWorkoutBodyType }>(
     "/save",
     { preHandler: requireAuth },
     saveQuickWorkout,
@@ -21,13 +25,8 @@ const quickWorkoutRoutes: FastifyPluginAsync = async (server) => {
 const workoutRoutes: FastifyPluginAsync = async (server) => {
   server.get("/history", { preHandler: requireAuth }, getWorkoutHistory);
   server.get<{
-    Params: { id: string };
-    Querystring: {
-      type: string;
-      programId?: string;
-      week?: string;
-      workout?: string;
-    };
+    Params: GetWorkoutDetailParamsType;
+    Querystring: GetWorkoutDetailQueryType;
   }>("/:id", { preHandler: requireAuth }, getWorkoutDetail);
 };
 

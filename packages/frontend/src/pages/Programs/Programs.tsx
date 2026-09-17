@@ -47,18 +47,20 @@ const Programs = () => {
     const completedWorkouts = activeProgramData.workouts.filter((w) => w.date).length;
 
     // Find current week (first week with incomplete workouts)
-    const byWeek = new Map<number, { completed: number; total: number }>();
+    const byWeek: Record<number, { completed: number; total: number }> = {};
     for (const workout of activeProgramData.workouts) {
-      const entry = byWeek.get(workout.week) || { completed: 0, total: 0 };
+      const entry = byWeek[workout.week] || { completed: 0, total: 0 };
       entry.total++;
       if (workout.date) entry.completed++;
-      byWeek.set(workout.week, entry);
+      byWeek[workout.week] = entry;
     }
 
-    const weeks = [...byWeek.keys()].sort((a, b) => a - b);
+    const weeks = Object.keys(byWeek)
+      .map(Number)
+      .sort((a, b) => a - b);
     let currentWeek = weeks[0] || 1;
     for (const week of weeks) {
-      const { completed, total } = byWeek.get(week)!;
+      const { completed, total } = byWeek[week];
       if (completed < total) {
         currentWeek = week;
         break;

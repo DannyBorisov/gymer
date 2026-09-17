@@ -215,9 +215,7 @@ const OnboardingSetup = () => {
             Back
           </button>
           {generateProgram.isError && (
-            <p className={styles.errorText}>
-              Something went wrong. Try again.
-            </p>
+            <p className={styles.errorText}>Something went wrong. Try again.</p>
           )}
         </div>
       </div>

@@ -15,22 +15,24 @@ interface WeeksListProps {
 }
 
 const getExercisesForWorkout = (workout: Workout) => {
-  return Array.from(
-    workout.exercises.reduce((exercises, exercise) => {
-      const existing = exercises.get(exercise.name);
-      if (existing) {
-        existing.totalSets += exercise.sets.length;
-      } else {
-        exercises.set(exercise.name, {
-          name: exercise.name,
-          totalSets: exercise.sets.length,
-          reps: exercise.sets[0]?.targetReps || 0,
-          rir: exercise.sets[0]?.targetRir || "0",
-        });
-      }
-      return exercises;
-    }, new Map<string, { name: string; totalSets: number; reps: number; rir: string }>()),
-  ).map(([, exercise]) => exercise);
+  const exercises: Record<
+    string,
+    { name: string; totalSets: number; reps: number; rir: string }
+  > = {};
+  for (const exercise of workout.exercises) {
+    const existing = exercises[exercise.name];
+    if (existing) {
+      existing.totalSets += exercise.sets.length;
+    } else {
+      exercises[exercise.name] = {
+        name: exercise.name,
+        totalSets: exercise.sets.length,
+        reps: exercise.sets[0]?.targetReps || 0,
+        rir: exercise.sets[0]?.targetRir || "0",
+      };
+    }
+  }
+  return Object.values(exercises);
 };
 
 // Format duration for display
@@ -63,28 +65,28 @@ export const WeeksList = ({
 
   // Group workouts by week
   const groupedByWeek = useMemo(() => {
-    const groups = new Map<number, Workout[]>();
+    const groups: Record<number, Workout[]> = {};
     for (const workout of workouts) {
-      const existing = groups.get(workout.week) || [];
-      existing.push(workout);
-      groups.set(workout.week, existing);
+      groups[workout.week] = [...(groups[workout.week] || []), workout];
     }
     return groups;
   }, [workouts]);
 
   const sortedWeeks = useMemo(() => {
-    return [...groupedByWeek.keys()].sort((a, b) => a - b);
+    return Object.keys(groupedByWeek)
+      .map(Number)
+      .sort((a, b) => a - b);
   }, [groupedByWeek]);
 
   const [selectedWeek, setSelectedWeek] = useState<number | null>(
     sortedWeeks[0] ?? null,
   );
   const activeWeek =
-    selectedWeek !== null && groupedByWeek.has(selectedWeek)
+    selectedWeek !== null && groupedByWeek[selectedWeek]
       ? selectedWeek
       : (sortedWeeks[0] ?? null);
 
-  const weekWorkouts = activeWeek !== null ? groupedByWeek.get(activeWeek) || [] : [];
+  const weekWorkouts = activeWeek !== null ? groupedByWeek[activeWeek] || [] : [];
 
   return (
     <div className={styles.weeksList}>
