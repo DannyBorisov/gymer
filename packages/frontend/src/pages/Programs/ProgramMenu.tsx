@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { MoreVertical, Pencil, Copy, Trash2, Loader2 } from "lucide-react";
+import { MoreVertical, Copy, Loader2 } from "lucide-react";
+import { PencilIcon, TrashIcon } from "../../assets/icons";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer/SwipeableDrawer";
 import styles from "./ProgramMenu.module.css";
 
@@ -55,7 +56,7 @@ export const ProgramMenu = ({
             className={styles.sheetItem}
             onClick={() => handleAction(onEdit)}
           >
-            <Pencil size={18} />
+            <PencilIcon size={18} />
             <span>Edit</span>
           </button>
           <button
@@ -73,7 +74,7 @@ export const ProgramMenu = ({
             disabled={isDeleting}
             onClick={() => handleAction(onDelete)}
           >
-            {isDeleting ? <Loader2 size={18} className={styles.spinner} /> : <Trash2 size={18} />}
+            {isDeleting ? <Loader2 size={18} className={styles.spinner} /> : <TrashIcon size={18} />}
             <span>Delete</span>
           </button>
         </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Play, CheckCircle2, Circle, Dumbbell } from "lucide-react";
+import { Circle } from "lucide-react";
+import { CheckmarkCircleIcon, DumbbellOutlineIcon, PlayOutlineIcon } from "../../assets/icons";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import { formatDateWithDay } from "../../lib/date";
 import { parseExerciseName } from "../../types/shared";
@@ -111,7 +112,7 @@ export const WeeksList = ({
               <div className={styles.dayHeader}>
                 <div className={styles.dayHeaderInfo}>
                   {workout.date ? (
-                    <CheckCircle2 size={18} className={styles.completeIcon} />
+                    <CheckmarkCircleIcon size={18} className={styles.completeIcon} />
                   ) : (
                     <Circle size={18} className={styles.incompleteIcon} />
                   )}
@@ -158,9 +159,9 @@ export const WeeksList = ({
                 onClick={() => handleStartWorkout(workout)}
                 disabled={disabled}
               >
-                <Dumbbell size={19} />
+                <DumbbellOutlineIcon size={19} />
                 {workout.date ? "View Workout" : "Start Workout"}
-                <Play size={17} fill="currentColor" />
+                <PlayOutlineIcon size={17} fill="currentColor" />
               </button>
             </div>
           );

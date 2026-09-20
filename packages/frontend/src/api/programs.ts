@@ -56,6 +56,11 @@ export const programsApi = {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(program),
   }),
+  edit: <T>(id: string, program: T) => request<{ success: boolean; program: ProgramSummary }>(`/api/programs/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(program),
+  }),
   update: (id: string, input: ProgramUpdateInput | ProgramUpdateInput[]) => request<{ success: boolean }>(`/api/programs/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -110,6 +115,17 @@ export function useCreateProgram<T>() {
   return useMutation({
     mutationFn: (program: T) => programsApi.create(program),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: programQueryKeys.list }),
+  });
+}
+
+export function useEditProgram<T>() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, program }: { id: string; program: T }) => programsApi.edit(id, program),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: programQueryKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: programQueryKeys.list });
+    },
   });
 }
 

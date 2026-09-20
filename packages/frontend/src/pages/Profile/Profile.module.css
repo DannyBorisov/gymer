@@ -105,6 +105,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
   color: var(--text-primary);
   font-size: 0.9375rem;
   font-weight: 500;
@@ -178,6 +180,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .alertToggle {
@@ -388,7 +391,7 @@
   width: 100%;
   padding: 1rem;
   background: transparent;
-  border: 1px solid rgba(248, 113, 113, 0.38);
+  border: 1px solid rgba(var(--color-red-500-rgb), 0.38);
   border-radius: var(--radius-lg);
   color: var(--accent-red);
   font-size: 0.9375rem;
@@ -399,7 +402,7 @@
 }
 
 .signOutButton:active {
-  background: rgba(248, 113, 113, 0.1);
+  background: rgba(var(--color-red-500-rgb), 0.1);
 }
 
 .signOutButton:focus-visible,
@@ -461,7 +464,7 @@
   padding: 1.5rem;
   border-radius: var(--radius-xl);
   background:
-    radial-gradient(circle at top right, rgba(34, 197, 94, 0.15), transparent 45%),
+    radial-gradient(circle at top right, rgba(var(--color-green-500-rgb), 0.15), transparent 45%),
     var(--bg-elevated);
 }
 
@@ -471,7 +474,7 @@
   right: -2rem;
   width: 8rem;
   height: 8rem;
-  border: 1px solid rgba(34, 197, 94, 0.16);
+  border: 1px solid rgba(var(--color-green-500-rgb), 0.16);
   border-radius: 50%;
   content: "";
 }
@@ -480,7 +483,7 @@
 .avatarImage {
   width: 64px;
   height: 64px;
-  border: 2px solid rgba(34, 197, 94, 0.35);
+  border: 2px solid rgba(var(--color-green-500-rgb), 0.35);
 }
 
 .userInfo {
@@ -525,8 +528,8 @@
 }
 
 .weightStatusComplete {
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(var(--color-green-500-rgb), 0.3);
+  background: rgba(var(--color-green-500-rgb), 0.1);
   color: var(--accent-green);
 }
 

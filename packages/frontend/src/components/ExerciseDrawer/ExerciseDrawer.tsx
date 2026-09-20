@@ -1,8 +1,30 @@
-import { useState, useEffect, useRef } from "react";
-import { Search, X, Plus, Check } from "lucide-react";
-import { uniqueExercises } from "../../data/exercises";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Plus, Check } from "lucide-react";
+import { MagnifierIcon, CrossIcon } from "../../assets/icons";
+import { useExercises, type MuscleGroup } from "../../api/exercises";
 import { SwipeableDrawer } from "../SwipeableDrawer";
+import { Button } from "../ui/Button";
 import styles from "./ExerciseDrawer.module.css";
+
+const CATEGORIES: MuscleGroup[] = [
+  "ABS",
+  "BACK",
+  "BICEPS",
+  "CHEST",
+  "LEGS",
+  "SHOULDERS",
+  "TRICEPS",
+];
+
+const capitalize = (value: string) =>
+  value.charAt(0) + value.slice(1).toLowerCase();
+
+interface ExerciseOption {
+  display: string; // "Name (Variant)" - used for select/exclude/current-value matching
+  name: string;
+  variant: string;
+  muscleGroup: MuscleGroup;
+}
 
 interface ExerciseDrawerProps {
   isOpen: boolean;
@@ -28,13 +50,42 @@ export const ExerciseDrawer = ({
   const [search, setSearch] = useState("");
   const [customName, setCustomName] = useState("");
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  const [activeCategory, setActiveCategory] = useState<MuscleGroup | "ALL">(
+    "ALL"
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const { data } = useExercises();
+  const exerciseOptions = useMemo<ExerciseOption[]>(() => {
+    const options = (data?.exercises ?? []).map((ex) => {
+      const variant = ex.variant.join(", ");
+      return {
+        display: variant ? `${ex.name} (${variant})` : ex.name,
+        name: ex.name,
+        variant,
+        muscleGroup: ex.muscleGroup,
+      };
+    });
+    const seen = new Set<string>();
+    return options
+      .filter((opt) => {
+        if (seen.has(opt.display)) return false;
+        seen.add(opt.display);
+        return true;
+      })
+      .sort((a, b) => a.display.localeCompare(b.display));
+  }, [data]);
+  const uniqueExercises = useMemo(
+    () => exerciseOptions.map((opt) => opt.display),
+    [exerciseOptions]
+  );
 
   useEffect(() => {
     if (isOpen) {
       setSearch("");
       setCustomName(currentValue);
       setSelectedExercises([]);
+      setActiveCategory("ALL");
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
@@ -88,13 +139,30 @@ export const ExerciseDrawer = ({
     }
   };
 
-  // Filter exercises - always show flat list, filtered by search
-  const baseExercises = includeOnly ? includeOnly : uniqueExercises;
-  const filteredExercises = baseExercises
-    .filter((ex) => !excludeExercises.includes(ex))
-    .filter((ex) =>
+  // Filter exercises - always show flat list, filtered by category + search
+  const baseOptions = includeOnly
+    ? includeOnly.map((name) => {
+        const match = exerciseOptions.find((opt) => opt.display === name);
+        return (
+          match ?? {
+            display: name,
+            name,
+            variant: "",
+            muscleGroup: undefined as unknown as MuscleGroup,
+          }
+        );
+      })
+    : exerciseOptions;
+  const filteredOptions = baseOptions
+    .filter((opt) => !excludeExercises.includes(opt.display))
+    .filter((opt) =>
+      includeOnly || activeCategory === "ALL"
+        ? true
+        : opt.muscleGroup === activeCategory
+    )
+    .filter((opt) =>
       search.trim()
-        ? ex.toLowerCase().includes(search.toLowerCase())
+        ? opt.display.toLowerCase().includes(search.toLowerCase())
         : true
     );
 
@@ -115,7 +183,7 @@ export const ExerciseDrawer = ({
       </div>
 
       <div className={styles.searchContainer}>
-        <Search size={18} className={styles.searchIcon} />
+        <MagnifierIcon size={18} className={styles.searchIcon} />
         <input
           ref={searchInputRef}
           type="text"
@@ -132,10 +200,32 @@ export const ExerciseDrawer = ({
             onClick={() => setSearch("")}
             className={styles.clearBtn}
           >
-            <X size={16} />
+            <CrossIcon size={16} />
           </button>
         )}
       </div>
+
+      {!includeOnly && (
+        <div className={styles.categoryTabs}>
+          <button
+            type="button"
+            onClick={() => setActiveCategory("ALL")}
+            className={`${styles.categoryTab} ${activeCategory === "ALL" ? styles.categoryTabActive : ""}`}
+          >
+            All
+          </button>
+          {CATEGORIES.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => setActiveCategory(category)}
+              className={`${styles.categoryTab} ${activeCategory === category ? styles.categoryTabActive : ""}`}
+            >
+              {capitalize(category)}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className={styles.content}>
         {showCustomOption && (
@@ -149,15 +239,20 @@ export const ExerciseDrawer = ({
         )}
 
         <div className={styles.exerciseList}>
-          {filteredExercises.map((exercise) => {
-            const isSelected = selectedExercises.includes(exercise);
+          {filteredOptions.map((option) => {
+            const isSelected = selectedExercises.includes(option.display);
             return (
               <button
-                key={exercise}
-                onClick={() => handleSelect(exercise)}
+                key={option.display}
+                onClick={() => handleSelect(option.display)}
                 className={`${styles.exerciseItem} ${isSelected ? styles.exerciseItemSelected : ""}`}
               >
-                <span className={styles.exerciseName}>{exercise}</span>
+                <span className={styles.exerciseName}>
+                  {option.name}
+                  {option.variant && (
+                    <span className={styles.variantChip}>{option.variant}</span>
+                  )}
+                </span>
                 {multiSelect && (
                   <div className={`${styles.checkbox} ${isSelected ? styles.checkboxChecked : ""}`}>
                     {isSelected && <Check size={14} />}
@@ -167,7 +262,7 @@ export const ExerciseDrawer = ({
             );
           })}
 
-          {filteredExercises.length === 0 && !showCustomOption && (
+          {filteredOptions.length === 0 && !showCustomOption && (
             <div className={styles.noResults}>No exercises found</div>
           )}
         </div>
@@ -175,15 +270,14 @@ export const ExerciseDrawer = ({
 
       {multiSelect && (
         <div className={styles.footer}>
-          <button
+          <Button
             onClick={handleConfirmMultiSelect}
-            className={styles.confirmBtn}
             disabled={selectedExercises.length === 0}
           >
             {selectedExercises.length === 0
               ? "Add exercises"
               : `Add ${selectedExercises.length} exercise${selectedExercises.length > 1 ? "s" : ""}`}
-          </button>
+          </Button>
         </div>
       )}
     </SwipeableDrawer>

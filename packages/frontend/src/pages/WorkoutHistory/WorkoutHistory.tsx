@@ -1,9 +1,6 @@
 import { useState, useMemo } from "react";
-import {
-  Loader2,
-  Dumbbell,
-  Clock,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { ClockIcon, DumbbellOutlineIcon } from "../../assets/icons";
 import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
 import { useSettings } from "../../contexts/SettingsContext";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
@@ -142,7 +139,7 @@ const WorkoutHistory = () => {
       {!isLoading && data.workouts.length > 0 && (
         <div className={styles.statsSection}>
           <div className={styles.statsHeader}>
-            <Dumbbell size={18} />
+            <DumbbellOutlineIcon size={18} />
             <div>
               <span className={styles.statsEyebrow}>Training record</span>
               <h2>Your completed work</h2>
@@ -225,7 +222,7 @@ const WorkoutHistory = () => {
                       onClick={() => setSelectedWorkout(workout)}
                     >
                       <div className={styles.workoutIcon}>
-                        <Dumbbell size={20} />
+                        <DumbbellOutlineIcon size={20} />
                       </div>
                       <div className={styles.workoutInfo}>
                         {groupMode === "none" && (
@@ -273,7 +270,7 @@ const WorkoutHistory = () => {
                   {selectedWorkout.duration && (
                     <>
                       <span className={styles.metaDot}>·</span>
-                      <Clock size={14} />
+                      <ClockIcon size={14} />
                       <span>{formatDuration(selectedWorkout.duration)}</span>
                     </>
                   )}

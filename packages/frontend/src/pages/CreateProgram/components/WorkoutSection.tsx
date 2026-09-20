@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Trash2, ChevronRight } from "lucide-react";
+import { Plus } from "lucide-react";
+import { TrashIcon, ChevronRightIcon } from "../../../assets/icons";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -66,7 +67,7 @@ export const WorkoutSection = ({
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={styles.collapseBtn}
         >
-          <ChevronRight
+          <ChevronRightIcon
             size={16}
             className={`${styles.chevron} ${!isCollapsed ? styles.chevronOpen : ""}`}
           />
@@ -85,7 +86,7 @@ export const WorkoutSection = ({
           className={styles.removeWorkoutBtn}
           disabled={!canRemove}
         >
-          <Trash2 size={14} />
+          <TrashIcon size={14} />
         </button>
       </div>
 

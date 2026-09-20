@@ -40,7 +40,7 @@
   width: 100%;
   padding: 0.875rem 1.5rem;
   background: var(--accent-gradient);
-  color: #fff;
+  color: var(--on-primary);
   border: none;
   border-radius: var(--radius-md);
   font-size: 0.9375rem;

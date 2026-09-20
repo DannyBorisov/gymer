@@ -9,6 +9,7 @@
     "migrate-app-properties": "node scripts/migrate-app-properties.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:seed:exercises": "tsx prisma/seed-exercises.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

@@ -98,14 +98,63 @@
   min-height: 0;
 }
 
+/* Category Filter Tabs */
+.categoryTabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 0.75rem;
+  height:500px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.categoryTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.categoryTab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.5rem 0.875rem;
+  line-height: 1;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--bg-interactive);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.categoryTab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.categoryTabActive {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: var(--bg-primary);
+}
+
+.categoryTabActive:hover {
+  background: var(--accent-green);
+  color: var(--bg-primary);
+}
+
 /* Add Custom Button */
 .addCustomBtn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.875rem 1rem;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px dashed rgba(34, 197, 94, 0.3);
+  background: rgba(var(--color-green-500-rgb), 0.1);
+  border: 1px dashed rgba(var(--color-green-500-rgb), 0.3);
   border-radius: 8px;
   font-size: 0.9375rem;
   color: var(--accent-green);
@@ -116,7 +165,7 @@
 }
 
 .addCustomBtn:hover {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(var(--color-green-500-rgb), 0.15);
   border-color: var(--accent-green);
 }
 
@@ -163,6 +212,19 @@
 
 .exerciseName {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.variantChip {
+  flex-shrink: 0;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: var(--bg-interactive);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 /* Checkbox */
@@ -199,29 +261,3 @@
   background: var(--bg-secondary);
 }
 
-.confirmBtn {
-  width: 100%;
-  padding: 0.875rem 1.5rem;
-  background: var(--accent-gradient);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: filter var(--transition-fast);
-}
-
-.confirmBtn:hover {
-  filter: brightness(1.05);
-}
-
-.confirmBtn:active {
-  filter: brightness(0.95);
-}
-
-.confirmBtn:disabled {
-  background: var(--bg-interactive);
-  color: var(--text-muted);
-  cursor: not-allowed;
-}

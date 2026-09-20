@@ -7,6 +7,7 @@ import {
   type Goal,
   type Onboarding,
 } from "../../api/onboarding";
+import { Button } from "../ui/Button";
 import styles from "./OnboardingForm.module.css";
 
 const GOALS: { value: Goal; label: string }[] = [
@@ -170,13 +171,9 @@ export function OnboardingForm({ onSaved }: { onSaved?: () => void }) {
         ))}
       </fieldset>
 
-      <button
-        type="submit"
-        className={styles.submit}
-        disabled={!isComplete || save.isPending}
-      >
+      <Button type="submit" disabled={!isComplete || save.isPending}>
         {save.isPending ? "Saving..." : "Save"}
-      </button>
+      </Button>
 
       {save.isSuccess && <p className={styles.status}>Saved</p>}
       {save.isError && (

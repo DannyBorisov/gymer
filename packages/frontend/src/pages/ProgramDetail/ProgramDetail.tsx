@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { Loader2, ChevronLeft, Trophy, PartyPopper } from "lucide-react";
+import { Loader2, Trophy, PartyPopper } from "lucide-react";
+import { ChevronLeftIcon } from "../../assets/icons";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { WeeksList } from "../../components/WeeksList/WeeksList";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
+import { Button, ButtonVariant } from "../../components/ui/Button";
 import { useGetProgram } from "../../api/programs";
 import type { Workout } from "../../api/workouts";
 import styles from "./ProgramDetail.module.css";
@@ -122,7 +124,7 @@ const ProgramDetail = () => {
   return (
     <div className={styles.container}>
       <Link to="/programs" className={styles.backLink}>
-        <ChevronLeft size={16} />
+        <ChevronLeftIcon size={16} />
         Back to Programs
       </Link>
 
@@ -207,12 +209,13 @@ const ProgramDetail = () => {
           </div>
 
           <div className={styles.weightActions}>
-            <button
+            <Button
+              variant={ButtonVariant.Secondary}
               className={styles.weightCancelBtn}
               onClick={handleWeightDrawerClose}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       </SwipeableDrawer>

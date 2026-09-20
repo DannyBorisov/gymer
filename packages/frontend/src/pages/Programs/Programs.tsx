@@ -1,7 +1,13 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Dialog } from "@capacitor/dialog";
-import { ChevronRight, Loader2, Plus, Play, CheckCircle2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
+import {
+  ChevronRightIcon,
+  CheckmarkCircleIcon,
+  PlayOutlineIcon,
+} from "../../assets/icons";
+import { ProgressBar } from "../../components/ui/ProgressBar";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
   useGetProgram,
@@ -88,7 +94,7 @@ const Programs = () => {
   };
 
   const handleEdit = (program: ProgramSummary) => {
-    navigate(`/programs/${program.id}`);
+    navigate(`/programs/${program.id}/edit`);
   };
 
   const handleCopy = (program: ProgramSummary) => {
@@ -175,12 +181,11 @@ const Programs = () => {
                 </div>
                 {activeProgress && (
                   <div className={styles.progressSection}>
-                    <div className={styles.progressBar}>
-                      <div
-                        className={styles.progressFill}
-                        style={{ width: `${activeProgress.percent}%` }}
-                      />
-                    </div>
+                    <ProgressBar
+                      value={activeProgress.percent}
+                      className={styles.progressBar}
+                      fillClassName={styles.progressFill}
+                    />
                     <div className={styles.progressStats}>
                       <span>{activeProgress.completed} of {activeProgress.total} workouts</span>
                       <span>{activeProgress.percent}%</span>
@@ -195,10 +200,10 @@ const Programs = () => {
                       navigate(`/programs/${activeProgramInfo.id}`);
                     }}
                   >
-                    <Play size={16} />
+                    <PlayOutlineIcon size={16} />
                     <span>Continue</span>
                   </button>
-                  <ChevronRight size={18} className={styles.chevronIcon} />
+                  <ChevronRightIcon size={18} className={styles.chevronIcon} />
                 </div>
               </div>
             </div>
@@ -238,7 +243,7 @@ const Programs = () => {
                         className={styles.setActiveBtn}
                         onClick={(e) => handleSetActive(program, e)}
                       >
-                        <CheckCircle2 size={16} />
+                        <CheckmarkCircleIcon size={16} />
                         <span>Set Active</span>
                       </button>
                       <ProgramMenu
@@ -249,7 +254,7 @@ const Programs = () => {
                         isCopying={pendingCopyId === program.id}
                         isDeleting={pendingDeleteId === program.id}
                       />
-                      <ChevronRight size={16} className={styles.chevronIcon} />
+                      <ChevronRightIcon size={16} className={styles.chevronIcon} />
                     </div>
                   </div>
                 ))}

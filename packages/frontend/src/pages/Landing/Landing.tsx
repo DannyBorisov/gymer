@@ -1,17 +1,14 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { Check, Sheet, TrendingUp, Apple } from "lucide-react";
 import {
-  Dumbbell,
-  ArrowRight,
-  Check,
-  Smartphone,
-  Sheet,
-  Clock,
-  TrendingUp,
-  Apple,
-  PlayCircle,
-} from "lucide-react";
+  ArrowRightIcon,
+  SmartphoneIcon,
+  ClockIcon,
+  DumbbellOutlineIcon,
+  PlayOutlineIcon,
+} from "../../assets/icons";
 import styles from "./Landing.module.css";
 
 const Landing = () => {
@@ -31,7 +28,7 @@ const Landing = () => {
         <div className={styles.headerInner}>
           <div className={styles.logo}>
             <div className={styles.logoIcon}>
-              <Dumbbell size={20} />
+              <DumbbellOutlineIcon size={20} />
             </div>
             <span>Gymerr</span>
           </div>
@@ -41,7 +38,7 @@ const Landing = () => {
               className={styles.headerCta}
             >
               {user ? "Open App" : "Get Started"}
-              <ArrowRight size={16} />
+              <ArrowRightIcon size={16} />
             </Link>
           )}
         </div>
@@ -68,19 +65,27 @@ const Landing = () => {
               className={styles.primaryBtn}
             >
               {user ? "Go to App" : "Start Tracking"}
-              <ArrowRight size={18} />
+              <ArrowRightIcon size={18} />
             </Link>
           </div>
           <div className={styles.storeBadges}>
-            <a href="" className={styles.storeBadge} aria-label="Download on the App Store">
+            <a
+              href=""
+              className={styles.storeBadge}
+              aria-label="Download on the App Store"
+            >
               <Apple size={22} />
               <span>
                 <span className={styles.storeBadgeSmall}>Download on the</span>
                 <span className={styles.storeBadgeBig}>App Store</span>
               </span>
             </a>
-            <a href="" className={styles.storeBadge} aria-label="Get it on Google Play">
-              <PlayCircle size={22} />
+            <a
+              href=""
+              className={styles.storeBadge}
+              aria-label="Get it on Google Play"
+            >
+              <PlayOutlineIcon size={22} />
               <span>
                 <span className={styles.storeBadgeSmall}>Get it on</span>
                 <span className={styles.storeBadgeBig}>Google Play</span>
@@ -107,7 +112,9 @@ const Landing = () => {
                 <div className={`${styles.screenSet} ${styles.setDone}`}>
                   <Check size={14} />
                 </div>
-                <div className={`${styles.screenSet} ${styles.setCurrent}`}>3</div>
+                <div className={`${styles.screenSet} ${styles.setCurrent}`}>
+                  3
+                </div>
                 <div className={styles.screenSet}>4</div>
               </div>
               <div className={styles.screenInputs}>
@@ -147,7 +154,7 @@ const Landing = () => {
           </div>
           <div className={styles.value}>
             <div className={styles.valueIcon}>
-              <Smartphone size={22} />
+              <SmartphoneIcon size={22} />
             </div>
             <div className={styles.valueText}>
               <h3>Built for the gym floor</h3>
@@ -171,7 +178,7 @@ const Landing = () => {
           </div>
           <div className={styles.value}>
             <div className={styles.valueIcon}>
-              <Clock size={22} />
+              <ClockIcon size={22} />
             </div>
             <div className={styles.valueText}>
               <h3>Rest timer & duration</h3>
@@ -193,7 +200,9 @@ const Landing = () => {
               <div className={styles.stepNum}>1</div>
               <div className={styles.stepText}>
                 <h4>Sign in with Google</h4>
-                <p>We only access Sheets we create — nothing else in your Drive</p>
+                <p>
+                  We only access Sheets we create — nothing else in your Drive
+                </p>
               </div>
             </div>
             <div className={styles.stepLine} />
@@ -221,12 +230,9 @@ const Landing = () => {
         <div className={styles.ctaInner}>
           <h2>Ready to track?</h2>
           <p>Free forever. No credit card. Your data stays yours.</p>
-          <Link
-            to={user ? "/programs" : "/login"}
-            className={styles.ctaBtn}
-          >
+          <Link to={user ? "/programs" : "/login"} className={styles.ctaBtn}>
             {user ? "Open App" : "Get Started Free"}
-            <ArrowRight size={18} />
+            <ArrowRightIcon size={18} />
           </Link>
         </div>
       </section>
@@ -235,7 +241,7 @@ const Landing = () => {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <div className={styles.footerLogo}>
-            <Dumbbell size={18} />
+            <DumbbellOutlineIcon size={18} />
             <span>Gymerr</span>
           </div>
           <p>Simple workout tracking for people who lift.</p>

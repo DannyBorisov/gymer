@@ -1,15 +1,13 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { Plus, Zap, Loader2, TrendingUp } from "lucide-react";
 import {
-  Play,
-  Plus,
-  Dumbbell,
-  Zap,
-  ChevronRight,
-  Loader2,
-  TrendingUp,
-  CheckCircle2,
-} from "lucide-react";
+  ChevronRightIcon,
+  CheckmarkCircleIcon,
+  DumbbellOutlineIcon,
+  PlayOutlineIcon,
+} from "../../assets/icons";
+import { ProgressBar } from "../../components/ui/ProgressBar";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -222,7 +220,7 @@ const Home = () => {
               </span>
               {weekIsComplete && (
                 <span className={styles.progressStatus}>
-                  <CheckCircle2 size={12} />
+                  <CheckmarkCircleIcon size={12} />
                   COMPLETE
                 </span>
               )}
@@ -231,14 +229,12 @@ const Home = () => {
               {weekProgress.completed} of {weekProgress.total} sessions
             </span>
           </div>
-          <div className={styles.progressBar}>
-            <div
-              className={styles.progressFill}
-              style={{
-                width: `${(weekProgress.completed / weekProgress.total) * 100}%`,
-              }}
-            />
-          </div>
+          <ProgressBar
+            value={weekProgress.completed}
+            max={weekProgress.total}
+            className={styles.progressBar}
+            fillClassName={styles.progressFill}
+          />
           <div className={styles.progressFooter}>
             <span>
               {weekIsComplete
@@ -265,20 +261,20 @@ const Home = () => {
             className={styles.primaryBtn}
             onClick={() => navigate("/workout")}
           >
-            <Play size={22} />
+            <PlayOutlineIcon size={22} />
             <div className={styles.primaryBtnText}>
               <span className={styles.primaryBtnTitle}>Resume Workout</span>
               <span className={styles.primaryBtnSubtitle}>
                 {activeWorkout.workoutName}
               </span>
             </div>
-            <ChevronRight size={20} />
+            <ChevronRightIcon size={20} />
           </button>
         ) : activeProgram && nextWorkout ? (
           // Start next program workout OR quick workout
           <div className={styles.workoutOptions}>
             <button className={styles.primaryBtn} onClick={handleStartWorkout}>
-              <Dumbbell size={22} />
+              <DumbbellOutlineIcon size={22} />
               <div className={styles.primaryBtnText}>
                 <span className={styles.primaryBtnTitle}>
                   {nextWorkout.workout.name}
@@ -287,7 +283,7 @@ const Home = () => {
                   Week {nextWorkout.week}
                 </span>
               </div>
-              <ChevronRight size={20} />
+              <ChevronRightIcon size={20} />
             </button>
             <span className={styles.orDivider}>or</span>
             <button
@@ -343,7 +339,7 @@ const Home = () => {
             onClick={() => navigate("/history")}
           >
             <div className={styles.workoutIcon}>
-              <Dumbbell size={20} />
+              <DumbbellOutlineIcon size={20} />
             </div>
             <div className={styles.workoutInfo}>
               <span className={styles.workoutName}>{lastWorkout.name}</span>
@@ -353,7 +349,7 @@ const Home = () => {
                   ` · ${formatDuration(lastWorkout.duration)}`}
               </span>
             </div>
-            <ChevronRight size={18} className={styles.chevron} />
+            <ChevronRightIcon size={18} className={styles.chevron} />
           </button>
         </div>
       )}
@@ -374,7 +370,7 @@ const Home = () => {
             </div>
             <div className={styles.statCard}>
               <div className={styles.statIcon}>
-                <CheckCircle2 size={18} />
+                <CheckmarkCircleIcon size={18} />
               </div>
               <div className={styles.statInfo}>
                 <span className={styles.statValue}>{completedSetCount}</span>
@@ -392,7 +388,7 @@ const Home = () => {
           onClick={() => navigate(`/programs/${activeProgram.id}`)}
         >
           <span>View full program</span>
-          <ChevronRight size={16} />
+          <ChevronRightIcon size={16} />
         </button>
       )}
     </div>

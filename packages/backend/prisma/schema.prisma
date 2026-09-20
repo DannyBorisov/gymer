@@ -26,6 +26,16 @@ enum ExperienceLevel {
   ADVANCED
 }
 
+enum MuscleGroup {
+  ABS
+  BACK
+  BICEPS
+  CHEST
+  LEGS
+  SHOULDERS
+  TRICEPS
+}
+
 model Onboarding {
   id              String          @id @default(cuid())
   userEmail       String          @unique
@@ -49,4 +59,11 @@ model AiTip {
   createdAt   DateTime @default(now())
 
   @@index([userEmail, createdAt])
+}
+
+model Exercise {
+  id          String      @id @default(cuid())
+  name        String
+  muscleGroup MuscleGroup
+  variant     String[]    @default([])
 }

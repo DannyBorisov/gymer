@@ -22,6 +22,175 @@ import type {
   CompletedSet,
 } from "../types.js";
 
+/** Achieved data for one previously-logged set, keyed for lookup during edits. */
+interface AchievedSetData {
+  achievedWeight?: number;
+  achievedReps?: number;
+  achievedRir?: string;
+  notes?: string;
+}
+
+/** Logged date/duration for one previously-recorded workout occurrence. */
+interface AchievedWorkoutData {
+  date?: string; // already-formatted sheet cell value
+  duration?: string;
+}
+
+/**
+ * Looks up previously-logged progress by (week, workout name, exercise name,
+ * 0-based set index) / (week, workout name), so `buildProgramRows` can carry
+ * it over into regenerated rows during an edit. `create()` passes an empty
+ * lookup since there is nothing to carry over yet.
+ */
+interface AchievedDataLookup {
+  set(
+    week: number,
+    workoutName: string,
+    exerciseName: string,
+    setIndex: number,
+  ): AchievedSetData | undefined;
+  workout(week: number, workoutName: string): AchievedWorkoutData | undefined;
+}
+
+const emptyAchievedDataLookup: AchievedDataLookup = {
+  set: () => undefined,
+  workout: () => undefined,
+};
+
+/**
+ * Build a lookup of previously-logged achieved data from an existing parsed
+ * program, so an edit can carry it over onto the regenerated rows for any
+ * (week, workout, exercise, set) that still exists with the same identity
+ * after the edit. Workouts/exercises that were renamed, reordered, or
+ * removed simply won't match anything here — their history is not carried
+ * over, by design (see ProgramModel.editStructure).
+ */
+function buildAchievedDataLookup(
+  program: ProgramWithRowIndex,
+): AchievedDataLookup {
+  const setMap = new Map<string, AchievedSetData>();
+  const workoutMap = new Map<string, AchievedWorkoutData>();
+
+  for (const workout of program.workouts) {
+    if (workout.date || workout.duration) {
+      workoutMap.set(`${workout.week}:${workout.name}`, {
+        date: workout.date ? formatDateTime(workout.date) : undefined,
+        duration: workout.duration,
+      });
+    }
+    for (const exercise of workout.exercises) {
+      const exerciseName = formatExerciseName(exercise.name, exercise.variant);
+      exercise.sets.forEach((set, setIndex) => {
+        if (
+          set.achievedWeight === undefined &&
+          set.achievedReps === undefined &&
+          set.achievedRir === undefined &&
+          !set.notes
+        ) {
+          return;
+        }
+        setMap.set(
+          `${workout.week}:${workout.name}:${exerciseName}:${setIndex}`,
+          {
+            achievedWeight: set.achievedWeight,
+            achievedReps: set.achievedReps,
+            achievedRir: set.achievedRir,
+            notes: set.notes,
+          },
+        );
+      });
+    }
+  }
+
+  return {
+    set: (week, workoutName, exerciseName, setIndex) =>
+      setMap.get(`${week}:${workoutName}:${exerciseName}:${setIndex}`),
+    workout: (week, workoutName) => workoutMap.get(`${week}:${workoutName}`),
+  };
+}
+
+/**
+ * Generate the full set of data rows (no header) for a program template,
+ * optionally carrying over previously-logged achieved data for any
+ * (week, workout, exercise, set) found in `achieved`. Shared by `create()`
+ * (empty lookup) and `editStructure()` (lookup built from the prior program)
+ * so both produce byte-identical row layouts for the same template.
+ */
+function buildProgramRows(
+  input: CreateProgramInput,
+  achieved: AchievedDataLookup,
+): (string | number)[][] {
+  const rows: (string | number)[][] = [];
+  const sessionsPerWeek =
+    input.frequency === "every-other-day" ? 4 : input.frequency;
+
+  for (let week = 1; week <= input.durationWeeks; week++) {
+    let weekRir = input.startingRir;
+    if (input.dynamicRir && input.durationWeeks > 1) {
+      const rirDecrement = input.startingRir / (input.durationWeeks - 1);
+      weekRir = Math.max(
+        0,
+        Math.round(input.startingRir - rirDecrement * (week - 1)),
+      );
+    }
+
+    for (let session = 0; session < sessionsPerWeek; session++) {
+      const workout = input.workouts[session % input.workouts.length];
+      const workoutName =
+        input.workouts.length < sessionsPerWeek
+          ? `${workout.name} #${session + 1}`
+          : workout.name;
+
+      const achievedWorkout = achieved.workout(week, workoutName);
+      let workoutRowNumber = 0; // 0-based position within this workout occurrence
+
+      for (const exercise of workout.exercises) {
+        const targetRir =
+          input.dynamicRir && !exercise.customRir ? weekRir : exercise.rir;
+        const rirDisplay =
+          targetRir === 0 ? "To Failure" : targetRir.toString();
+        const exerciseName = formatExerciseName(exercise.name, exercise.variant);
+
+        for (let set = 1; set <= exercise.sets; set++) {
+          const setIndex = set - 1;
+          const achievedSet = achieved.set(
+            week,
+            workoutName,
+            exerciseName,
+            setIndex,
+          );
+
+          // Date lives in column A of the workout's first row, duration in
+          // column A of its second row — see updateWorkout/parseProgramRows.
+          let dateColumn: string | number = "";
+          if (workoutRowNumber === 0 && achievedWorkout?.date) {
+            dateColumn = achievedWorkout.date;
+          } else if (workoutRowNumber === 1 && achievedWorkout?.duration) {
+            dateColumn = achievedWorkout.duration;
+          }
+
+          rows.push([
+            dateColumn,
+            week,
+            workoutName,
+            exerciseName,
+            set,
+            exercise.reps,
+            rirDisplay,
+            achievedSet?.achievedWeight ?? "",
+            achievedSet?.achievedReps ?? "",
+            achievedSet?.achievedRir ?? "",
+            achievedSet?.notes ?? "",
+          ]);
+          workoutRowNumber++;
+        }
+      }
+    }
+  }
+
+  return rows;
+}
+
 export class ProgramModel extends BaseModel {
   /**
    * Get all programs (summary only)
@@ -70,59 +239,10 @@ export class ProgramModel extends BaseModel {
    * Create a new program
    */
   async create(input: CreateProgramInput): Promise<ProgramSummary> {
-    const rows: (string | number)[][] = [[...ProgramSchema.headers]];
-
-    // Determine sessions per week
-    const sessionsPerWeek =
-      input.frequency === "every-other-day" ? 4 : input.frequency;
-
-    for (let week = 1; week <= input.durationWeeks; week++) {
-      // Calculate RIR for this week if dynamic
-      let weekRir = input.startingRir;
-      if (input.dynamicRir && input.durationWeeks > 1) {
-        const rirDecrement = input.startingRir / (input.durationWeeks - 1);
-        weekRir = Math.max(
-          0,
-          Math.round(input.startingRir - rirDecrement * (week - 1)),
-        );
-      }
-
-      // Cycle through workouts
-      for (let session = 0; session < sessionsPerWeek; session++) {
-        const workout = input.workouts[session % input.workouts.length];
-        const workoutName =
-          input.workouts.length < sessionsPerWeek
-            ? `${workout.name} #${session + 1}`
-            : workout.name;
-
-        for (const exercise of workout.exercises) {
-          const targetRir =
-            input.dynamicRir && !exercise.customRir ? weekRir : exercise.rir;
-          const rirDisplay =
-            targetRir === 0 ? "To Failure" : targetRir.toString();
-          const exerciseName = formatExerciseName(
-            exercise.name,
-            exercise.variant,
-          );
-
-          for (let set = 1; set <= exercise.sets; set++) {
-            rows.push([
-              "", // Date
-              week, // Week
-              workoutName, // Workout
-              exerciseName, // Exercise
-              set, // Set
-              exercise.reps, // Target Reps
-              rirDisplay, // RIR
-              "", // Weight
-              "", // Reps Achieved
-              "", // RIR Achieved
-              "", // Notes
-            ]);
-          }
-        }
-      }
-    }
+    const rows: (string | number)[][] = [
+      [...ProgramSchema.headers],
+      ...buildProgramRows(input, emptyAchievedDataLookup),
+    ];
 
     // Create spreadsheet
     const spreadsheetId = await this.sheets.create(this.tokens, input.name);
@@ -145,6 +265,51 @@ export class ProgramModel extends BaseModel {
       id: spreadsheetId,
       name: input.name,
       url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+    };
+  }
+
+  /**
+   * Replace a program's structure (name, duration, frequency, workouts,
+   * exercises) with an edited template, regenerating every row the same way
+   * `create()` does. Any previously-logged achieved data (weight, reps, RIR,
+   * notes, workout date/duration) is carried over onto the new rows when it
+   * still matches the same (week, workout name, exercise name, set index) —
+   * so renaming/reordering/removing a workout or exercise, or changing set
+   * counts, causes that specific history to no longer carry over, but
+   * anything unchanged survives the edit.
+   */
+  async editStructure(
+    id: string,
+    input: CreateProgramInput,
+  ): Promise<ProgramSummary> {
+    const existing = await this.findInternal(id);
+    if (!existing) throw new Error("Program not found");
+
+    const achieved = buildAchievedDataLookup(existing);
+    const rows: (string | number)[][] = [
+      [...ProgramSchema.headers],
+      ...buildProgramRows(input, achieved),
+    ];
+
+    if (input.name !== existing.name) {
+      await this.sheets.renameFile(this.tokens, id, input.name);
+    }
+
+    const { sheetName } = await this.sheets.getSpreadsheetMetadata(
+      this.tokens,
+      id,
+    );
+
+    // Clear the whole data range first — the new template may generate
+    // fewer rows than before, and a plain overwrite would leave stale rows
+    // trailing past the new content.
+    await this.sheets.clear(this.tokens, id, `${sheetName}!A2:K`);
+    await this.sheets.update(this.tokens, id, `${sheetName}!A1`, rows);
+
+    return {
+      id,
+      name: input.name,
+      url: `https://docs.google.com/spreadsheets/d/${id}`,
     };
   }
 

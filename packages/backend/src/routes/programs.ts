@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { requireAuth } from "../middlewares/auth.js";
 import {
   createProgram,
+  editProgram,
   listPrograms,
   getProgram,
   updateProgram,
@@ -12,6 +13,8 @@ import {
 } from "../handlers/programs.js";
 import type {
   CreateProgramBodyType,
+  EditProgramParamsType,
+  EditProgramBodyType,
   GetProgramParamsType,
   UpdateProgramParamsType,
   UpdateProgramBodyType,
@@ -36,6 +39,12 @@ const ProgramsRoutes: FastifyPluginAsync = async (server) => {
     "/:id",
     { preHandler: requireAuth },
     getProgram,
+  );
+
+  server.put<{ Params: EditProgramParamsType; Body: EditProgramBodyType }>(
+    "/:id",
+    { preHandler: requireAuth },
+    editProgram,
   );
 
   server.patch<{ Params: UpdateProgramParamsType; Body: UpdateProgramBodyType }>(

@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Sparkles, PenLine, ChevronRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import {
+  AlarmIcon,
+  PencilIcon,
+  SparklesOutlineIcon,
+} from "../../assets/icons";
 import { OnboardingForm } from "../../components/OnboardingForm/OnboardingForm";
+import { Button, ButtonVariant } from "../../components/ui/Button";
 import { requestNotificationPermission } from "../../utils/notifications";
 import { useGenerateAiProgram } from "../../api/ai";
 import { useGetOnboarding } from "../../api/onboarding";
@@ -71,33 +77,36 @@ const OnboardingSetup = () => {
   if (step === Step.Notifications) {
     return (
       <div className={styles.page}>
-        <div className={styles.iconWrapper}>
-          <Bell size={32} />
+        <div className={`${styles.content} ${styles.centeredContent}`}>
+          <div className={styles.iconWrapper}>
+            <AlarmIcon size={32} />
+          </div>
+          <h1 className={styles.title}>Stay on track</h1>
+          <p className={styles.subtitle}>
+            Turn on notifications for rest timer alerts and reminders to log
+            your weight, so you never lose momentum.
+          </p>
         </div>
-        <h1 className={styles.title}>Stay on track</h1>
-        <p className={styles.subtitle}>
-          Turn on notifications for rest timer alerts and reminders to log your
-          weight, so you never lose momentum.
-        </p>
 
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.enableBtn}
-            onClick={handleEnableNotifications}
-            disabled={isRequestingNotifications}
-          >
-            {isRequestingNotifications
-              ? "Requesting..."
-              : "Enable notifications"}
-          </button>
-          <button
-            type="button"
-            className={styles.skipBtn}
-            onClick={() => setStep(Step.Plan)}
-          >
-            Not now
-          </button>
+        <div className={styles.footer}>
+          <div className={styles.actions}>
+            <Button
+              type="button"
+              onClick={handleEnableNotifications}
+              disabled={isRequestingNotifications}
+            >
+              {isRequestingNotifications
+                ? "Requesting..."
+                : "Enable notifications"}
+            </Button>
+            <Button
+              type="button"
+              variant={ButtonVariant.Ghost}
+              onClick={() => setStep(Step.Plan)}
+            >
+              Not now
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -106,45 +115,57 @@ const OnboardingSetup = () => {
   if (step === Step.Plan) {
     return (
       <div className={styles.page}>
-        <h1 className={styles.title}>How do you want to start?</h1>
-        <p className={styles.subtitle}>
-          You can always create more programs later.
-        </p>
+        <div className={styles.header}>
+          <h1 className={styles.title}>How do you want to start?</h1>
+          <p className={styles.subtitle}>
+            You can always create more programs later.
+          </p>
+        </div>
 
-        <div className={styles.options}>
-          <button
-            type="button"
-            className={styles.optionCard}
-            onClick={() => setStep(Step.AiDetails)}
-          >
-            <div className={styles.optionIcon}>
-              <Sparkles size={22} />
-            </div>
-            <div className={styles.optionText}>
-              <span className={styles.optionTitle}>Generate with AI</span>
-              <span className={styles.optionDescription}>
-                Answer a few questions and get a program built for you.
-              </span>
-            </div>
-            <ChevronRight size={18} className={styles.optionChevron} />
-          </button>
+        <div className={styles.content}>
+          <div className={styles.options}>
+            <button
+              type="button"
+              className={styles.optionCard}
+              onClick={() => setStep(Step.AiDetails)}
+            >
+              <div className={styles.optionIcon}>
+                <SparklesOutlineIcon size={22} />
+              </div>
+              <div className={styles.optionText}>
+                <span className={styles.optionTitle}>Generate with AI</span>
+                <span className={styles.optionDescription}>
+                  Answer a few questions and get a program built for you.
+                </span>
+              </div>
+            </button>
 
-          <button
+            <button
+              type="button"
+              className={styles.optionCard}
+              onClick={handleCreateMyself}
+            >
+              <div className={styles.optionIcon}>
+                <PencilIcon size={22} />
+              </div>
+              <div className={styles.optionText}>
+                <span className={styles.optionTitle}>Create it myself</span>
+                <span className={styles.optionDescription}>
+                  Start from a template or build your own from scratch.
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.footer}>
+          <Button
             type="button"
-            className={styles.optionCard}
-            onClick={handleCreateMyself}
+            variant={ButtonVariant.Ghost}
+            onClick={() => setStep(Step.Notifications)}
           >
-            <div className={styles.optionIcon}>
-              <PenLine size={22} />
-            </div>
-            <div className={styles.optionText}>
-              <span className={styles.optionTitle}>Create it myself</span>
-              <span className={styles.optionDescription}>
-                Start from a template or build your own from scratch.
-              </span>
-            </div>
-            <ChevronRight size={18} className={styles.optionChevron} />
-          </button>
+            Back
+          </Button>
         </div>
       </div>
     );
@@ -153,77 +174,85 @@ const OnboardingSetup = () => {
   if (step === Step.AiDetails) {
     return (
       <div className={styles.page}>
-        <h1 className={styles.title}>Set your plan</h1>
-        <p className={styles.subtitle}>
-          We picked sensible defaults — tweak them if you'd like, or just hit
-          generate.
-        </p>
+        <div className={styles.header}>
+          <h1 className={styles.title}>Set your plan</h1>
+          <p className={styles.subtitle}>
+            We picked sensible defaults — tweak them if you'd like, or just
+            hit generate.
+          </p>
+        </div>
 
-        <div className={styles.planFields}>
-          <div className={styles.planField}>
-            <span className={styles.planFieldLabel}>Sessions per week</span>
-            <div className={styles.optionPills}>
-              {FREQUENCY_OPTIONS.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`${styles.pill} ${frequency === value ? styles.pillActive : ""}`}
-                  onClick={() => setFrequency(value)}
-                >
-                  {value}
-                </button>
-              ))}
+        <div className={styles.content}>
+          <div className={styles.planFields}>
+            <div className={styles.planField}>
+              <span className={styles.planFieldLabel}>Sessions per week</span>
+              <div className={styles.optionPills}>
+                {FREQUENCY_OPTIONS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`${styles.pill} ${frequency === value ? styles.pillActive : ""}`}
+                    onClick={() => setFrequency(value)}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className={styles.planField}>
-            <span className={styles.planFieldLabel}>Duration</span>
-            <div className={styles.optionPills}>
-              {DURATION_OPTIONS.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className={`${styles.pill} ${durationWeeks === value ? styles.pillActive : ""}`}
-                  onClick={() => setDurationWeeks(value)}
-                >
-                  {value}w
-                </button>
-              ))}
+            <div className={styles.planField}>
+              <span className={styles.planFieldLabel}>Duration</span>
+              <div className={styles.optionPills}>
+                {DURATION_OPTIONS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`${styles.pill} ${durationWeeks === value ? styles.pillActive : ""}`}
+                    onClick={() => setDurationWeeks(value)}
+                  >
+                    {value}w
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.enableBtn}
-            onClick={handleGenerateWithAi}
-            disabled={generateProgram.isPending}
-          >
-            {generateProgram.isPending ? (
-              <Loader2 size={18} className={styles.spinner} />
-            ) : (
-              "Generate program"
+        <div className={styles.footer}>
+          <div className={styles.actions}>
+            <Button
+              type="button"
+              onClick={handleGenerateWithAi}
+              disabled={generateProgram.isPending}
+              icon={
+                generateProgram.isPending ? (
+                  <Loader2 size={18} className={styles.spinner} />
+                ) : undefined
+              }
+            >
+              {generateProgram.isPending ? null : "Generate program"}
+            </Button>
+            <Button
+              type="button"
+              variant={ButtonVariant.Ghost}
+              onClick={() => setStep(Step.Plan)}
+              disabled={generateProgram.isPending}
+            >
+              Back
+            </Button>
+            {generateProgram.isError && (
+              <p className={styles.errorText}>
+                Something went wrong. Try again.
+              </p>
             )}
-          </button>
-          <button
-            type="button"
-            className={styles.skipBtn}
-            onClick={() => setStep(Step.Plan)}
-            disabled={generateProgram.isPending}
-          >
-            Back
-          </button>
-          {generateProgram.isError && (
-            <p className={styles.errorText}>Something went wrong. Try again.</p>
-          )}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles.formPage}>
       <h1 className={styles.title}>Tell us about you</h1>
       <p className={styles.subtitle}>We use this to tailor your training.</p>
       <OnboardingForm onSaved={() => setStep(Step.Notifications)} />

@@ -12,6 +12,8 @@ import type {
   RenameProgramBodyType,
   AddSetParamsType,
   AddSetBodyType,
+  EditProgramParamsType,
+  EditProgramBodyType,
 } from "../schemas/programs.js";
 
 export const createProgram: RouteHandler<{
@@ -29,6 +31,30 @@ export const createProgram: RouteHandler<{
     frequency: request.body.frequency,
   });
   return { success: true, program };
+};
+
+export const editProgram: RouteHandler<{
+  Params: EditProgramParamsType;
+  Body: EditProgramBodyType;
+}> = async function (request, reply) {
+  const { tokens } = getAuthSession(request);
+  const { id } = request.params;
+
+  try {
+    const gsql = createGSQL(tokens, this.sheets);
+    const program = await gsql.programs.editStructure(id, {
+      name: request.body.name,
+      durationWeeks: request.body.durationWeeks,
+      dynamicRir: request.body.dynamicRir,
+      startingRir: request.body.startingRir,
+      workouts: request.body.workouts,
+      frequency: request.body.frequency,
+    });
+    return { success: true, program };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to edit program" });
+  }
 };
 
 export const listPrograms: RouteHandler = async function (request) {

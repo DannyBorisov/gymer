@@ -1,5 +1,15 @@
 import { useState, useMemo } from "react";
-import { Loader2, TrendingUp, ChevronDown, ChevronUp, BarChart3, ArrowUp, ArrowDown, Search, X, AlertTriangle } from "lucide-react";
+import { Loader2, TrendingUp } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ChartBarsIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  MagnifierIcon,
+  CrossIcon,
+  WarningIcon,
+} from "../../assets/icons";
 import {
   LineChart,
   Line,
@@ -41,33 +51,36 @@ const Analytics = () => {
   const [volumeSearchQuery, setVolumeSearchQuery] = useState("");
   const [plateauDrawerExercise, setPlateauDrawerExercise] = useState<string | null>(null);
 
-  // A plateau = the last few sessions' e1RM trend is flat or declining.
-  // Uses a simple linear regression slope over the recent window, compared
-  // against a small threshold relative to the exercise's own e1RM scale so
-  // it works the same whether someone lifts in kg or lbs, light or heavy.
-  const PLATEAU_WINDOW = 5;
+  // A plateau = the most recent sessions haven't set a new all-time e1RM,
+  // two sessions in a row. Checking consecutive sessions (rather than fitting
+  // a trend line across a whole window) means a single anomalous session —
+  // a deload, an off day, a lighter technique-focused session — can't by
+  // itself flip a genuinely improving exercise into "plateaued"; the stall
+  // has to actually persist right up to now.
   const PLATEAU_MIN_SESSIONS = 4;
-  const PLATEAU_SLOPE_THRESHOLD = 0.005; // 0.5% of average e1RM per session
+  const PLATEAU_STALLED_STREAK = 2;
 
   const detectPlateau = (entries: ProgressionEntry[]) => {
-    if (entries.length < PLATEAU_MIN_SESSIONS) return null;
+    const withE1rm = entries.filter((e) => e.e1rm);
+    if (withE1rm.length < PLATEAU_MIN_SESSIONS) return null;
 
-    const recent = entries.slice(-PLATEAU_WINDOW).filter((e) => e.e1rm);
-    if (recent.length < PLATEAU_MIN_SESSIONS) return null;
+    // Walk oldest to newest, tracking the best e1RM seen so far and whether
+    // each session did (or didn't) beat it.
+    let bestSoFar = -Infinity;
+    let stalledStreak = 0;
+    for (const entry of withE1rm) {
+      const e1rm = entry.e1rm!;
+      if (e1rm > bestSoFar) {
+        bestSoFar = e1rm;
+        stalledStreak = 0;
+      } else {
+        stalledStreak += 1;
+      }
+    }
 
-    const n = recent.length;
-    const xs = recent.map((_, i) => i);
-    const ys = recent.map((e) => e.e1rm!);
-    const meanX = xs.reduce((a, b) => a + b, 0) / n;
-    const meanY = ys.reduce((a, b) => a + b, 0) / n;
-    const numerator = xs.reduce((sum, x, i) => sum + (x - meanX) * (ys[i] - meanY), 0);
-    const denominator = xs.reduce((sum, x) => sum + (x - meanX) ** 2, 0);
-    const slope = denominator === 0 ? 0 : numerator / denominator;
+    if (stalledStreak < PLATEAU_STALLED_STREAK) return null;
 
-    const isFlat = slope <= meanY * PLATEAU_SLOPE_THRESHOLD;
-    if (!isFlat) return null;
-
-    return { sessionsStalled: n };
+    return { sessionsStalled: stalledStreak };
   };
 
   const plateauedNames = useMemo(() => {
@@ -181,9 +194,9 @@ const Analytics = () => {
           >
             {volumeChange !== null &&
               (volumeChange >= 0 ? (
-                <ArrowUp size={16} />
+                <ArrowUpIcon size={16} />
               ) : (
-                <ArrowDown size={16} />
+                <ArrowDownIcon size={16} />
               ))}
             {volumeChange === null ? "—" : `${volumeChange >= 0 ? "+" : ""}${volumeChange}%`}
           </strong>
@@ -203,7 +216,7 @@ const Analytics = () => {
           className={`${styles.tab} ${activeTab === "volume" ? styles.tabActive : ""}`}
           onClick={() => setActiveTab("volume")}
         >
-          <BarChart3 size={16} />
+          <ChartBarsIcon size={16} />
           <span>Volume</span>
         </button>
       </div>
@@ -214,7 +227,7 @@ const Analytics = () => {
           {/* Search Input */}
           {!isLoadingProgression && exercises.length > 0 && (
             <div className={styles.searchContainer}>
-              <Search size={18} className={styles.searchIcon} />
+              <MagnifierIcon size={18} className={styles.searchIcon} />
               <input
                 type="text"
                 placeholder="Search exercises..."
@@ -228,7 +241,7 @@ const Analytics = () => {
                   onClick={() => setSearchQuery("")}
                   aria-label="Clear search"
                 >
-                  <X size={16} />
+                  <CrossIcon size={16} />
                 </button>
               )}
             </div>
@@ -249,7 +262,7 @@ const Analytics = () => {
             </div>
           ) : filteredExercises.length === 0 ? (
             <div className={styles.emptyState}>
-              <Search size={48} className={styles.emptyIcon} />
+              <MagnifierIcon size={48} className={styles.emptyIcon} />
               <p>No exercises match "{searchQuery}"</p>
             </div>
           ) : (
@@ -289,7 +302,7 @@ const Analytics = () => {
                                 setPlateauDrawerExercise(ex.exercise);
                               }}
                             >
-                              <AlertTriangle size={11} />
+                              <WarningIcon size={11} />
                               Plateau
                             </button>
                           )}
@@ -314,9 +327,9 @@ const Analytics = () => {
                       </div>
                       <div className={styles.expandIcon}>
                         {isExpanded ? (
-                          <ChevronUp size={20} />
+                          <ChevronUpIcon size={20} />
                         ) : (
-                          <ChevronDown size={20} />
+                          <ChevronDownIcon size={20} />
                         )}
                       </div>
                     </div>
@@ -409,7 +422,7 @@ const Analytics = () => {
           {/* Search Input */}
           {!isLoadingProgression && exercises.length > 0 && (
             <div className={styles.searchContainer}>
-              <Search size={18} className={styles.searchIcon} />
+              <MagnifierIcon size={18} className={styles.searchIcon} />
               <input
                 type="text"
                 placeholder="Search exercises..."
@@ -423,7 +436,7 @@ const Analytics = () => {
                   onClick={() => setVolumeSearchQuery("")}
                   aria-label="Clear search"
                 >
-                  <X size={16} />
+                  <CrossIcon size={16} />
                 </button>
               )}
             </div>
@@ -436,7 +449,7 @@ const Analytics = () => {
             </div>
           ) : exercises.length === 0 ? (
             <div className={styles.emptyState}>
-              <BarChart3 size={48} className={styles.emptyIcon} />
+              <ChartBarsIcon size={48} className={styles.emptyIcon} />
               <p>No volume data yet.</p>
               <p className={styles.emptySubtext}>
                 Complete some workouts to see your volume.
@@ -444,7 +457,7 @@ const Analytics = () => {
             </div>
           ) : filteredVolumeExercises.length === 0 ? (
             <div className={styles.emptyState}>
-              <Search size={48} className={styles.emptyIcon} />
+              <MagnifierIcon size={48} className={styles.emptyIcon} />
               <p>No exercises match "{volumeSearchQuery}"</p>
             </div>
           ) : (
@@ -464,9 +477,14 @@ const Analytics = () => {
 
                 return (
                   <div key={ex.exercise} className={styles.exerciseCard}>
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       className={styles.exerciseHeader}
                       onClick={() => toggleVolumeExercise(ex.exercise)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") toggleVolumeExercise(ex.exercise);
+                      }}
                     >
                       <div className={styles.exerciseInfo}>
                         <span className={styles.exerciseName}>{ex.exercise}</span>
@@ -490,12 +508,12 @@ const Analytics = () => {
                       </div>
                       <div className={styles.expandIcon}>
                         {isExpanded ? (
-                          <ChevronUp size={20} />
+                          <ChevronUpIcon size={20} />
                         ) : (
-                          <ChevronDown size={20} />
+                          <ChevronDownIcon size={20} />
                         )}
                       </div>
-                    </button>
+                    </div>
 
                     {isExpanded && (
                       <div className={styles.exerciseContent}>

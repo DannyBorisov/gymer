@@ -1,5 +1,6 @@
 import { OnboardingModel } from "./OnboardingModel.js";
 import { AiTipModel } from "./AiTipModel.js";
+import { ExerciseModel } from "./ExerciseModel.js";
 
 /**
  * Postgres data access (via Prisma), grouped by model.
@@ -12,8 +13,10 @@ import { AiTipModel } from "./AiTipModel.js";
 export const prisma = {
   onboarding: new OnboardingModel(),
   aiTips: new AiTipModel(),
+  exercises: new ExerciseModel(),
 };
 
 export type { OnboardingInput } from "./OnboardingModel.js";
 export type { AiTipInput } from "./AiTipModel.js";
-export { Gender, Goal, ExperienceLevel } from "@prisma/client";
+export type { ExerciseInput } from "./ExerciseModel.js";
+export { Gender, Goal, ExperienceLevel, MuscleGroup } from "@prisma/client";

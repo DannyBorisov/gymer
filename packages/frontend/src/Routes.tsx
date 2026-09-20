@@ -32,12 +32,12 @@ const ProtectedRoutes = () => {
       <AnimatePresence mode="wait">
         <PageWrapper key={displayLocation.pathname}>
           <Routes location={displayLocation}>
-            {/* Main routes */}
             <Route path="/welcome" element={<Onboarding />} />
             <Route path="/onboarding" element={<OnboardingSetup />} />
             <Route path="/home" element={<Home />} />
             <Route path="/programs" element={<Programs />} />
             <Route path="/programs/create" element={<CreateProgram />} />
+            <Route path="/programs/:id/edit" element={<CreateProgram />} />
             <Route path="/programs/:id" element={<ProgramDetail />} />
             <Route path="/workout" element={<Home />} />
             <Route path="/quick-workout" element={<QuickWorkout />} />
@@ -45,7 +45,6 @@ const ProtectedRoutes = () => {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/profile" element={<Profile />} />
 
-            {/* Default redirect */}
             <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
         </PageWrapper>

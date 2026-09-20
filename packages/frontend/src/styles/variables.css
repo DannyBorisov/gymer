@@ -2,36 +2,80 @@
 /* Dark, minimal aesthetic - see /CLAUDE.md for full guidelines */
 
 :root {
-  /* Background colors - warm dark charcoal, elevation via lightness */
-  --bg-primary: #0b0b0d;
-  --bg-secondary: #16161a;
-  --bg-elevated: rgba(255, 255, 255, 0.05);
-  --bg-interactive: rgba(255, 255, 255, 0.08);
-  --bg-hover: rgba(255, 255, 255, 0.12);
-  --bg-active: rgba(255, 255, 255, 0.15);
+  /* ============================================================
+     PRIMITIVES
+     Raw color values. Never used directly in component styles —
+     only referenced by the semantic tokens below.
+     ============================================================ */
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-zinc-950: #09090b;
+  --color-zinc-900: #18181b;
+  --color-zinc-800: #27272a;
+  --color-zinc-500: #71717a;
+  --color-zinc-400: #a1a1aa;
+  --color-green-500: #04d482;
+  --color-red-500: #ef4444;
+  --color-amber-500: #f59e0b;
 
-  /* Text colors */
-  --text-primary: #fff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-muted: rgba(255, 255, 255, 0.4);
-  --text-disabled: rgba(255, 255, 255, 0.25);
+  /* RGB triplets for building tinted backgrounds/borders at any opacity,
+     e.g. rgba(var(--color-green-500-rgb), 0.14). Keep in sync with the
+     hex primitives above. */
+  --color-green-500-rgb: 4, 212, 130;
+  --color-red-500-rgb: 239, 68, 68;
+  --color-amber-500-rgb: 245, 158, 11;
 
-  /* Border colors */
-  --border-default: rgba(255, 255, 255, 0.08);
-  --border-subtle: rgba(255, 255, 255, 0.1);
-  --border-emphasis: rgba(255, 255, 255, 0.2);
+  /* ============================================================
+     SEMANTIC TOKENS
+     Used throughout the app. Each aliases a primitive above —
+     change the primitive, every use updates automatically.
+     ============================================================ */
+  --surface-background: var(--color-zinc-950); /* Screen backgrounds */
+  --surface-card: var(--color-zinc-900); /* Cards & container fills */
+  --surface-elevated: var(--color-zinc-800); /* Raised surfaces, badges */
+  --outline-default: var(--color-zinc-800); /* Borders & dividers */
+  --on-surface-primary: var(--color-white); /* Headings, main text */
+  --on-surface-secondary: var(--color-zinc-400); /* Body text, labels */
+  --on-surface-tertiary: var(--color-zinc-500); /* Placeholders, hints */
+  --primary-default: var(--color-green-500); /* CTAs, active states, accent */
+  --on-primary: var(--color-black); /* Text on primary color */
+  --error-default: var(--color-red-500); /* Negative changes, errors */
+  --warning-default: var(--color-amber-500); /* Coach cues, alerts */
+
+  /* ============================================================
+     LEGACY ALIASES
+     Existing component styles reference these names; they now
+     resolve through the semantic tokens above so the whole app
+     picks up the design system without a per-component rewrite.
+     Prefer the semantic tokens above in new code.
+     ============================================================ */
+  --bg-primary: var(--surface-background);
+  --bg-secondary: var(--surface-card);
+  --bg-elevated: var(--surface-elevated);
+  --bg-interactive: var(--surface-elevated);
+  --bg-hover: var(--color-zinc-800);
+  --bg-active: var(--color-zinc-800);
+
+  --text-primary: var(--on-surface-primary);
+  --text-secondary: var(--on-surface-secondary);
+  --text-muted: var(--on-surface-tertiary);
+  --text-disabled: var(--color-zinc-500);
+
+  --border-default: var(--outline-default);
+  --border-subtle: var(--outline-default);
+  --border-emphasis: var(--color-zinc-500);
 
   /* Accent colors - use sparingly */
   --accent-orange: #f97316;
-  --accent-green: #22c55e;
-  --accent-green-strong: #16a34a;
-  --accent-green-soft: rgba(34, 197, 94, 0.14);
-  --accent-red: #f87171;
-  --accent-amber: #eab308;
+  --accent-green: var(--primary-default);
+  --accent-green-strong: #03b571;
+  --accent-green-soft: rgba(4, 212, 130, 0.14);
+  --accent-red: var(--error-default);
+  --accent-amber: var(--warning-default);
 
   /* Signature gradient for hero moments (primary CTA, active set) */
-  --accent-gradient: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
-  --accent-glow: 0 8px 24px -6px rgba(34, 197, 94, 0.45);
+  --accent-gradient: linear-gradient(135deg, #04d482 0%, #03b571 100%);
+  --accent-glow: 0 8px 24px -6px rgba(4, 212, 130, 0.45);
 
   /* Backdrop */
   --backdrop: rgba(0, 0, 0, 0.7);

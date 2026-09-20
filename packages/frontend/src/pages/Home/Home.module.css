@@ -83,16 +83,10 @@
 
 .progressBar {
   height: 6px;
-  background: var(--bg-interactive);
-  border-radius: 999px;
-  overflow: hidden;
 }
 
 .progressFill {
-  height: 100%;
   background: var(--accent-gradient);
-  border-radius: 999px;
-  transition: width 0.4s var(--ease-out);
 }
 
 .progressFooter {
@@ -162,7 +156,7 @@
   background: var(--accent-gradient);
   border: none;
   border-radius: 999px;
-  color: #fff;
+  color: var(--on-primary);
   cursor: pointer;
   text-align: left;
   box-shadow: var(--accent-glow);
@@ -171,7 +165,7 @@
 
 .primaryBtn:active {
   transform: translateY(2px) scale(0.99);
-  box-shadow: 0 2px 8px -4px rgba(34, 197, 94, 0.4);
+  box-shadow: 0 2px 8px -4px rgba(var(--color-green-500-rgb), 0.4);
 }
 
 .primaryBtnText {

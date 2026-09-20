@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Trash2, Tag, RotateCcw } from "lucide-react";
+import { TrashIcon, TagIcon, UndoIcon } from "../../../assets/icons";
 import type { Exercise } from "../../../types/program";
 import styles from "../CreateProgram.module.css";
 
@@ -73,7 +73,7 @@ export const ExerciseRow = ({
               onClick={() => setShowVariant(true)}
               title="Add exercise variation"
             >
-              <Tag size={12} />
+              <TagIcon size={12} />
               <span className={styles.variantButtonText}>Variation</span>
             </button>
           )}
@@ -143,7 +143,7 @@ export const ExerciseRow = ({
                     aria-label="Use plan RIR"
                     title="Use plan RIR"
                   >
-                    <RotateCcw size={13} />
+                    <UndoIcon size={13} />
                   </button>
                 </>
               ) : (
@@ -161,7 +161,7 @@ export const ExerciseRow = ({
         )}
       </div>
       <button type="button" onClick={onRemove} className={styles.removeBtn}>
-        <Trash2 size={14} />
+        <TrashIcon size={14} />
       </button>
     </div>
   );

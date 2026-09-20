@@ -1,29 +1,38 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Plus, Loader2, Gauge, ListChecks } from "lucide-react";
 import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  Dumbbell,
-  Calendar,
-  Clock,
-  Gauge,
-  ListChecks,
-} from "lucide-react";
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CalendarFullIcon,
+  ClockIcon,
+  DumbbellOutlineIcon,
+} from "../../assets/icons";
 import { DndContext, DragOverlay, closestCorners } from "@dnd-kit/core";
 import { useCreateProgram } from "../../hooks/useCreateProgram";
+import { reconstructProgramTemplate } from "../../hooks/programEdit";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import { useSettings } from "../../contexts/SettingsContext";
-import { useCreateProgram as useCreateProgramMutation } from "../../api/programs";
+import {
+  useCreateProgram as useCreateProgramMutation,
+  useEditProgram,
+  useGetProgram,
+} from "../../api/programs";
 import { presets } from "../../data/presets";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { InfoTooltip } from "../../components/InfoTooltip/InfoTooltip";
 import type { Program } from "../../types/program";
+import type { Workout as FetchedWorkout } from "../../api/workouts";
 import { WorkoutSection } from "./components/WorkoutSection";
 import { ExerciseRow } from "./components/ExerciseRow";
 import { useExerciseDnd } from "./dnd/useExerciseDnd";
 import styles from "./CreateProgram.module.css";
+
+interface FetchedProgram {
+  name: string;
+  numberOfWeeks: number;
+  workouts: FetchedWorkout[];
+}
 
 const getFrequencyLabel = (frequency: Program["frequency"]) => {
   if (frequency === "every-other-day") return "Every other day";
@@ -32,6 +41,9 @@ const getFrequencyLabel = (frequency: Program["frequency"]) => {
 
 const CreateProgram = () => {
   const navigate = useNavigate();
+  const { id: editingProgramId } = useParams<{ id: string }>();
+  const isEditingExisting = Boolean(editingProgramId);
+
   const {
     program,
     getProgramForSubmit,
@@ -55,15 +67,33 @@ const CreateProgram = () => {
   const { setFloatingAction } = useQuickWorkout();
   const { setActiveProgram } = useSettings();
   const createProgram = useCreateProgramMutation<Program>();
+  const editProgram = useEditProgram<Program>();
+  const { data: existingProgramResponse, isLoading: isLoadingExisting } =
+    useGetProgram<FetchedProgram>(editingProgramId);
 
-  const [mode, setMode] = useState<"templates" | "edit">("templates");
+  const [mode, setMode] = useState<"templates" | "edit">(
+    isEditingExisting ? "edit" : "templates",
+  );
   const [result, setResult] = useState<{
     success: boolean;
     error?: string;
   } | null>(null);
+  const [hasLoadedExisting, setHasLoadedExisting] = useState(false);
+
+  // Load the fetched program into the builder once, when editing an
+  // existing program — not on every refetch, so in-progress edits aren't
+  // clobbered by a background query invalidation.
+  useEffect(() => {
+    if (!isEditingExisting || hasLoadedExisting) return;
+    const fetched = existingProgramResponse?.program;
+    if (!fetched) return;
+
+    loadProgram(reconstructProgramTemplate(fetched));
+    setHasLoadedExisting(true);
+  }, [isEditingExisting, hasLoadedExisting, existingProgramResponse, loadProgram]);
 
   const formRef = useRef<HTMLFormElement>(null);
-  const isSubmitting = createProgram.isPending;
+  const isSubmitting = createProgram.isPending || editProgram.isPending;
   const isProgramReady =
     program.name.trim() !== "" &&
     program.workouts.every(
@@ -77,7 +107,7 @@ const CreateProgram = () => {
   useEffect(() => {
     if (mode === "edit" && !result?.success) {
       setFloatingAction({
-        label: "Create Program",
+        label: isEditingExisting ? "Save Changes" : "Create Program",
         enabled: !isSubmitting && isProgramReady,
         handler: () => {
           if (!isSubmittingRef.current && formRef.current) {
@@ -92,7 +122,14 @@ const CreateProgram = () => {
     return () => {
       setFloatingAction(null);
     };
-  }, [mode, isSubmitting, isProgramReady, result?.success, setFloatingAction]);
+  }, [
+    mode,
+    isSubmitting,
+    isProgramReady,
+    result?.success,
+    isEditingExisting,
+    setFloatingAction,
+  ]);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -140,6 +177,10 @@ const CreateProgram = () => {
   };
 
   const handleBack = () => {
+    if (isEditingExisting && editingProgramId) {
+      navigate(`/programs/${editingProgramId}`);
+      return;
+    }
     setMode("templates");
     setResult(null);
   };
@@ -149,13 +190,27 @@ const CreateProgram = () => {
     setResult(null);
 
     try {
-      const data = await createProgram.mutateAsync(getProgramForSubmit());
-      setActiveProgram({ id: data.program.id, name: data.program.name });
-      navigate("/programs", { replace: true });
+      if (isEditingExisting && editingProgramId) {
+        const data = await editProgram.mutateAsync({
+          id: editingProgramId,
+          program: getProgramForSubmit(),
+        });
+        setActiveProgram({ id: data.program.id, name: data.program.name });
+        navigate(`/programs/${editingProgramId}`, { replace: true });
+      } else {
+        const data = await createProgram.mutateAsync(getProgramForSubmit());
+        setActiveProgram({ id: data.program.id, name: data.program.name });
+        navigate("/programs", { replace: true });
+      }
     } catch (error) {
       setResult({
         success: false,
-        error: error instanceof Error ? error.message : "Failed to create program",
+        error:
+          error instanceof Error
+            ? error.message
+            : isEditingExisting
+              ? "Failed to save changes"
+              : "Failed to create program",
       });
     }
   };
@@ -170,7 +225,7 @@ const CreateProgram = () => {
       <div className={styles.container}>
         <div className={styles.stickyHeader}>
           <Link to="/programs" className={styles.backLink}>
-            <ChevronLeft size={16} />
+            <ChevronLeftIcon size={16} />
             Back to Programs
           </Link>
 
@@ -213,15 +268,15 @@ const CreateProgram = () => {
                 </div>
                 <div className={styles.templateMeta}>
                   <span className={styles.metaItem}>
-                    <Dumbbell size={14} />
+                    <DumbbellOutlineIcon size={14} />
                     {preset.program.workouts.length} sessions
                   </span>
                   <span className={styles.metaItem}>
-                    <Clock size={14} />
+                    <ClockIcon size={14} />
                     {getFrequencyLabel(preset.program.frequency)}
                   </span>
                   <span className={styles.metaItem}>
-                    <Calendar size={14} />
+                    <CalendarFullIcon size={14} />
                     {preset.program.durationWeeks} weeks
                   </span>
                 </div>
@@ -232,7 +287,7 @@ const CreateProgram = () => {
                 className={styles.useTemplateBtn}
               >
                 Use Template
-                <ChevronRight size={16} />
+                <ChevronRightIcon size={16} />
               </button>
             </div>
           ))}
@@ -242,17 +297,29 @@ const CreateProgram = () => {
   }
 
   // Edit Program Screen
+  if (isEditingExisting && isLoadingExisting && !hasLoadedExisting) {
+    return (
+      <div className={`${styles.container} ${styles.builderContainer}`}>
+        <div className={styles.loadingState}>
+          <Loader2 size={24} className={styles.spinner} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`${styles.container} ${styles.builderContainer}`}>
       <button type="button" onClick={handleBack} className={styles.backLink}>
-        <ChevronLeft size={16} />
-        Back to Templates
+        <ChevronLeftIcon size={16} />
+        {isEditingExisting ? "Back to Program" : "Back to Templates"}
       </button>
 
       <div className={styles.editHeader}>
         <div>
           <span className={styles.sectionEyebrow}>Program builder</span>
-          <h1 className={styles.title}>Customize your plan</h1>
+          <h1 className={styles.title}>
+            {isEditingExisting ? "Edit your plan" : "Customize your plan"}
+          </h1>
           <p className={styles.subtitle}>
             Set the schedule, then add the exercises for each session.
           </p>
@@ -289,7 +356,7 @@ const CreateProgram = () => {
           <div className={styles.programSettings}>
             <div className={styles.settingGroup}>
               <label className={styles.settingLabel}>
-                <Calendar size={14} />
+                <CalendarFullIcon size={14} />
                 Duration
               </label>
               <input
@@ -305,7 +372,7 @@ const CreateProgram = () => {
             </div>
             <div className={styles.settingGroup}>
               <label className={styles.settingLabel}>
-                <Clock size={14} />
+                <ClockIcon size={14} />
                 Frequency
               </label>
               <select
@@ -449,8 +516,10 @@ const CreateProgram = () => {
             {isSubmitting ? (
               <>
                 <Loader2 size={16} className={styles.spinner} />
-                Creating...
+                {isEditingExisting ? "Saving..." : "Creating..."}
               </>
+            ) : isEditingExisting ? (
+              "Save Changes"
             ) : (
               "Create Program"
             )}

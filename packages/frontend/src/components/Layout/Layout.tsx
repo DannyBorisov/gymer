@@ -1,16 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Scale, Pause } from "lucide-react";
 import {
-  Dumbbell,
-  LogOut,
-  Scale,
-  User,
-  ClipboardList,
-  Volume2,
-  Pause,
-  Home,
-  TrendingUp,
-} from "lucide-react";
+  ExitIcon,
+  VolumeHighIcon,
+  DumbbellOutlineIcon,
+  HouseOutlineIcon,
+  ClockOutlineIcon,
+  BarChartOutlineIcon,
+  UserOutlineIcon,
+} from "../../assets/icons";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
@@ -28,11 +27,11 @@ const getInitials = (name: string) => {
 };
 
 const navItems = [
-  { to: "/home", label: "Home", icon: Home },
-  { to: "/programs", label: "Programs", icon: Dumbbell },
-  { to: "/history", label: "History", icon: ClipboardList },
-  { to: "/analytics", label: "Analytics", icon: TrendingUp },
-  { to: "/profile", label: "Profile", icon: User },
+  { to: "/home", label: "Dashboard", icon: HouseOutlineIcon },
+  { to: "/programs", label: "Programs", icon: DumbbellOutlineIcon },
+  { to: "/history", label: "History", icon: ClockOutlineIcon },
+  { to: "/analytics", label: "Analytics", icon: BarChartOutlineIcon },
+  { to: "/profile", label: "Profile", icon: UserOutlineIcon },
 ];
 
 interface LayoutProps {
@@ -99,7 +98,7 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Desktop Sidebar */}
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
-          <Dumbbell size={24} />
+          <DumbbellOutlineIcon size={24} />
           <span>Gymerr</span>
         </div>
 
@@ -164,7 +163,7 @@ const Layout = ({ children }: LayoutProps) => {
                   </div>
                   <div className={styles.settingsRow}>
                     <div className={styles.settingsLabel}>
-                      <Volume2 size={16} />
+                      <VolumeHighIcon size={16} />
                       <span>Rest timer voice</span>
                     </div>
                     <div className={styles.durationToggle}>
@@ -181,7 +180,7 @@ const Layout = ({ children }: LayoutProps) => {
                   </div>
                 </div>
                 <button className={styles.signOutButton} onClick={logout}>
-                  <LogOut size={16} />
+                  <ExitIcon size={16} />
                   <span>Sign out</span>
                 </button>
               </div>

@@ -224,6 +224,18 @@ export class GoogleSheets {
     });
   }
 
+  async clear(
+    tokens: Tokens,
+    spreadsheetId: string,
+    range: string,
+  ): Promise<void> {
+    const sheets = this.getSheetsClient(tokens);
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range,
+    });
+  }
+
   async get(
     tokens: Tokens,
     spreadsheetId: string,

@@ -1,4 +1,4 @@
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { WarningIcon, SparklesOutlineIcon } from "../../assets/icons";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer/SwipeableDrawer";
 import styles from "./PlateauDrawer.module.css";
 
@@ -17,7 +17,7 @@ export const PlateauDrawer = ({ exercise, isOpen, onClose }: PlateauDrawerProps)
     <SwipeableDrawer isOpen={isOpen} onClose={onClose} dark>
       <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
         <div className={styles.iconWrapper}>
-          <AlertTriangle size={22} />
+          <WarningIcon size={22} />
         </div>
         <h2 className={styles.title}>{exercise} has plateaued</h2>
         <p className={styles.description}>
@@ -27,7 +27,7 @@ export const PlateauDrawer = ({ exercise, isOpen, onClose }: PlateauDrawerProps)
           close to your current ceiling.
         </p>
         <button type="button" className={styles.askAiBtn} disabled>
-          <Sparkles size={16} />
+          <SparklesOutlineIcon size={16} />
           <span>Ask AI for advice</span>
         </button>
         <span className={styles.comingSoon}>Coming soon</span>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, ChevronLeft } from "lucide-react";
+import { Plus } from "lucide-react";
+import { TrashIcon, ChevronLeftIcon } from "../../assets/icons";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
@@ -99,7 +100,7 @@ const QuickWorkout = () => {
   return (
     <div className={styles.container}>
       <button onClick={() => navigate("/home")} className={styles.backLink}>
-        <ChevronLeft size={16} />
+        <ChevronLeftIcon size={16} />
         Back
       </button>
 
@@ -141,7 +142,7 @@ const QuickWorkout = () => {
                     onClick={() => handleRemoveExercise(index)}
                     className={styles.removeBtn}
                   >
-                    <Trash2 size={14} />
+                    <TrashIcon size={14} />
                   </button>
                 </div>
 

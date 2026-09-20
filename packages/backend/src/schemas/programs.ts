@@ -79,6 +79,17 @@ export const CreateProgramBodySchema = z.object({
 });
 export type CreateProgramBodyType = z.infer<typeof CreateProgramBodySchema>;
 
+// ============ PUT /:id ============
+
+export const EditProgramParamsSchema = z.object({
+  id: z.string(),
+});
+export type EditProgramParamsType = z.infer<typeof EditProgramParamsSchema>;
+
+// Same shape as create — editing replaces the whole structural template.
+export const EditProgramBodySchema = CreateProgramBodySchema;
+export type EditProgramBodyType = z.infer<typeof EditProgramBodySchema>;
+
 // ============ PATCH /:id ============
 
 export const UpdateProgramParamsSchema = z.object({

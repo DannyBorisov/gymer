@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ArrowLeft, Dumbbell } from "lucide-react";
+import { ArrowLeftIcon, DumbbellOutlineIcon } from "../../assets/icons";
 import styles from "./LegalPage.module.css";
 
 type LegalDocument = "terms" | "privacy" | "delete-account";
@@ -115,11 +115,11 @@ const LegalPage = () => {
     <main className={styles.page}>
       <header className={styles.header}>
         <Link to="/" className={styles.brand} aria-label="Back to Gymerr home">
-          <span className={styles.brandIcon}><Dumbbell size={18} /></span>
+          <span className={styles.brandIcon}><DumbbellOutlineIcon size={18} /></span>
           <span>Gymerr</span>
         </Link>
         <Link to="/" className={styles.backLink}>
-          <ArrowLeft size={16} />
+          <ArrowLeftIcon size={16} />
           Home
         </Link>
       </header>

@@ -3,18 +3,20 @@ import { useNavigate } from "react-router-dom";
 import {
   Square,
   Check,
-  MessageSquare,
   Copy,
   Timer,
   Plus,
   MoreVertical,
   SkipForward,
-  History,
-  Clock,
   TrendingUp,
   Lightbulb,
-  X,
 } from "lucide-react";
+import {
+  BubbleIcon,
+  HistoryIcon,
+  ClockIcon,
+  CrossIcon,
+} from "../../assets/icons";
 import { useGetWorkoutTip } from "../../api/ai";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
@@ -25,6 +27,8 @@ import {
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
 import { ScrollableInput } from "../../components/ScrollableInput";
+import { Button } from "../../components/ui/Button";
+import { ProgressBar } from "../../components/ui/ProgressBar";
 import { formatTime, formatRestTimer } from "../../lib/time";
 import { updateExerciseName } from "../../utils/liveActivity";
 import { announceTime } from "../../utils/speech";
@@ -449,12 +453,12 @@ const ActiveWorkout = () => {
         <div className={styles.header}>
           <span className={styles.timer}>{formatTime(timer)}</span>
           <div className={styles.progress}>
-            <div className={styles.progressBar}>
-              <div
-                className={styles.progressFill}
-                style={{ width: `${(completedCount / totalSets) * 100}%` }}
-              />
-            </div>
+            <ProgressBar
+              value={completedCount}
+              max={totalSets}
+              className={styles.progressBar}
+              fillClassName={styles.progressFill}
+            />
             <span className={styles.progressText}>
               {completedCount}/{totalSets}
             </span>
@@ -488,7 +492,7 @@ const ActiveWorkout = () => {
                         setShowPreviousWorkout(true);
                       }}
                     >
-                      <History size={16} />
+                      <HistoryIcon size={16} />
                       <span>Previous workout</span>
                     </button>
                   )}
@@ -539,7 +543,7 @@ const ActiveWorkout = () => {
           <div className={styles.summaryStats}>
             <div className={styles.summaryStat}>
               <div className={styles.summaryStatIcon}>
-                <Clock size={18} />
+                <ClockIcon size={18} />
               </div>
               <div className={styles.summaryStatContent}>
                 <span className={styles.summaryStatValue}>
@@ -671,7 +675,7 @@ const ActiveWorkout = () => {
             onClick={() => setTipDismissed(true)}
             aria-label="Dismiss tip"
           >
-            <X size={14} />
+            <CrossIcon size={14} />
           </button>
         </div>
       )}
@@ -698,7 +702,7 @@ const ActiveWorkout = () => {
             onClick={() => setProgressionExercise(null)}
             aria-label="Dismiss"
           >
-            <X size={14} />
+            <CrossIcon size={14} />
           </button>
         </div>
       )}
@@ -768,7 +772,7 @@ const ActiveWorkout = () => {
                     }
                     className={styles.quickFillBtn}
                   >
-                    <History size={14} />
+                    <HistoryIcon size={14} />
                     Last: {prevStats.sets[currentSetIndex].weight}
                     {weightUnit} × {prevStats.sets[currentSetIndex].reps}
                   </button>
@@ -844,7 +848,7 @@ const ActiveWorkout = () => {
               {isWorkoutComplete ? (
                 <div className={styles.notesSection}>
                   <div className={styles.notesLabel}>
-                    <MessageSquare size={16} />
+                    <BubbleIcon size={16} />
                     <span>Notes</span>
                   </div>
                   <textarea
@@ -867,7 +871,7 @@ const ActiveWorkout = () => {
                     onClick={() => setShowNotes(!showNotes)}
                     className={styles.notesToggle}
                   >
-                    <MessageSquare size={16} />
+                    <BubbleIcon size={16} />
                     {showNotes ? "Hide notes" : "Add notes"}
                   </button>
 
@@ -890,17 +894,13 @@ const ActiveWorkout = () => {
 
             <div className={styles.buttonsContainer}>
               {isWorkoutComplete && (
-                <button
-                  onClick={handleStopWorkout}
-                  className={styles.backToProgram}
-                >
-                  Back to Program
-                </button>
+                <Button onClick={handleStopWorkout}>Back to Program</Button>
               )}
 
               {!isWorkoutComplete && (
                 <div className={styles.mainButtonsRow}>
-                  <button
+                  <Button
+                    icon={<Check size={24} />}
                     disabled={
                       !getRow(currentSet.rowIndex)?.weight ||
                       !getRow(currentSet.rowIndex)?.repsAchieved
@@ -915,13 +915,12 @@ const ActiveWorkout = () => {
                     }
                     className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
                   >
-                    <Check size={24} />
                     {isLastSet
                       ? "Complete workout"
                       : currentSetIndex === currentExerciseSets.length - 1
                         ? "Complete exercise"
                         : "Complete set"}
-                  </button>
+                  </Button>
 
                   <button
                     onClick={() =>
@@ -962,7 +961,7 @@ const ActiveWorkout = () => {
           <div className={styles.prevWorkoutHeaderInfo}>
             <h2 className={styles.prevWorkoutTitle}>Previous Workout</h2>
             <div className={styles.prevWorkoutMeta}>
-              <Clock size={14} />
+              <ClockIcon size={14} />
               <span>Week {Object.values(previousStats)[0]?.week}</span>
             </div>
           </div>
@@ -1051,14 +1050,9 @@ const ActiveWorkout = () => {
             />
           </div>
 
-          <button
-            type="button"
-            className={styles.addSetConfirmBtn}
-            onClick={handleConfirmAddSet}
-            disabled={isAddingSet}
-          >
+          <Button onClick={handleConfirmAddSet} disabled={isAddingSet}>
             {isAddingSet ? "Adding..." : "Add Set"}
-          </button>
+          </Button>
         </div>
       </SwipeableDrawer>
     </div>

@@ -1,13 +1,12 @@
 import { useState, useMemo } from "react";
+import { Check, Loader2 } from "lucide-react";
 import {
-  LogOut,
-  Bell,
-  Volume2,
-  Check,
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+  ExitIcon,
+  AlarmIcon,
+  VolumeHighIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from "../../assets/icons";
 import {
   LineChart,
   Line,
@@ -343,9 +342,9 @@ const Profile = () => {
                   >
                     <span>Recent entries</span>
                     {showWeightHistory ? (
-                      <ChevronUp size={16} />
+                      <ChevronUpIcon size={16} />
                     ) : (
-                      <ChevronDown size={16} />
+                      <ChevronDownIcon size={16} />
                     )}
                   </button>
 
@@ -430,7 +429,7 @@ const Profile = () => {
           {/* Weight Reminder */}
           <div className={styles.settingsRow}>
             <div className={styles.settingsLabel}>
-              <Bell size={18} />
+              <AlarmIcon size={18} />
               <div className={styles.settingsText}>
                 <span>Daily weight reminder</span>
                 <span className={styles.settingsDescription}>
@@ -459,7 +458,7 @@ const Profile = () => {
           {/* Voice Announcements for Rest Timer */}
           <div className={styles.settingsRow}>
             <div className={styles.settingsLabel}>
-              <Volume2 size={18} />
+              <VolumeHighIcon size={18} />
               <div className={styles.settingsText}>
                 <span>Rest timer voice</span>
                 <span className={styles.settingsDescription}>
@@ -502,7 +501,7 @@ const Profile = () => {
 
       {/* Sign out */}
       <button className={styles.signOutButton} onClick={logout}>
-        <LogOut size={18} />
+        <ExitIcon size={18} />
         <span>Sign out</span>
       </button>
     </div>

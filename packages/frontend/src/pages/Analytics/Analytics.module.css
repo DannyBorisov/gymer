@@ -296,13 +296,13 @@
 }
 
 .progressPositive {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  background: rgba(var(--color-green-500-rgb), 0.15);
+  color: var(--accent-green);
 }
 
 .progressNegative {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  background: rgba(var(--color-red-500-rgb), 0.15);
+  color: var(--accent-red);
 }
 
 .expandIcon {
@@ -355,7 +355,7 @@
 }
 
 .entryRowBest {
-  background: rgba(234, 179, 8, 0.1);
+  background: rgba(var(--color-amber-500-rgb), 0.1);
   margin: 0 -16px;
   padding: 8px 16px;
   border-radius: 4px;
@@ -381,15 +381,15 @@
   gap: 4px;
   font-size: 14px;
   font-weight: 600;
-  color: #eab308;
+  color: var(--accent-amber);
 }
 
 .trophyIcon {
-  color: #eab308;
+  color: var(--accent-amber);
 }
 
 .trophySmall {
-  color: #eab308;
+  color: var(--accent-amber);
 }
 
 .prDate {
@@ -415,12 +415,12 @@
   width: 100%;
   padding: 14px;
   margin-bottom: 1rem;
-  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+  background: linear-gradient(135deg, var(--accent-amber) 0%, #ca8a04 100%);
   border: none;
   border-radius: 12px;
   font-size: 15px;
   font-weight: 600;
-  color: #000;
+  color: var(--color-black);
   cursor: pointer;
   transition: opacity 0.15s ease;
 }
@@ -440,7 +440,7 @@
 }
 
 .weightTrophy {
-  color: #eab308;
+  color: var(--accent-amber);
   margin-bottom: 0.5rem;
 }
 
@@ -493,7 +493,7 @@
 
 .weightInput:focus {
   outline: none;
-  border-color: #eab308;
+  border-color: var(--accent-amber);
 }
 
 .weightUnitLabel {
@@ -526,12 +526,12 @@
   justify-content: center;
   gap: 0.5rem;
   padding: 0.875rem;
-  background: #eab308;
+  background: var(--accent-amber);
   border: none;
   border-radius: 10px;
   font-size: 0.9375rem;
   font-weight: 600;
-  color: #000;
+  color: var(--color-black);
   cursor: pointer;
 }
 

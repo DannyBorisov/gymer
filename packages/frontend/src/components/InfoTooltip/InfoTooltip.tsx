@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { HelpCircle } from "lucide-react";
+import { QuestionCircleIcon } from "../../assets/icons";
 import styles from "./InfoTooltip.module.css";
 
 export interface InfoTooltipProps {
@@ -37,7 +37,7 @@ export const InfoTooltip = ({ text, label = "More info" }: InfoTooltipProps) => 
         aria-label={label}
         onClick={() => setIsOpen((prev) => !prev)}
       >
-        <HelpCircle size={14} />
+        <QuestionCircleIcon size={14} />
       </button>
       <span
         className={`${styles.popup} ${isOpen ? styles.popupOpen : ""}`}
