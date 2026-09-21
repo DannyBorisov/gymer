@@ -1,4 +1,9 @@
-import type { Program, ProgramWorkout, Exercise, Frequency } from "../types/program";
+import type {
+  Program,
+  ProgramWorkout,
+  Exercise,
+  Frequency,
+} from "../types/program";
 import type { Workout as FetchedWorkout } from "../api/workouts";
 
 interface FetchedProgram {
@@ -8,7 +13,9 @@ interface FetchedProgram {
 }
 
 const parseRir = (rirDisplay: string): number =>
-  rirDisplay.trim().toLowerCase() === "to failure" ? 0 : Number(rirDisplay) || 0;
+  rirDisplay.trim().toLowerCase() === "to failure"
+    ? 0
+    : Number(rirDisplay) || 0;
 
 // Workout occurrences beyond the base template are suffixed " #N" by
 // buildProgramRows when there are more sessions per week than distinct

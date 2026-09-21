@@ -1,5 +1,5 @@
 import { OnboardingModel } from "./OnboardingModel.js";
-import { AiTipModel } from "./AiTipModel.js";
+import { AiGenerationModel } from "./AiGenerationModel.js";
 import { ExerciseModel } from "./ExerciseModel.js";
 
 /**
@@ -8,15 +8,21 @@ import { ExerciseModel } from "./ExerciseModel.js";
  * @example
  * const row = await prisma.onboarding.get(email);
  * await prisma.onboarding.upsert(email, { weight, height, age, gender, goal, isComplete });
- * await prisma.aiTips.create(email, { programName, workoutName, tip });
+ * await prisma.aiGenerations.create(email, { type: "CouchCue", content: tip });
  */
 export const prisma = {
   onboarding: new OnboardingModel(),
-  aiTips: new AiTipModel(),
+  aiGenerations: new AiGenerationModel(),
   exercises: new ExerciseModel(),
 };
 
 export type { OnboardingInput } from "./OnboardingModel.js";
-export type { AiTipInput } from "./AiTipModel.js";
+export type { AiGenerationInput } from "./AiGenerationModel.js";
 export type { ExerciseInput } from "./ExerciseModel.js";
-export { Gender, Goal, ExperienceLevel, MuscleGroup } from "@prisma/client";
+export {
+  Gender,
+  Goal,
+  ExperienceLevel,
+  MuscleGroup,
+  AiGenerationType,
+} from "@prisma/client";

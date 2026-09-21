@@ -1,10 +1,11 @@
 import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
-import { createGSQL, prisma } from "../dal/index.js";
+import { createGSQL, prisma, AiGenerationType } from "../dal/index.js";
 import type { CreateProgramInput } from "../dal/gsql/types.js";
 import type {
   WorkoutTipBodyType,
   GenerateProgramBodyType,
+  PlateauAdviceBodyType,
 } from "../schemas/ai.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
@@ -24,6 +25,12 @@ const PROGRAM_GENERATOR_PROMPT = readFileSync(
   programGeneratorPromptPath,
   "utf-8",
 );
+
+const plateauAdvicePromptPath = join(
+  __dirname,
+  "../agents/plateau-advice.md",
+);
+const PLATEAU_ADVICE_PROMPT = readFileSync(plateauAdvicePromptPath, "utf-8");
 
 export const getWorkoutTip: RouteHandler<{
   Body: WorkoutTipBodyType;
@@ -103,9 +110,13 @@ export const getWorkoutTip: RouteHandler<{
 
     // 4. Get previous tips to avoid repetition
     const previousTips = user?.email
-      ? await prisma.aiTips.findRecent(user.email, 10)
+      ? await prisma.aiGenerations.findRecent(
+          user.email,
+          AiGenerationType.CouchCue,
+          10,
+        )
       : [];
-    const previousTipsList = previousTips.map((t) => t.tip);
+    const previousTipsList = previousTips.map((t) => t.content);
 
     // Build context for the AI
     const workoutContext = {
@@ -150,10 +161,9 @@ Based on this data, provide ONE short, insightful tip for today's workout. Make 
     const tip = await this.genai.generateWorkoutTip(fullPrompt);
     console.log(tip);
     if (user?.email) {
-      await prisma.aiTips.create(user.email, {
-        programName: program.name,
-        workoutName,
-        tip,
+      await prisma.aiGenerations.create(user.email, {
+        type: AiGenerationType.CouchCue,
+        content: tip,
       });
     }
 
@@ -161,6 +171,79 @@ Based on this data, provide ONE short, insightful tip for today's workout. Make 
   } catch (error) {
     this.log.error(error);
     return reply.status(500).send({ error: "Failed to generate workout tip" });
+  }
+};
+
+interface PlateauAdviceResponse {
+  advice: string;
+}
+
+export const getPlateauAdvice: RouteHandler<{
+  Body: PlateauAdviceBodyType;
+}> = async function (request, reply) {
+  const { tokens, user } = getAuthSession(request);
+  const { exercise } = request.body;
+
+  try {
+    const gsql = createGSQL(tokens, this.sheets);
+    const progression = await gsql.analytics.getProgression();
+    const exerciseData = progression.find((p) => p.exercise === exercise);
+
+    if (!exerciseData || exerciseData.entries.length === 0) {
+      return reply.status(404).send({ error: "Exercise not found" });
+    }
+
+    // Most recent sessions first is easier for the model to reason about
+    // as "what's happened lately", capped so the prompt stays small.
+    const recentSessions = [...exerciseData.entries]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 8)
+      .map((entry) => ({
+        date: entry.date,
+        weight: entry.weight,
+        reps: entry.reps,
+        sets: entry.sets,
+        e1rm: entry.e1rm,
+      }));
+
+    const bodyWeightEntries = await gsql.bodyWeight.findAll({
+      orderBy: { date: "desc" },
+    });
+    const currentBodyWeight = bodyWeightEntries[0]?.weight ?? null;
+
+    const userPrompt = `
+EXERCISE: ${exercise}
+
+CURRENT BODY WEIGHT: ${currentBodyWeight ?? "unknown"}
+
+RECENT SESSIONS (most recent first):
+${JSON.stringify(recentSessions, null, 2)}
+
+This exercise has plateaued — no new estimated-1RM high across the most
+recent sessions. Explain briefly why, and give one concrete change to try
+next session.
+`;
+    const fullPrompt = `${PLATEAU_ADVICE_PROMPT}\n\n${userPrompt}`;
+
+    const result =
+      await this.genai.generateProgram<PlateauAdviceResponse>(fullPrompt);
+    const advice = result.advice?.trim();
+
+    if (!advice) {
+      throw new Error("Gemini returned plateau advice without text");
+    }
+
+    if (user?.email) {
+      await prisma.aiGenerations.create(user.email, {
+        type: AiGenerationType.PlateauAdvice,
+        content: advice,
+      });
+    }
+
+    return { advice };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to generate plateau advice" });
   }
 };
 
@@ -188,6 +271,18 @@ export const generateAiProgram: RouteHandler<{
         .send({ error: "Complete onboarding before generating a program" });
     }
 
+    const exercises = await prisma.exercises.findAll();
+    const exercisesByMuscleGroup = exercises.reduce<Record<string, string[]>>(
+      (acc, ex) => {
+        const label = ex.variant.length
+          ? `${ex.name} (${ex.variant.join(" / ")})`
+          : ex.name;
+        (acc[ex.muscleGroup] ??= []).push(label);
+        return acc;
+      },
+      {},
+    );
+
     const userPrompt = `
 USER PROFILE:
 ${JSON.stringify(
@@ -206,6 +301,10 @@ ${JSON.stringify(
 PROGRAM PARAMETERS (chosen by the user):
 ${JSON.stringify({ durationWeeks, frequency }, null, 2)}
 
+AVAILABLE EXERCISES (grouped by muscle group — parentheses list available
+variants; only pick exercises and variants from this catalog):
+${JSON.stringify(exercisesByMuscleGroup, null, 2)}
+
 Design a training program for this user.
 `;
     const fullPrompt = `${PROGRAM_GENERATOR_PROMPT}\n\n---\n\n${userPrompt}`;
@@ -215,6 +314,11 @@ Design a training program for this user.
 
     const gsql = createGSQL(tokens, this.sheets);
     const program = await gsql.programs.create(generated);
+
+    await prisma.aiGenerations.create(user.email, {
+      type: AiGenerationType.CreateProgram,
+      content: JSON.stringify(generated),
+    });
 
     return { success: true, program };
   } catch (error) {

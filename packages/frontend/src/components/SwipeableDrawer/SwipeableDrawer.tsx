@@ -6,6 +6,7 @@ interface SwipeableDrawerProps {
   onClose: () => void;
   children: React.ReactNode;
   maxHeight?: string;
+  minHeight?: string;
   dark?: boolean;
 }
 
@@ -14,6 +15,7 @@ export const SwipeableDrawer = ({
   onClose,
   children,
   maxHeight = "85vh",
+  minHeight,
   dark = false,
 }: SwipeableDrawerProps) => {
   const [dragY, setDragY] = useState(0);
@@ -118,6 +120,7 @@ export const SwipeableDrawer = ({
         className={`${styles.drawer} ${isFullHeight ? styles.drawerFullHeight : ""} ${dark ? styles.dark : ""}`}
         style={{
           maxHeight: isFullHeight ? undefined : maxHeight,
+          minHeight: isFullHeight ? undefined : minHeight,
           transform: isDragging ? `translateY(${dragY}px)` : "",
           transition: isDragging ? "none" : "",
         }}

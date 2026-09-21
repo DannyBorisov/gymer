@@ -22,6 +22,7 @@ interface WorkoutDrawerProps {
   onClose: () => void;
   children: React.ReactNode;
   forceCollapsed?: boolean;
+  closeOnCollapse?: boolean;
   onPeekTap?: () => void;
   peekContent?: {
     timer: string;
@@ -31,13 +32,13 @@ interface WorkoutDrawerProps {
 
 export const WorkoutDrawer = ({
   isOpen,
-  onClose: _onClose,
+  onClose,
   children,
   forceCollapsed,
+  closeOnCollapse,
   onPeekTap,
   peekContent,
 }: WorkoutDrawerProps) => {
-  void _onClose; // Kept for API compatibility
   const [isExpanded, setIsExpanded] = useState(!forceCollapsed);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -70,14 +71,23 @@ export const WorkoutDrawer = ({
     }
   };
 
+  // Collapsing normally just shrinks to the peek strip, but once the workout
+  // is complete there's nothing left to peek at — go straight to closed.
+  const collapse = () => {
+    if (closeOnCollapse) {
+      onClose();
+    } else {
+      setIsExpanded(false);
+    }
+  };
+
   const handleTouchEnd = () => {
     if (!isDragging) return;
 
     const threshold = 100;
 
     if (isExpanded && dragY > threshold) {
-      // Collapse
-      setIsExpanded(false);
+      collapse();
     } else if (!isExpanded && dragY < -threshold) {
       // Expand
       setIsExpanded(true);
@@ -104,7 +114,7 @@ export const WorkoutDrawer = ({
       {/* Backdrop */}
       <div
         className={`${styles.backdrop} ${isExpanded ? styles.backdropVisible : ""}`}
-        onClick={() => setIsExpanded(false)}
+        onClick={collapse}
       />
 
       {/* Drawer */}

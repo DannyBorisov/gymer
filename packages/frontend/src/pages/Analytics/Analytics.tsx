@@ -10,16 +10,7 @@ import {
   CrossIcon,
   WarningIcon,
 } from "../../assets/icons";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { Chart } from "../../components/ui/Chart";
 import {
   useGetAnalyticsProgression,
   type ProgressionEntry,
@@ -40,7 +31,7 @@ const Analytics = () => {
   const { weightUnit } = useSettings();
   const [activeTab, setActiveTab] = useState<TabType>("strength");
   const { data: onboardingData } = useGetOnboarding();
-  const isPlateauEligible = PLATEAU_ELIGIBLE_GOALS.has(onboardingData?.onboarding?.goal ?? "");
+  const isPlateauEligible = true||PLATEAU_ELIGIBLE_GOALS.has(onboardingData?.onboarding?.goal ?? "");
 
   // Progression state
   const { data: progressionData, isLoading: isLoadingProgression } = useGetAnalyticsProgression();
@@ -58,7 +49,7 @@ const Analytics = () => {
   // itself flip a genuinely improving exercise into "plateaued"; the stall
   // has to actually persist right up to now.
   const PLATEAU_MIN_SESSIONS = 4;
-  const PLATEAU_STALLED_STREAK = 2;
+  const PLATEAU_STALLED_STREAK = 4;
 
   const detectPlateau = (entries: ProgressionEntry[]) => {
     const withE1rm = entries.filter((e) => e.e1rm);
@@ -342,64 +333,19 @@ const Analytics = () => {
                         </div>
                         {chartData.length >= 2 ? (
                           <div className={styles.chartContainer}>
-                            <ResponsiveContainer width="100%" height={160}>
-                              <LineChart
-                                data={chartData}
-                                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                              >
-                                <XAxis
-                                  dataKey="date"
-                                  axisLine={false}
-                                  tickLine={false}
-                                  tick={{ fontSize: 10, fill: "#71717a" }}
-                                  interval="preserveStartEnd"
-                                />
-                                <YAxis
-                                  domain={["dataMin - 2", "dataMax + 2"]}
-                                  axisLine={false}
-                                  tickLine={false}
-                                  tick={{ fontSize: 10, fill: "#71717a" }}
-                                  tickFormatter={(v) => v.toFixed(0)}
-                                  width={40}
-                                />
-                                <Tooltip
-                                  contentStyle={{
-                                    background: "var(--bg-secondary)",
-                                    border: "1px solid var(--border-default)",
-                                    borderRadius: "8px",
-                                    padding: "8px 12px",
-                                    fontSize: "12px",
-                                  }}
-                                  labelStyle={{
-                                    color: "var(--text-muted)",
-                                    marginBottom: "4px",
-                                  }}
-                                  itemStyle={{ color: "var(--text-primary)" }}
-                                  formatter={(value) => [
-                                    `${Number(value).toFixed(1)} ${weightUnit}`,
-                                    "Estimated 1RM",
-                                  ]}
-                                />
-                                <Line
-                                  type="monotone"
-                                  dataKey="e1rm"
-                                  stroke="#22c55e"
-                                  strokeWidth={2}
-                                  dot={{
-                                    fill: "var(--bg-primary)",
-                                    stroke: "#22c55e",
-                                    strokeWidth: 2,
-                                    r: 3,
-                                  }}
-                                  activeDot={{
-                                    fill: "#22c55e",
-                                    stroke: "var(--bg-primary)",
-                                    strokeWidth: 2,
-                                    r: 5,
-                                  }}
-                                />
-                              </LineChart>
-                            </ResponsiveContainer>
+                            <Chart
+                              type="line"
+                              data={chartData}
+                              xKey="date"
+                              series={[{ dataKey: "e1rm", color: "#22c55e" }]}
+                              height={160}
+                              yDomain={["dataMin - 2", "dataMax + 2"]}
+                              yTickFormatter={(v) => v.toFixed(0)}
+                              tooltipFormatter={(value) => [
+                                `${Number(value).toFixed(1)} ${weightUnit}`,
+                                "Estimated 1RM",
+                              ]}
+                            />
                           </div>
                         ) : (
                           <div className={styles.notEnoughData}>
@@ -523,50 +469,18 @@ const Analytics = () => {
                         </div>
                         {chartData.length >= 2 ? (
                           <div className={styles.chartContainer}>
-                            <ResponsiveContainer width="100%" height={160}>
-                              <BarChart
-                                data={chartData}
-                                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                              >
-                                <XAxis
-                                  dataKey="date"
-                                  axisLine={false}
-                                  tickLine={false}
-                                  tick={{ fontSize: 10, fill: "#71717a" }}
-                                  interval="preserveStartEnd"
-                                />
-                                <YAxis
-                                  axisLine={false}
-                                  tickLine={false}
-                                  tick={{ fontSize: 10, fill: "#71717a" }}
-                                  tickFormatter={(v) => `${Math.round(v / 1000)}k`}
-                                  width={40}
-                                />
-                                <Tooltip
-                                  contentStyle={{
-                                    background: "var(--bg-secondary)",
-                                    border: "1px solid var(--border-default)",
-                                    borderRadius: "8px",
-                                    padding: "8px 12px",
-                                    fontSize: "12px",
-                                  }}
-                                  labelStyle={{
-                                    color: "var(--text-muted)",
-                                    marginBottom: "4px",
-                                  }}
-                                  itemStyle={{ color: "var(--text-primary)" }}
-                                  formatter={(value) => [
-                                    `${Number(value).toLocaleString()} ${weightUnit}`,
-                                    "Volume",
-                                  ]}
-                                />
-                                <Bar
-                                  dataKey="volume"
-                                  fill="var(--accent-green)"
-                                  radius={[4, 4, 0, 0]}
-                                />
-                              </BarChart>
-                            </ResponsiveContainer>
+                            <Chart
+                              type="bar"
+                              data={chartData}
+                              xKey="date"
+                              series={[{ dataKey: "volume" }]}
+                              height={160}
+                              yTickFormatter={(v) => `${Math.round(v / 1000)}k`}
+                              tooltipFormatter={(value) => [
+                                `${Number(value).toLocaleString()} ${weightUnit}`,
+                                "Volume",
+                              ]}
+                            />
                           </div>
                         ) : (
                           <div className={styles.notEnoughData}>

@@ -7,15 +7,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "../../assets/icons";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-  ReferenceLine,
-} from "recharts";
+import { Chart } from "../../components/ui/Chart";
 import { useGetBodyWeight, useSaveBodyWeight } from "../../api/profile";
 import { parseDate } from "../../lib/date";
 import { useAuth } from "../../contexts/AuthContext";
@@ -266,70 +258,20 @@ const Profile = () => {
               {/* Weight Chart */}
               {chartData.length >= 2 && (
                 <div className={styles.chartContainer}>
-                  <ResponsiveContainer width="100%" height={120}>
-                    <LineChart
-                      data={chartData}
-                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                    >
-                      <XAxis
-                        dataKey="displayDate"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fill: "#71717a" }}
-                        interval="preserveStartEnd"
-                      />
-                      <YAxis
-                        domain={["dataMin - 0.5", "dataMax + 0.5"]}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fill: "#71717a" }}
-                        tickFormatter={(v) => v.toFixed(1)}
-                        width={45}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          background: "var(--bg-secondary)",
-                          border: "1px solid var(--border-default)",
-                          borderRadius: "8px",
-                          padding: "8px 12px",
-                          fontSize: "12px",
-                        }}
-                        labelStyle={{
-                          color: "var(--text-muted)",
-                          marginBottom: "4px",
-                        }}
-                        itemStyle={{ color: "var(--text-primary)" }}
-                        formatter={(value) => [
-                          `${Number(value).toFixed(1)} ${weightUnit}`,
-                          "Weight",
-                        ]}
-                      />
-                      <ReferenceLine
-                        y={avgWeight}
-                        stroke="var(--text-muted)"
-                        strokeDasharray="4 4"
-                        strokeWidth={1}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="weight"
-                        stroke="var(--accent-green)"
-                        strokeWidth={2}
-                        dot={{
-                          fill: "var(--bg-primary)",
-                          stroke: "var(--accent-green)",
-                          strokeWidth: 2,
-                          r: 3,
-                        }}
-                        activeDot={{
-                          fill: "var(--accent-green)",
-                          stroke: "var(--bg-primary)",
-                          strokeWidth: 2,
-                          r: 5,
-                        }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <Chart
+                    type="line"
+                    data={chartData}
+                    xKey="displayDate"
+                    series={[{ dataKey: "weight" }]}
+                    height={120}
+                    yDomain={["dataMin - 0.5", "dataMax + 0.5"]}
+                    yTickFormatter={(v) => v.toFixed(1)}
+                    tooltipFormatter={(value) => [
+                      `${Number(value).toFixed(1)} ${weightUnit}`,
+                      "Weight",
+                    ]}
+                    referenceValue={avgWeight}
+                  />
                 </div>
               )}
 

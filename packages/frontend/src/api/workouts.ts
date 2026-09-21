@@ -22,6 +22,7 @@ export interface Workout {
   date?: string;
   duration?: string;
   exercises: WorkoutExercise[];
+  programName?: string;
 }
 
 export interface QuickWorkoutSet {

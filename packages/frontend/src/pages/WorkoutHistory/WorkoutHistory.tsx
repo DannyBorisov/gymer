@@ -24,7 +24,7 @@ const WorkoutHistory = () => {
 
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
   const [groupMode, setGroupMode] = useState<
-    "none" | "week" | "month" | "workout"
+    "none" | "week" | "month" | "workout" | "program"
   >("none");
 
   const formatDateDisplay = (dateStr: string) => {
@@ -87,10 +87,12 @@ const WorkoutHistory = () => {
           ? `Week ${workout.week}`
           : groupMode === "workout"
             ? workout.name
-            : parseDate(workout.date!).toLocaleDateString("en-US", {
-                month: "long",
-                year: "numeric",
-              });
+            : groupMode === "program"
+              ? workout.programName || "Unknown Program"
+              : parseDate(workout.date!).toLocaleDateString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                });
 
       let index = groupIndexByLabel[label];
       if (index === undefined) {
@@ -187,9 +189,9 @@ const WorkoutHistory = () => {
               {(
                 [
                   { mode: "none", label: "Date" },
-                  { mode: "week", label: "Week" },
                   { mode: "month", label: "Month" },
                   { mode: "workout", label: "Workout" },
+                  { mode: "program", label: "Program" },
                 ] as const
               ).map(({ mode, label }) => (
                 <button
@@ -235,15 +237,17 @@ const WorkoutHistory = () => {
                             ? formatDateDisplay(workout.date!)
                             : workout.name}
                         </span>
+                        {groupMode !== "program" && workout.programName && (
+                          <span className={styles.programName}>
+                            {workout.programName}
+                          </span>
+                        )}
                         <span className={styles.workoutMeta}>
                           {workout.exercises.length} exercise
                           {workout.exercises.length !== 1 ? "s" : ""}
                           {workout.duration &&
                             ` · ${formatDuration(workout.duration)}`}
                         </span>
-                      </div>
-                      <div className={styles.weekBadge}>
-                        Week {workout.week}
                       </div>
                     </button>
                   ))}
@@ -274,8 +278,6 @@ const WorkoutHistory = () => {
                       <span>{formatDuration(selectedWorkout.duration)}</span>
                     </>
                   )}
-                  <span className={styles.metaDot}>·</span>
-                  <span>Week {selectedWorkout.week}</span>
                 </div>
               </div>
             </div>

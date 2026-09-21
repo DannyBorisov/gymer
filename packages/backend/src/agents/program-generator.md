@@ -68,22 +68,16 @@ Rules:
   down toward 1-2 for advanced trainees and up toward 3-4 for beginners
   or older users prioritizing joint health.
 
-EXERCISE NAMING:
-Every exercise `name` must fully identify the equipment as part of the name
-itself — e.g. "Barbell Bench Press", "Dumbbell Bench Press", "Seated Cable
-Row", "Lat Pulldown", "Bulgarian Split Squat" — so the user knows exactly
-what to use without guessing. Never output a bare movement word like "Row",
-"Press", "Curl", "Extension", "Squat", or "Lunge" on its own; the equipment
-belongs in the name, not appended as an afterthought.
-
-Only set the `variant` field, e.g. `variant: "Wide Grip"` on "Lat Pulldown"
-or `variant: "Neutral Grip"` on "Pull-up", when it's a genuinely meaningful
-distinction on an exercise that would otherwise be ambiguous between similar
-setups — grip width, attachment type, or single- vs double-arm. Use this
-sparingly: most exercises need no `variant` at all once the equipment is in
-the name — omit the field entirely rather than adding one for the sake of
-it. Never use `variant` as a substitute for naming the equipment (e.g.
-`name: "Row", variant: "Barbell"` is wrong — write `name: "Barbell Row"`
-instead, with no variant).
+EXERCISE SELECTION:
+The prompt includes an AVAILABLE EXERCISES catalog, grouped by muscle group,
+where each entry's parentheses list that exercise's available variants.
+Every exercise you output must be picked from this catalog — never invent
+an exercise or variant that isn't listed. Set `name` to the exact catalog
+name (fully identifies the equipment already, e.g. "Barbell Bench Press",
+"Lat Pulldown") and, only when the catalog lists variants for it and one is
+a meaningful fit (grip width, attachment type, single- vs double-arm), set
+`variant` to one of those exact listed variants. Omit `variant` entirely
+when the catalog lists none, or none is a meaningful fit for this exercise
+in this program.
 
 Respond with the JSON object only.

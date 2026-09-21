@@ -249,6 +249,29 @@
   color: var(--text-primary);
 }
 
+.generateAiBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: var(--accent-green-soft);
+  border: 1px solid var(--accent-green);
+  border-radius: var(--radius-lg);
+  color: var(--accent-green);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: var(--touch-target);
+}
+
+.generateAiBtn:hover {
+  filter: brightness(1.05);
+}
+
 /* Form */
 .form {
   display: flex;

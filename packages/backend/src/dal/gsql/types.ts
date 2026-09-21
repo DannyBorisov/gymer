@@ -9,6 +9,17 @@ export interface CreateBodyWeightInput {
   date?: Date; // Defaults to today
 }
 
+// ============ User Exercises ============
+export interface UserExercise {
+  name: string;
+  muscleGroup: string;
+}
+
+export interface CreateUserExerciseInput {
+  name: string;
+  muscleGroup: string;
+}
+
 // ============ Program Models ============
 
 export interface Set {

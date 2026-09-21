@@ -8,8 +8,9 @@ import { formatTime } from "../../lib/time";
 const WorkoutDrawerOverlay = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { activeWorkout, workoutData, timer, currentExerciseIndex } =
+  const { activeWorkout, workoutData, timer, currentExerciseIndex, duration } =
     useWorkout();
+  const isWorkoutComplete = duration !== null;
   const isWorkoutRoute = location.pathname === "/workout";
 
   const handleClose = () => {
@@ -37,6 +38,7 @@ const WorkoutDrawerOverlay = () => {
       isOpen={shouldShowDrawer}
       onClose={handleClose}
       forceCollapsed={!isWorkoutRoute && !!activeWorkout}
+      closeOnCollapse={isWorkoutComplete}
       onPeekTap={!isWorkoutRoute ? handlePeekTap : undefined}
       peekContent={
         activeWorkout

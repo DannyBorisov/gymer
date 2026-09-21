@@ -3,6 +3,7 @@ import { BodyWeightModel } from './models/BodyWeightModel.js';
 import { ProgramModel } from './models/ProgramModel.js';
 import { QuickWorkoutModel } from './models/QuickWorkoutModel.js';
 import { AnalyticsModel } from './models/AnalyticsModel.js';
+import { UserExerciseModel } from './models/UserExerciseModel.js';
 import type { AuthTokens } from './models/BaseModel.js';
 
 /**
@@ -28,6 +29,10 @@ import type { AuthTokens } from './models/BaseModel.js';
  * // Analytics
  * const bests = await gsql.analytics.getBests();
  * const progression = await gsql.analytics.getProgression();
+ *
+ * // User Exercises
+ * const exercises = await gsql.userExercises.findAll();
+ * await gsql.userExercises.create({ name, muscleGroup });
  * ```
  */
 export class GSQL {
@@ -35,12 +40,14 @@ export class GSQL {
   public readonly programs: ProgramModel;
   public readonly quickWorkouts: QuickWorkoutModel;
   public readonly analytics: AnalyticsModel;
+  public readonly userExercises: UserExerciseModel;
 
   constructor(tokens: AuthTokens, sheets: GoogleSheets) {
     this.bodyWeight = new BodyWeightModel(sheets, tokens);
     this.programs = new ProgramModel(sheets, tokens);
     this.quickWorkouts = new QuickWorkoutModel(sheets, tokens);
     this.analytics = new AnalyticsModel(sheets, tokens);
+    this.userExercises = new UserExerciseModel(sheets, tokens);
   }
 }
 
@@ -83,4 +90,7 @@ export type {
   ExerciseBest,
   ExerciseProgression,
   ExerciseProgressionEntry,
+  // User Exercises
+  UserExercise,
+  CreateUserExerciseInput,
 } from './types.js';

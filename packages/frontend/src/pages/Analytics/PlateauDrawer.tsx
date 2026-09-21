@@ -1,5 +1,6 @@
 import { WarningIcon, SparklesOutlineIcon } from "../../assets/icons";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer/SwipeableDrawer";
+import { useGetPlateauAdvice } from "../../api/ai";
 import styles from "./PlateauDrawer.module.css";
 
 export interface PlateauDrawerProps {
@@ -10,9 +11,11 @@ export interface PlateauDrawerProps {
 
 /**
  * Explains what "Plateau" means on an exercise card, with an "Ask AI"
- * action reserved for later — UI only for now, no backend call yet.
+ * action that fetches a short, data-grounded suggestion from the backend.
  */
 export const PlateauDrawer = ({ exercise, isOpen, onClose }: PlateauDrawerProps) => {
+  const { mutate, data, isPending } = useGetPlateauAdvice();
+
   return (
     <SwipeableDrawer isOpen={isOpen} onClose={onClose} dark>
       <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
@@ -26,11 +29,22 @@ export const PlateauDrawer = ({ exercise, isOpen, onClose }: PlateauDrawerProps)
           or take a deload — or it could just be normal fluctuation if you're
           close to your current ceiling.
         </p>
-        <button type="button" className={styles.askAiBtn} disabled>
+        {data?.advice && <p className={styles.advice}>{data.advice}</p>}
+        <button
+          type="button"
+          className={styles.askAiBtn}
+          disabled={isPending || !!data?.advice}
+          onClick={() => mutate({ exercise })}
+        >
           <SparklesOutlineIcon size={16} />
-          <span>Ask AI for advice</span>
+          <span>
+            {isPending
+              ? "Thinking..."
+              : data?.advice
+                ? "Advice ready"
+                : "Ask AI for advice"}
+          </span>
         </button>
-        <span className={styles.comingSoon}>Coming soon</span>
       </div>
     </SwipeableDrawer>
   );

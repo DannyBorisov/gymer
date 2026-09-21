@@ -763,11 +763,14 @@
     "variant": []
   },
   {
-    "name": "Dumbbell Press",
+    "name":"Overhead Press",
+    "muscleGroup": "SHOULDERS",
+    "variant": []
+  },
+  {
+    "name": "Dumbbell Press (Close Grip)",
     "muscleGroup": "TRICEPS",
-    "variant": [
-      "Close Grip"
-    ]
+    "variant": []
   },
   {
     "name": "Cable Rope High Pulley Tricep Extension",
@@ -795,11 +798,9 @@
     "variant": []
   },
   {
-    "name": "Barbell Incline Bench Press",
+    "name": "Barbell Incline Bench Press (Close Grip)",
     "muscleGroup": "TRICEPS",
-    "variant": [
-      "Close Grip"
-    ]
+    "variant": []
   },
   {
     "name": "Cable Rope Tricep Extension",
@@ -845,6 +846,11 @@
     "variant": [
       "Reverse Grip"
     ]
+  },
+  {
+    "name": "Barbell Skull Crusher",
+    "muscleGroup": "TRICEPS",
+    "variant": []
   },
   {
     "name": "EZ Bar French Press",
@@ -2614,11 +2620,9 @@
     "variant": []
   },
   {
-    "name": "Smith Machine Bench Press",
+    "name": "Smith Machine Bench Press (Close Grip)",
     "muscleGroup": "TRICEPS",
-    "variant": [
-      "Close Grip"
-    ]
+    "variant": []
   },
   {
     "name": "Barbell Seated Tricep Extension",
@@ -3099,6 +3103,11 @@
     "muscleGroup": "BACK",
     "variant": []
   },
+    {
+    "name": "Triceps Extension",
+    "muscleGroup": "TRICEPS",
+    "variant": []
+  },
   {
     "name": "Dual Cable Triceps Extension",
     "muscleGroup": "TRICEPS",
@@ -3318,11 +3327,9 @@
     "variant": []
   },
   {
-    "name": "Barbell Bench Press",
+    "name": "Barbell Bench Press (Close Grip)",
     "muscleGroup": "TRICEPS",
-    "variant": [
-      "Close Grip"
-    ]
+    "variant": []
   },
   {
     "name": "Dumbbell Decline Fly",
@@ -3601,11 +3608,9 @@
     "variant": []
   },
   {
-    "name": "Dumbbell One-Arm Press",
+    "name": "Dumbbell One-Arm Press (Palms In)",
     "muscleGroup": "SHOULDERS",
-    "variant": [
-      "Palms In"
-    ]
+    "variant": []
   },
   {
     "name": "Kettlebell Clean",

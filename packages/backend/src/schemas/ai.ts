@@ -16,3 +16,10 @@ export const GenerateProgramBodySchema = z.object({
   frequency: z.number(),
 });
 export type GenerateProgramBodyType = z.infer<typeof GenerateProgramBodySchema>;
+
+// ============ POST /plateau-advice ============
+
+export const PlateauAdviceBodySchema = z.object({
+  exercise: z.string(),
+});
+export type PlateauAdviceBodyType = z.infer<typeof PlateauAdviceBodySchema>;

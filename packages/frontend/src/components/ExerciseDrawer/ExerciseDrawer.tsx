@@ -1,9 +1,14 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Plus, Check } from "lucide-react";
 import { MagnifierIcon, CrossIcon } from "../../assets/icons";
-import { useExercises, type MuscleGroup } from "../../api/exercises";
+import {
+  useExercises,
+  useCreateExercise,
+  type MuscleGroup,
+} from "../../api/exercises";
 import { SwipeableDrawer } from "../SwipeableDrawer";
-import { Button } from "../ui/Button";
+import { Button, ButtonVariant } from "../ui/Button";
+import { Input } from "../Input/Input";
 import styles from "./ExerciseDrawer.module.css";
 
 const CATEGORIES: MuscleGroup[] = [
@@ -53,9 +58,15 @@ export const ExerciseDrawer = ({
   const [activeCategory, setActiveCategory] = useState<MuscleGroup | "ALL">(
     "ALL"
   );
+  const [isAddingExercise, setIsAddingExercise] = useState(false);
+  const [newExerciseName, setNewExerciseName] = useState("");
+  const [newExerciseMuscleGroup, setNewExerciseMuscleGroup] =
+    useState<MuscleGroup | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { data } = useExercises();
+  const { mutate: createExercise, isPending: isCreatingExercise } =
+    useCreateExercise();
   const exerciseOptions = useMemo<ExerciseOption[]>(() => {
     const options = (data?.exercises ?? []).map((ex) => {
       const variant = ex.variant.join(", ");
@@ -86,6 +97,9 @@ export const ExerciseDrawer = ({
       setCustomName(currentValue);
       setSelectedExercises([]);
       setActiveCategory("ALL");
+      setIsAddingExercise(false);
+      setNewExerciseName("");
+      setNewExerciseMuscleGroup(null);
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
@@ -139,6 +153,30 @@ export const ExerciseDrawer = ({
     }
   };
 
+  const handleSaveNewExercise = () => {
+    const name = newExerciseName.trim();
+    if (!name || !newExerciseMuscleGroup) return;
+
+    createExercise(
+      { name, muscleGroup: newExerciseMuscleGroup },
+      {
+        onSuccess: () => {
+          if (multiSelect) {
+            if (!selectedExercises.includes(name)) {
+              setSelectedExercises((prev) => [...prev, name]);
+            }
+            setIsAddingExercise(false);
+            setNewExerciseName("");
+            setNewExerciseMuscleGroup(null);
+          } else {
+            onSelect(name);
+            onClose();
+          }
+        },
+      }
+    );
+  };
+
   // Filter exercises - always show flat list, filtered by category + search
   const baseOptions = includeOnly
     ? includeOnly.map((name) => {
@@ -175,100 +213,166 @@ export const ExerciseDrawer = ({
     !selectedExercises.includes(search.trim());
 
   return (
-    <SwipeableDrawer isOpen={isOpen} onClose={onClose} maxHeight="85vh">
+    <SwipeableDrawer
+      isOpen={isOpen}
+      onClose={onClose}
+      maxHeight="85vh"
+      minHeight="85vh"
+    >
       <div className={styles.header}>
         <h2 className={styles.title}>
-          {multiSelect ? "Select Exercises" : "Select Exercise"}
+          {isAddingExercise
+            ? "Add Exercise"
+            : multiSelect
+              ? "Select Exercises"
+              : "Select Exercise"}
         </h2>
       </div>
 
-      <div className={styles.searchContainer}>
-        <MagnifierIcon size={18} className={styles.searchIcon} />
-        <input
-          ref={searchInputRef}
-          type="text"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCustomName(e.target.value);
-          }}
-          placeholder="Search or add new exercise..."
-          className={styles.searchInput}
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className={styles.clearBtn}
-          >
-            <CrossIcon size={16} />
-          </button>
-        )}
-      </div>
+      {isAddingExercise ? (
+        <div className={`${styles.content} ${styles.addExerciseForm}`}>
+          <Input
+            label="Exercise name"
+            value={newExerciseName}
+            onChange={(e) => setNewExerciseName(e.target.value)}
+            placeholder="e.g. Cable Face Pull"
+            autoFocus
+          />
 
-      {!includeOnly && (
-        <div className={styles.categoryTabs}>
-          <button
-            type="button"
-            onClick={() => setActiveCategory("ALL")}
-            className={`${styles.categoryTab} ${activeCategory === "ALL" ? styles.categoryTabActive : ""}`}
-          >
-            All
-          </button>
-          {CATEGORIES.map((category) => (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setActiveCategory(category)}
-              className={`${styles.categoryTab} ${activeCategory === category ? styles.categoryTabActive : ""}`}
+          <div className={styles.muscleGroupLabel}>Muscle group</div>
+          <div className={styles.muscleGroupChips}>
+            {CATEGORIES.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setNewExerciseMuscleGroup(category)}
+                className={`${styles.categoryTab} ${newExerciseMuscleGroup === category ? styles.categoryTabActive : ""}`}
+              >
+                {capitalize(category)}
+              </button>
+            ))}
+          </div>
+
+          <div className={styles.addExerciseActions}>
+            <Button
+              variant={ButtonVariant.Secondary}
+              onClick={() => setIsAddingExercise(false)}
             >
-              {capitalize(category)}
-            </button>
-          ))}
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveNewExercise}
+              disabled={
+                !newExerciseName.trim() ||
+                !newExerciseMuscleGroup ||
+                isCreatingExercise
+              }
+            >
+              {isCreatingExercise ? "Saving..." : "Save exercise"}
+            </Button>
+          </div>
         </div>
+      ) : (
+        <>
+          <div className={styles.searchContainer}>
+            <MagnifierIcon size={18} className={styles.searchIcon} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCustomName(e.target.value);
+              }}
+              placeholder="Search or add new exercise..."
+              className={styles.searchInput}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className={styles.clearBtn}
+              >
+                <CrossIcon size={16} />
+              </button>
+            )}
+          </div>
+
+          {!includeOnly && (
+            <div className={styles.categoryTabs}>
+              <button
+                type="button"
+                onClick={() => setActiveCategory("ALL")}
+                className={`${styles.categoryTab} ${activeCategory === "ALL" ? styles.categoryTabActive : ""}`}
+              >
+                All
+              </button>
+              {CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setActiveCategory(category)}
+                  className={`${styles.categoryTab} ${activeCategory === category ? styles.categoryTabActive : ""}`}
+                >
+                  {capitalize(category)}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className={styles.content}>
+            {!includeOnly && !search.trim() && (
+              <button
+                onClick={() => setIsAddingExercise(true)}
+                className={styles.addCustomBtn}
+              >
+                <Plus size={16} />
+                <span>Add exercise</span>
+              </button>
+            )}
+
+            {showCustomOption && (
+              <button
+                onClick={handleAddCustom}
+                className={styles.addCustomBtn}
+              >
+                <Plus size={16} />
+                <span>Add "{search}"</span>
+              </button>
+            )}
+
+            <div className={styles.exerciseList}>
+              {filteredOptions.map((option) => {
+                const isSelected = selectedExercises.includes(option.display);
+                return (
+                  <button
+                    key={option.display}
+                    onClick={() => handleSelect(option.display)}
+                    className={`${styles.exerciseItem} ${isSelected ? styles.exerciseItemSelected : ""}`}
+                  >
+                    <span className={styles.exerciseName}>
+                      {option.name}
+                      {option.variant && (
+                        <span className={styles.variantChip}>{option.variant}</span>
+                      )}
+                    </span>
+                    {multiSelect && (
+                      <div className={`${styles.checkbox} ${isSelected ? styles.checkboxChecked : ""}`}>
+                        {isSelected && <Check size={14} />}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+
+              {filteredOptions.length === 0 && !showCustomOption && (
+                <div className={styles.noResults}>No exercises found</div>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
-      <div className={styles.content}>
-        {showCustomOption && (
-          <button
-            onClick={handleAddCustom}
-            className={styles.addCustomBtn}
-          >
-            <Plus size={16} />
-            <span>Add "{search}"</span>
-          </button>
-        )}
-
-        <div className={styles.exerciseList}>
-          {filteredOptions.map((option) => {
-            const isSelected = selectedExercises.includes(option.display);
-            return (
-              <button
-                key={option.display}
-                onClick={() => handleSelect(option.display)}
-                className={`${styles.exerciseItem} ${isSelected ? styles.exerciseItemSelected : ""}`}
-              >
-                <span className={styles.exerciseName}>
-                  {option.name}
-                  {option.variant && (
-                    <span className={styles.variantChip}>{option.variant}</span>
-                  )}
-                </span>
-                {multiSelect && (
-                  <div className={`${styles.checkbox} ${isSelected ? styles.checkboxChecked : ""}`}>
-                    {isSelected && <Check size={14} />}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-
-          {filteredOptions.length === 0 && !showCustomOption && (
-            <div className={styles.noResults}>No exercises found</div>
-          )}
-        </div>
-      </div>
-
-      {multiSelect && (
+      {!isAddingExercise && multiSelect && (
         <div className={styles.footer}>
           <Button
             onClick={handleConfirmMultiSelect}

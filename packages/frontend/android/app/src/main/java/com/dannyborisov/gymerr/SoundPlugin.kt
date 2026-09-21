@@ -1,14 +1,8 @@
 package com.dannyborisov.gymerr
 
-import android.content.Context
-import android.media.AudioAttributes
-import android.media.AudioFocusRequest
-import android.media.AudioManager
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
@@ -19,16 +13,14 @@ import java.util.*
 class SoundPlugin : Plugin() {
 
     private var tts: TextToSpeech? = null
-    private var audioManager: AudioManager? = null
-    private var focusRequest: AudioFocusRequest? = null
     private var restTimer: Timer? = null
-    private var elapsedSeconds: Int = 0
+    private var restStartTime: Long = 0
+    private var lastAnnouncedInterval: Int = 0
     private var announceInterval: Int = 30
     private var isRunning: Boolean = false
     private val handler = Handler(Looper.getMainLooper())
 
     override fun load() {
-        audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         initTTS()
     }
 
@@ -47,19 +39,8 @@ class SoundPlugin : Plugin() {
         val rate = call.getFloat("rate") ?: 0.5f
 
         handler.post {
-            requestAudioFocus {
-                tts?.setSpeechRate(rate * 1.8f) // Adjust rate for Android
-                tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {}
-                    override fun onDone(utteranceId: String?) {
-                        releaseAudioFocusDelayed(500)
-                    }
-                    override fun onError(utteranceId: String?) {
-                        releaseAudioFocusDelayed(500)
-                    }
-                })
-                tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rest_timer_utterance")
-            }
+            tts?.setSpeechRate(rate * 1.8f) // Adjust rate for Android
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rest_timer_utterance")
             call.resolve()
         }
     }
@@ -68,6 +49,7 @@ class SoundPlugin : Plugin() {
     fun scheduleRestSound(call: PluginCall) {
         var interval = call.getInt("announceInterval") ?: 30
         if (interval <= 0) interval = 30
+        val startTime = call.getLong("startTime") ?: System.currentTimeMillis()
 
         handler.post {
             // Cancel any existing timer
@@ -75,7 +57,8 @@ class SoundPlugin : Plugin() {
             restTimer = null
 
             announceInterval = interval
-            elapsedSeconds = 0
+            restStartTime = startTime
+            lastAnnouncedInterval = 0
             isRunning = true
 
             // Start timer that ticks every second
@@ -106,32 +89,23 @@ class SoundPlugin : Plugin() {
     private fun tick() {
         if (!isRunning) return
 
-        elapsedSeconds += 1
+        // Derive elapsed time from the wall clock rather than counting ticks:
+        // if Android throttles this timer while the app is backgrounded, the
+        // next tick that does fire still reports the real elapsed time
+        // instead of resuming a stalled counter (which was making the
+        // announcement get stuck repeating the same value).
+        val elapsedSeconds = ((System.currentTimeMillis() - restStartTime) / 1000L).toInt()
+        if (elapsedSeconds <= 0 || announceInterval <= 0) return
 
-        // Announce at intervals
-        val shouldAnnounce = elapsedSeconds > 0 &&
-                            announceInterval > 0 &&
-                            (elapsedSeconds % announceInterval) == 0
-
-        if (shouldAnnounce) {
-            val text = formatDuration(elapsedSeconds)
-            speakText(text)
+        val currentInterval = elapsedSeconds / announceInterval
+        if (currentInterval > lastAnnouncedInterval) {
+            lastAnnouncedInterval = currentInterval
+            speakText(formatDuration(currentInterval * announceInterval))
         }
     }
 
     private fun speakText(text: String) {
-        requestAudioFocus {
-            tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {}
-                override fun onDone(utteranceId: String?) {
-                    releaseAudioFocusDelayed(500)
-                }
-                override fun onError(utteranceId: String?) {
-                    releaseAudioFocusDelayed(500)
-                }
-            })
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rest_timer_announce")
-        }
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "rest_timer_announce")
     }
 
     private fun formatDuration(totalSeconds: Int): String {
@@ -145,61 +119,6 @@ class SoundPlugin : Plugin() {
             mins == 1 -> "1 minute $secs"
             else -> "$mins minutes $secs"
         }
-    }
-
-    private fun requestAudioFocus(onFocusGranted: () -> Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val audioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build()
-
-            focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-                .setAudioAttributes(audioAttributes)
-                .setOnAudioFocusChangeListener { change ->
-                    android.util.Log.d("SoundPlugin", "onAudioFocusChange: $change")
-                    if (change == AudioManager.AUDIOFOCUS_GAIN) {
-                        onFocusGranted()
-                    }
-                }
-                .build()
-
-            val result = audioManager?.requestAudioFocus(focusRequest!!)
-            android.util.Log.d("SoundPlugin", "requestAudioFocus result: $result")
-            when (result) {
-                AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> onFocusGranted()
-                AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> {
-                    // Granted asynchronously — the listener above will call
-                    // onFocusGranted() once AUDIOFOCUS_GAIN actually arrives.
-                }
-                else -> {
-                    android.util.Log.w("SoundPlugin", "Audio focus request failed, speaking anyway")
-                    onFocusGranted()
-                }
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            val result = audioManager?.requestAudioFocus(
-                { },
-                AudioManager.STREAM_NOTIFICATION,
-                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
-            )
-            android.util.Log.d("SoundPlugin", "requestAudioFocus (legacy) result: $result")
-            // Speak regardless of focus result on legacy devices — a failed/denied
-            // focus request should not silently drop the announcement.
-            onFocusGranted()
-        }
-    }
-
-    private fun releaseAudioFocusDelayed(delayMs: Long) {
-        handler.postDelayed({
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                focusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
-            } else {
-                @Suppress("DEPRECATION")
-                audioManager?.abandonAudioFocus { }
-            }
-        }, delayMs)
     }
 
     override fun handleOnDestroy() {

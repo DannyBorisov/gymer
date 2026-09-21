@@ -1,9 +1,14 @@
 import type { FastifyPluginAsync } from "fastify";
 import { requireAuth } from "../middlewares/auth.js";
-import { getWorkoutTip, generateAiProgram } from "../handlers/ai.js";
+import {
+  getWorkoutTip,
+  generateAiProgram,
+  getPlateauAdvice,
+} from "../handlers/ai.js";
 import type {
   WorkoutTipBodyType,
   GenerateProgramBodyType,
+  PlateauAdviceBodyType,
 } from "../schemas/ai.js";
 
 const aiRoutes: FastifyPluginAsync = async (server) => {
@@ -17,6 +22,12 @@ const aiRoutes: FastifyPluginAsync = async (server) => {
     "/generate-program",
     { preHandler: requireAuth },
     generateAiProgram,
+  );
+
+  server.post<{ Body: PlateauAdviceBodyType }>(
+    "/plateau-advice",
+    { preHandler: requireAuth },
+    getPlateauAdvice,
   );
 };
 

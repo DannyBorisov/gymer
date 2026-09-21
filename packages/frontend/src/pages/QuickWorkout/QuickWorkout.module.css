@@ -288,3 +288,11 @@
 .startBtn:active {
   transform: scale(0.98);
 }
+
+.startBtn:disabled {
+  background: var(--bg-interactive);
+  color: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}

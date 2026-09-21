@@ -36,6 +36,7 @@ export class AnalyticsModel {
       this.programs.getCompletedSets(),
       this.quickWorkouts.getCompletedSets(),
     ]);
+    console.log(programSets)
     return [...programSets, ...quickSets];
   }
 

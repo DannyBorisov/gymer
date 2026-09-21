@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Play } from "lucide-react";
 import { TrashIcon, ChevronLeftIcon } from "../../assets/icons";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
@@ -96,6 +96,13 @@ const QuickWorkout = () => {
   };
 
   const existingExerciseNames = exercises.map((e) => e.name);
+
+  const handleStartWorkout = () => {
+    if (exercises.length === 0) return;
+    startQuickWorkout(exercises);
+    setExercises([]);
+    navigate("/workout");
+  };
 
   return (
     <div className={styles.container}>
@@ -195,6 +202,18 @@ const QuickWorkout = () => {
             ))}
           </div>
         )}
+      </div>
+
+      <div className={styles.formActions}>
+        <button
+          type="button"
+          className={styles.startBtn}
+          onClick={handleStartWorkout}
+          disabled={exercises.length === 0}
+        >
+          <Play size={18} />
+          Start Workout
+        </button>
       </div>
 
       {/* Exercise Drawer */}

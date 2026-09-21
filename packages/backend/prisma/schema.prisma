@@ -36,6 +36,12 @@ enum MuscleGroup {
   TRICEPS
 }
 
+enum AiGenerationType {
+  CreateProgram
+  CouchCue
+  PlateauAdvice
+}
+
 model Onboarding {
   id              String          @id @default(cuid())
   userEmail       String          @unique
@@ -50,15 +56,14 @@ model Onboarding {
   updatedAt       DateTime        @updatedAt
 }
 
-model AiTip {
-  id          String   @id @default(cuid())
-  userEmail   String
-  programName String
-  workoutName String
-  tip         String
-  createdAt   DateTime @default(now())
+model AiGeneration {
+  id        String           @id @default(cuid())
+  userEmail String
+  type      AiGenerationType
+  content   String
+  date      DateTime         @default(now())
 
-  @@index([userEmail, createdAt])
+  @@index([userEmail, date])
 }
 
 model Exercise {

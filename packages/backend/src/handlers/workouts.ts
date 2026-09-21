@@ -137,13 +137,51 @@ export const getWorkoutHistory: RouteHandler = async function (request, reply) {
 
   try {
     const gsql = createGSQL(tokens, this.sheets);
-    const programs = await gsql.programs.findAll();
+    const [programs, quickWorkouts] = await Promise.all([
+      gsql.programs.findAll(),
+      gsql.quickWorkouts.findAll(),
+    ]);
 
     const programsPromises = programs.map(({ id }) => gsql.programs.find(id));
     const programDetails = await Promise.all(programsPromises);
 
-    const completeWorkouts = programDetails
-      .flatMap((pd) => pd?.workouts ?? [])
+    const programWorkouts = programDetails.flatMap((pd) =>
+      (pd?.workouts ?? []).map((w) => ({ ...w, programName: pd?.name })),
+    );
+
+    // Quick workouts have no program/week — group their flat set list by
+    // exercise so they render with the same shape as a program workout.
+    const quickWorkoutsAsHistory = quickWorkouts.map((qw) => {
+      const exerciseMap = new Map<string, typeof qw.sets>();
+      for (const set of qw.sets) {
+        if (!exerciseMap.has(set.exercise)) exerciseMap.set(set.exercise, []);
+        exerciseMap.get(set.exercise)!.push(set);
+      }
+
+      return {
+        name: "Quick Workout",
+        week: 0,
+        date: qw.date,
+        duration: qw.duration,
+        exercises: Array.from(exerciseMap.entries()).map(
+          ([name, sets]) => ({
+            name,
+            sets: sets
+              .sort((a, b) => a.set - b.set)
+              .map((s) => ({
+                targetReps: s.reps,
+                targetRir: s.rir || "",
+                achievedWeight: s.weight || undefined,
+                achievedReps: s.reps || undefined,
+                achievedRir: s.rir,
+                notes: s.notes,
+              })),
+          }),
+        ),
+      };
+    });
+
+    const completeWorkouts = [...programWorkouts, ...quickWorkoutsAsHistory]
       .filter((w) => !!w.date)
       .sort(
         (a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime(),

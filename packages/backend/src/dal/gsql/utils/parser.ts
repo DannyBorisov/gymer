@@ -4,9 +4,11 @@ import type {
   Exercise,
   Set,
   BodyWeightEntry,
+  UserExercise,
 } from '../types.js';
 import { ProgramSchema } from '../schemas/program.js';
 import { BodyWeightSchema } from '../schemas/bodyWeight.js';
+import { ExerciseSchema } from '../schemas/exercise.js';
 import { parseDate, isDuration, isDateFormat } from './dateUtils.js';
 
 // Internal type with rowIndex for update operations
@@ -238,6 +240,29 @@ export function parseBodyWeightRows(rows: string[][]): BodyWeightEntry[] {
 
     if (date && !isNaN(weight)) {
       entries.push({ date, weight });
+    }
+  }
+
+  return entries;
+}
+
+/**
+ * Parse user-created exercise rows
+ */
+export function parseExerciseRows(rows: string[][]): UserExercise[] {
+  const cols = ExerciseSchema.columns;
+  const entries: UserExercise[] = [];
+
+  // Skip header row (index 0)
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || row.length === 0) continue;
+
+    const name = String(row[cols.name.index] || '').trim();
+    const muscleGroup = String(row[cols.muscleGroup.index] || '').trim();
+
+    if (name && muscleGroup) {
+      entries.push({ name, muscleGroup });
     }
   }
 

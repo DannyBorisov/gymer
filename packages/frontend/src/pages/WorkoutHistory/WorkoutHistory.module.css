@@ -309,17 +309,6 @@
   color: var(--text-muted);
 }
 
-/* Week Badge */
-.weekBadge {
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  background: var(--bg-interactive);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
 .drawerHeader {
   display: flex;
   align-items: flex-start;

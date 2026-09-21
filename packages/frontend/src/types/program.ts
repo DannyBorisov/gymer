@@ -4,4 +4,5 @@ export type {
   ProgramWorkout as Workout,
   Frequency,
   Program,
+  ProgramWorkout
 } from "./shared";

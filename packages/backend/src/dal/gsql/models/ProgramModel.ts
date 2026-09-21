@@ -149,7 +149,10 @@ function buildProgramRows(
           input.dynamicRir && !exercise.customRir ? weekRir : exercise.rir;
         const rirDisplay =
           targetRir === 0 ? "To Failure" : targetRir.toString();
-        const exerciseName = formatExerciseName(exercise.name, exercise.variant);
+        const exerciseName = formatExerciseName(
+          exercise.name,
+          exercise.variant,
+        );
 
         for (let set = 1; set <= exercise.sets; set++) {
           const setIndex = set - 1;
@@ -591,8 +594,8 @@ export class ProgramModel extends BaseModel {
 
           if (!currentDate || !exercise || !weightStr || !repsStr) continue;
 
-          const weight = parseFloat(weightStr);
-          const reps = parseInt(repsStr, 10);
+          const weight = +weightStr;
+          const reps = +repsStr;
 
           if (weight > 0 && reps > 0) {
             allSets.push({ date: currentDate, exercise, weight, reps });
@@ -723,18 +726,50 @@ export class ProgramModel extends BaseModel {
   }
 
   /**
-   * Duplicate a program (copies the underlying spreadsheet as-is)
+   * Duplicate a program as a clean, unstarted plan: same weeks, workouts,
+   * exercises, sets, target reps, and target RIR, but with every achieved
+   * weight/reps/RIR, note, and workout date/duration cleared — a copy is a
+   * plan to run again, not a record of having already run it.
    */
   async copy(id: string): Promise<ProgramSummary> {
+    const original = await this.findInternal(id);
+    if (!original) throw new Error("Program not found");
+
     const originalName = await this.sheets.getFileName(this.tokens, id);
     const newName = `${originalName} (Copy)`;
-    const newId = await this.sheets.copyFile(this.tokens, id, newName);
 
-    // Drive's files.copy doesn't reliably carry over custom appProperties,
-    // so the copy would otherwise be invisible to findAll()'s query.
+    const rows: (string | number)[][] = [[...ProgramSchema.headers]];
+    for (const workout of original.workouts) {
+      for (const exercise of workout.exercises) {
+        const exerciseName = formatExerciseName(exercise.name, exercise.variant);
+        exercise.sets.forEach((set, setIndex) => {
+          rows.push([
+            "", // Date
+            workout.week,
+            workout.name,
+            exerciseName,
+            setIndex + 1,
+            set.targetReps,
+            set.targetRir,
+            "", // Weight
+            "", // Reps Achieved
+            "", // RIR Achieved
+            "", // Notes
+          ]);
+        });
+      }
+    }
+
+    const newId = await this.sheets.create(this.tokens, newName);
     await this.sheets.setFileProperties(this.tokens, newId, {
       [ProgramSchema.appProperty.key]: ProgramSchema.appProperty.value,
     });
+
+    const { sheetName } = await this.sheets.getSpreadsheetMetadata(
+      this.tokens,
+      newId,
+    );
+    await this.sheets.update(this.tokens, newId, `${sheetName}!A1`, rows);
 
     return {
       id: newId,

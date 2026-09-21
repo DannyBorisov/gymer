@@ -1,8 +1,6 @@
 import { z } from "zod";
 
-// ============ POST /body-weight ============
-
 export const SaveBodyWeightBodySchema = z.object({
-  weight: z.number(),
+  weight: z.number().positive(),
 });
 export type SaveBodyWeightBodyType = z.infer<typeof SaveBodyWeightBodySchema>;

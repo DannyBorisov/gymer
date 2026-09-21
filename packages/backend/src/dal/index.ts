@@ -36,7 +36,21 @@ export type {
   ExerciseBest,
   ExerciseProgression,
   ExerciseProgressionEntry,
+  // User Exercises
+  UserExercise,
+  CreateUserExerciseInput,
 } from "./gsql/types.js";
 
-export { prisma, Gender, Goal, ExperienceLevel, MuscleGroup } from "./postgres/index.js";
-export type { OnboardingInput, AiTipInput, ExerciseInput } from "./postgres/index.js";
+export {
+  prisma,
+  Gender,
+  Goal,
+  ExperienceLevel,
+  MuscleGroup,
+  AiGenerationType,
+} from "./postgres/index.js";
+export type {
+  OnboardingInput,
+  AiGenerationInput,
+  ExerciseInput,
+} from "./postgres/index.js";
