@@ -1,0 +1,9 @@
+.animatedNumber {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animatedNumber {
+    /* Component will still work but animation is instant */
+  }
+}

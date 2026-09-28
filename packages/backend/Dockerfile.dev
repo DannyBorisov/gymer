@@ -9,7 +9,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/backend/package.json packages/backend/
 COPY packages/frontend/package.json packages/frontend/
-COPY packages/shared/package.json packages/shared/
 # Prisma schema is needed by the backend's postinstall (`prisma generate`)
 COPY packages/backend/prisma packages/backend/prisma
 

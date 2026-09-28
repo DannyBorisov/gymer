@@ -170,7 +170,10 @@ const WorkoutHistory = () => {
           </div>
           <p className={styles.emptyTitle}>No workouts yet</p>
           <p className={styles.emptySubtitle}>
-            Complete a workout to see it here
+            Your completed workouts will appear here with all your logged sets
+          </p>
+          <p className={styles.emptyHint}>
+            Start a workout from the Home tab to begin
           </p>
         </div>
       ) : (

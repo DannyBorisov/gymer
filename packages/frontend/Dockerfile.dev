@@ -6,7 +6,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/frontend/package.json packages/frontend/
 COPY packages/backend/package.json packages/backend/
-COPY packages/shared/package.json packages/shared/
 COPY packages/backend/prisma packages/backend/prisma
 
 RUN npm ci

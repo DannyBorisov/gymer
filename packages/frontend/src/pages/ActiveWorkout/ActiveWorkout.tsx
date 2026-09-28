@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Square,
   Check,
-  Copy,
   Timer,
   Plus,
   MoreVertical,
@@ -17,6 +16,7 @@ import {
   ClockIcon,
   CrossIcon,
 } from "../../assets/icons";
+import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { useGetWorkoutTip } from "../../api/ai";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
@@ -34,7 +34,6 @@ import { REST_ADJUSTMENT_SECONDS } from "../../lib/constants";
 import { updateExerciseName } from "../../utils/liveActivity";
 import { announceTime } from "../../utils/speech";
 import { hapticLight } from "../../utils/haptics";
-import { Haptics, NotificationType } from "@capacitor/haptics";
 import { parseExerciseName } from "../../types/shared";
 import styles from "./ActiveWorkout.module.css";
 import useClickOutside from "../../hooks/useClickOutside";
@@ -331,6 +330,7 @@ const ActiveWorkout = () => {
     currentSet: ExerciseRow,
     previousSet: ExerciseRow,
   ) => {
+    void Haptics.impact({ style: ImpactStyle.Medium });
     if (previousSet.weight) {
       updateExercise(currentSet.rowIndex, "weight", previousSet.weight);
     }
@@ -358,15 +358,10 @@ const ActiveWorkout = () => {
       rir?: string | number;
     },
   ) => {
-    if (stats.weight) {
-      updateExercise(rowIndex, "weight", String(stats.weight));
-    }
-    if (stats.reps) {
-      updateExercise(rowIndex, "repsAchieved", String(stats.reps));
-    }
-    if (stats.rir) {
-      updateExercise(rowIndex, "rirAchieved", String(stats.rir));
-    }
+    void Haptics.impact({ style: ImpactStyle.Medium });
+    if (stats.weight) updateExercise(rowIndex, "weight", String(stats.weight));
+    if (stats.reps) updateExercise(rowIndex, "repsAchieved", String(stats.reps));
+    if (stats.rir) updateExercise(rowIndex, "rirAchieved", String(stats.rir));
   };
 
   if (!activeWorkout) {
@@ -792,45 +787,6 @@ const ActiveWorkout = () => {
                 )}
               </div>
 
-              {/* Quick fill options */}
-              <div className={styles.quickFillContainer}>
-                {!isWorkoutComplete && prevStats?.sets[currentSetIndex] && (
-                  <button
-                    onClick={() =>
-                      copyFromLastWeek(
-                        currentSet.rowIndex,
-                        prevStats.sets[currentSetIndex],
-                      )
-                    }
-                    className={styles.quickFillBtn}
-                  >
-                    <HistoryIcon size={14} />
-                    Last: {prevStats.sets[currentSetIndex].weight}
-                    {weightUnit} × {prevStats.sets[currentSetIndex].reps}
-                  </button>
-                )}
-                {!isWorkoutComplete &&
-                  previousSet &&
-                  getRow(previousSet.rowIndex)?.weight && (
-                    <button
-                      onClick={() =>
-                        copyFromPreviousSet(
-                          currentSet,
-                          getRow(previousSet.rowIndex)!,
-                        )
-                      }
-                      className={styles.quickFillBtn}
-                    >
-                      <Copy size={14} />
-                      Set {previousSet.set}:{" "}
-                      {getRow(previousSet.rowIndex)?.weight}
-                      {weightUnit} ×{" "}
-                      {getRow(previousSet.rowIndex)?.repsAchieved ||
-                        previousSet.targetReps}
-                    </button>
-                  )}
-              </div>
-
               <div className={styles.inputSection}>
                 <ScrollableInput
                   label={weightUnit}
@@ -931,30 +887,73 @@ const ActiveWorkout = () => {
 
               {!isWorkoutComplete && (
                 <>
-                  {isRestTimerActive && (
-                    <div className={styles.restTimerAdjust}>
-                      <button
-                        type="button"
-                        className={styles.adjustBtn}
-                        onClick={() => {
-                          adjustRestTimer(-REST_ADJUSTMENT_SECONDS);
-                          void hapticLight();
-                        }}
-                      >
-                        -{REST_ADJUSTMENT_SECONDS}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.adjustBtn}
-                        onClick={() => {
-                          adjustRestTimer(REST_ADJUSTMENT_SECONDS);
-                          void hapticLight();
-                        }}
-                      >
-                        +{REST_ADJUSTMENT_SECONDS}
-                      </button>
-                    </div>
-                  )}
+                  {/* Secondary row: quick fill + rest timer adjust */}
+                  <div className={styles.secondaryButtonsRow}>
+                    {/* Quick fill buttons */}
+                    {(prevStats?.sets[currentSetIndex] || (previousSet && getRow(previousSet.rowIndex)?.weight)) && (
+                      <div className={styles.quickFillGroup}>
+                        {prevStats?.sets[currentSetIndex] && (
+                          <button
+                            className={styles.quickFillBtn}
+                            onClick={() =>
+                              copyFromLastWeek(
+                                currentSet.rowIndex,
+                                prevStats.sets[currentSetIndex],
+                              )
+                            }
+                          >
+                            <HistoryIcon size={16} />
+                            <span className={styles.quickFillBtnText}>
+                              {prevStats.sets[currentSetIndex].weight} × {prevStats.sets[currentSetIndex].reps}
+                            </span>
+                          </button>
+                        )}
+                        {previousSet && getRow(previousSet.rowIndex)?.weight && (
+                          <button
+                            className={styles.quickFillBtn}
+                            onClick={() =>
+                              copyFromPreviousSet(
+                                currentSet,
+                                getRow(previousSet.rowIndex)!,
+                              )
+                            }
+                          >
+                            <span className={styles.quickFillBtnLabel}>Set {previousSet.set}</span>
+                            <span className={styles.quickFillBtnText}>
+                              {getRow(previousSet.rowIndex)?.weight} × {getRow(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Rest timer adjust */}
+                    {isRestTimerActive && (
+                      <div className={styles.restTimerAdjust}>
+                        <button
+                          type="button"
+                          className={styles.adjustBtn}
+                          onClick={() => {
+                            adjustRestTimer(-REST_ADJUSTMENT_SECONDS);
+                            void hapticLight();
+                          }}
+                        >
+                          -{REST_ADJUSTMENT_SECONDS}
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.adjustBtn}
+                          onClick={() => {
+                            adjustRestTimer(REST_ADJUSTMENT_SECONDS);
+                            void hapticLight();
+                          }}
+                        >
+                          +{REST_ADJUSTMENT_SECONDS}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <div className={styles.mainButtonsRow}>
                     <Button
                       icon={<Check size={24} />}
@@ -1115,6 +1114,7 @@ const ActiveWorkout = () => {
           </Button>
         </div>
       </SwipeableDrawer>
+
     </div>
   );
 };

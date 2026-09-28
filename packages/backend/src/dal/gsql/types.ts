@@ -164,6 +164,7 @@ export interface CompletedSet {
   exercise: string;
   weight: number;
   reps: number;
+  rir?: number; // Reps in reserve (0 = failure, higher = easier)
 }
 
 export interface ExerciseBest {
@@ -183,5 +184,84 @@ export interface ExerciseProgressionEntry {
 export interface ExerciseProgression {
   exercise: string;
   entries: ExerciseProgressionEntry[];
+}
+
+// ============ Analytics Summary ============
+
+export interface AnalyticsSummary {
+  strengthChange: {
+    percentChange: number;
+    periodWeeks: number;
+    direction: "up" | "down" | "stable";
+  };
+  volumeChange: {
+    percentChange: number;
+    periodWeeks: number;
+    direction: "up" | "down" | "stable";
+  };
+  consistency: {
+    workoutsThisWeek: number;
+    workoutsThisMonth: number;
+  };
+}
+
+// ============ Personal Records ============
+
+export interface RepPR {
+  weight: number;
+  date: string;
+}
+
+export interface ExerciseRecords {
+  exercise: string;
+  records: {
+    e1rm: { value: number; date: string; weight: number; reps: number };
+    maxWeight: { value: number; date: string; reps: number };
+    repPRs: Record<number, RepPR>;
+  };
+  recentPRs: Array<{
+    type: "e1rm" | "weight" | "reps";
+    value: number;
+    date: string;
+    description: string;
+  }>;
+}
+
+// ============ Muscle Group Volume ============
+
+export interface MuscleGroupVolumeEntry {
+  muscleGroup: string;
+  sets: number;
+  volume: number;
+}
+
+export interface MuscleGroupVolume {
+  period: "week" | "month";
+  groups: MuscleGroupVolumeEntry[];
+}
+
+// ============ Workout Consistency ============
+
+export interface WeeklyHistoryEntry {
+  weekStart: string;
+  workoutsCompleted: number;
+}
+
+export interface WorkoutConsistency {
+  totalWorkouts: number;
+  workoutsThisWeek: number;
+  workoutsThisMonth: number;
+  streak: number;
+  weeklyHistory: WeeklyHistoryEntry[];
+}
+
+// ============ Muscle Recovery ============
+
+export interface MuscleRecoveryEntry {
+  muscleGroup: string;
+  fatiguePercent: number; // 0-100, 100 = fully fatigued
+  hoursToRecovery: number;
+  lastTrained: string | null; // ISO date string
+  sets: number; // sets in last 72 hours
 }
 

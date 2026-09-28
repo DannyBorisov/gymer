@@ -22,6 +22,17 @@ import type {
   CompletedSet,
 } from "../types.js";
 
+/**
+ * Parse RIR string to number. Handles "To Failure" as 0.
+ */
+function parseRir(rirStr: string): number | undefined {
+  if (!rirStr) return undefined;
+  const lower = rirStr.toLowerCase().trim();
+  if (lower === "to failure" || lower === "failure" || lower === "0") return 0;
+  const num = parseInt(rirStr, 10);
+  return isNaN(num) ? undefined : num;
+}
+
 /** Achieved data for one previously-logged set, keyed for lookup during edits. */
 interface AchievedSetData {
   achievedWeight?: number;
@@ -586,7 +597,7 @@ export class ProgramModel extends BaseModel {
         const rows = await this.sheets.get(
           this.tokens,
           program.id,
-          `${sheetName}!A:I`,
+          `${sheetName}!A:J`,
         );
         if (!rows || rows.length < 2) return;
 
@@ -600,6 +611,7 @@ export class ProgramModel extends BaseModel {
           const exercise = String(row[cols.exercise.index] || "").trim();
           const weightStr = String(row[cols.weight.index] || "").trim();
           const repsStr = String(row[cols.repsAchieved.index] || "").trim();
+          const rirStr = String(row[cols.rirAchieved.index] || "").trim();
 
           // Track date
           if (isDateFormat(dateOrDuration)) {
@@ -614,9 +626,10 @@ export class ProgramModel extends BaseModel {
 
           const weight = +weightStr;
           const reps = +repsStr;
+          const rir = parseRir(rirStr);
 
           if (weight > 0 && reps > 0) {
-            allSets.push({ date: currentDate, exercise, weight, reps });
+            allSets.push({ date: currentDate, exercise, weight, reps, rir });
           }
         }
       } catch {

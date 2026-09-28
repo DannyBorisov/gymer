@@ -8,6 +8,17 @@ import type {
   CompletedSet,
 } from '../types.js';
 
+/**
+ * Parse RIR string to number. Handles "To Failure" as 0.
+ */
+function parseRir(rirStr: string): number | undefined {
+  if (!rirStr) return undefined;
+  const lower = rirStr.toLowerCase().trim();
+  if (lower === 'to failure' || lower === 'failure' || lower === '0') return 0;
+  const num = parseInt(rirStr, 10);
+  return isNaN(num) ? undefined : num;
+}
+
 export class QuickWorkoutModel extends BaseModel {
   /**
    * Get or create the quick workouts sheet
@@ -137,7 +148,7 @@ export class QuickWorkoutModel extends BaseModel {
     if (!spreadsheetId) return [];
 
     const sheetName = await this.getSheetName(spreadsheetId);
-    const rows = await this.sheets.get(this.tokens, spreadsheetId, `${sheetName}!A:F`);
+    const rows = await this.sheets.get(this.tokens, spreadsheetId, `${sheetName}!A:G`);
     if (!rows || rows.length < 2) return [];
 
     const cols = QuickWorkoutSchema.columns;
@@ -150,6 +161,7 @@ export class QuickWorkoutModel extends BaseModel {
       const exercise = String(row[cols.exercise.index] || '').trim();
       const weightStr = String(row[cols.weight.index] || '').trim();
       const repsStr = String(row[cols.reps.index] || '').trim();
+      const rirStr = String(row[cols.rir.index] || '').trim();
 
       if (isDateFormat(dateStr)) {
         currentDate = parseDate(dateStr);
@@ -159,9 +171,10 @@ export class QuickWorkoutModel extends BaseModel {
 
       const weight = parseFloat(weightStr);
       const reps = parseInt(repsStr, 10);
+      const rir = parseRir(rirStr);
 
       if (weight > 0 && reps > 0) {
-        sets.push({ date: currentDate, exercise, weight, reps });
+        sets.push({ date: currentDate, exercise, weight, reps, rir });
       }
     }
 

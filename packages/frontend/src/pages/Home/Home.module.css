@@ -53,12 +53,22 @@
 
 .streakIcon {
   color: #f97316;
-  animation: flicker 2s ease-in-out infinite;
+  animation: flameDance 2s ease-in-out infinite;
 }
 
-@keyframes flicker {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+@keyframes flameDance {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.1) rotate(-3deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(2deg);
+  }
+  75% {
+    transform: scale(1.08) rotate(-2deg);
+  }
 }
 
 .streakCount {
@@ -66,6 +76,21 @@
   font-weight: 700;
   color: #f97316;
   font-variant-numeric: tabular-nums;
+}
+
+/* Streak milestone glow effect */
+.streakMilestone {
+  animation: milestoneGlow 2s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+}
+
+@keyframes milestoneGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.5);
+  }
 }
 
 /* ============================================================
@@ -88,6 +113,23 @@
   color: var(--text-secondary);
   font-size: 0.8125rem;
   font-weight: 500;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.statPillVisible {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .statPill svg {
@@ -136,6 +178,18 @@
   overflow: hidden;
   text-align: left;
   transition: transform 0.15s var(--ease-out), border-color 0.15s ease;
+  animation: slideInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .heroCard:active {
@@ -170,6 +224,16 @@
   color: var(--on-primary);
   flex-shrink: 0;
   box-shadow: var(--accent-glow);
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 .heroTextWrap {
@@ -227,6 +291,20 @@
   transform: scale(0.96);
 }
 
+/* Progress milestone pulse */
+.progressMilestone .progressRingFill {
+  animation: progressPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes progressPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px var(--accent-green));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px var(--accent-green));
+  }
+}
+
 .progressRing {
   transform: rotate(-90deg);
 }
@@ -236,9 +314,19 @@
 }
 
 .progressRingFill {
-  stroke: url(#progressGradient);
   stroke: var(--accent-green);
   transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progressRingAnimate {
+  animation: drawRing 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+  stroke-dashoffset: var(--circumference);
+}
+
+@keyframes drawRing {
+  to {
+    stroke-dashoffset: var(--target-offset);
+  }
 }
 
 .progressCircleInner {
@@ -323,6 +411,16 @@
   border-radius: 24px;
   color: var(--text-muted);
   margin-bottom: 1.25rem;
+  animation: emptyIconBounce 3s ease-in-out infinite;
+}
+
+@keyframes emptyIconBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 
 .emptyTitle {
@@ -354,6 +452,7 @@
 }
 
 .primaryCta {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -369,6 +468,33 @@
   cursor: pointer;
   box-shadow: var(--accent-glow);
   transition: transform 0.12s var(--ease-out), box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+/* Shimmer effect */
+.primaryCta::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
 }
 
 .primaryCta:active {
@@ -390,13 +516,14 @@
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.12s var(--ease-out);
 }
 
 .secondaryCta:active {
   background: var(--bg-interactive);
   border-color: var(--border-emphasis);
   color: var(--text-primary);
+  transform: scale(0.98);
 }
 
 .outlineCta {
@@ -413,12 +540,13 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s var(--ease-out);
 }
 
 .outlineCta:active {
   background: var(--bg-interactive);
   border-color: var(--border-emphasis);
+  transform: scale(0.98);
 }
 
 .ctaRow .primaryCta {
@@ -430,6 +558,12 @@
    ============================================================ */
 .recentSection {
   padding-top: 0.5rem;
+  opacity: 0;
+  transform: translateY(15px);
+}
+
+.recentSectionVisible {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
 }
 
 .sectionLabel {
@@ -452,12 +586,13 @@
   border-radius: var(--radius-lg);
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s var(--ease-out);
 }
 
 .recentCard:active {
   background: var(--bg-hover);
   border-color: var(--border-emphasis);
+  transform: scale(0.98);
 }
 
 .recentIcon {
@@ -497,4 +632,34 @@
 .recentChevron {
   color: var(--text-muted);
   flex-shrink: 0;
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .streakIcon,
+  .heroCard,
+  .heroIconWrap,
+  .emptyIconWrap,
+  .primaryCta::before,
+  .statPill,
+  .statPillVisible,
+  .recentSection,
+  .recentSectionVisible,
+  .progressRingAnimate,
+  .progressMilestone .progressRingFill,
+  .streakMilestone {
+    animation: none;
+  }
+
+  .statPill,
+  .recentSection {
+    opacity: 1;
+    transform: none;
+  }
+
+  .progressRingAnimate {
+    stroke-dashoffset: var(--target-offset);
+  }
 }

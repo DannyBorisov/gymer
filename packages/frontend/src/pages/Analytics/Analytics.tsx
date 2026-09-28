@@ -1,17 +1,23 @@
 import { useState, useMemo } from "react";
-import { Loader2, TrendingUp, BarChart3, Search, X, AlertTriangle } from "lucide-react";
+import { Loader2, TrendingUp, BarChart3, Search, X, AlertTriangle, Heart } from "lucide-react";
 import { ChevronDownIcon, ChevronUpIcon } from "../../assets/icons";
 import { Chart } from "../../components/ui/Chart";
 import {
   useGetAnalyticsProgression,
+  useGetAnalyticsSummary,
+  useGetMuscleGroupVolume,
+  useGetMuscleRecovery,
   type ProgressionEntry,
 } from "../../api/analytics";
 import { useGetOnboarding } from "../../api/onboarding";
 import { useSettings } from "../../contexts/SettingsContext";
 import { PlateauDrawer } from "./PlateauDrawer";
+import { ProgressSummary } from "./components/ProgressSummary";
+import { MuscleGroupVolume } from "./components/MuscleGroupVolume";
+import { MuscleRecovery } from "./components/MuscleRecovery";
 import styles from "./Analytics.module.css";
 
-type TabType = "strength" | "volume";
+type TabType = "strength" | "volume" | "recovery";
 
 const PLATEAU_ELIGIBLE_GOALS = new Set(["BUILD_MUSCLE", "GAIN_STRENGTH"]);
 
@@ -19,13 +25,19 @@ const Analytics = () => {
   const { weightUnit } = useSettings();
   const [activeTab, setActiveTab] = useState<TabType>("strength");
   const { data: onboardingData } = useGetOnboarding();
-  const isPlateauEligible = true || PLATEAU_ELIGIBLE_GOALS.has(onboardingData?.onboarding?.goal ?? "");
+  const isPlateauEligible = PLATEAU_ELIGIBLE_GOALS.has(onboardingData?.onboarding?.goal ?? "");
 
-  const { data: progressionData, isLoading } = useGetAnalyticsProgression();
+  const { data: progressionData, isLoading: isLoadingProgression } = useGetAnalyticsProgression();
+  const { data: summaryData, isLoading: isLoadingSummary } = useGetAnalyticsSummary();
+  const { data: volumeData } = useGetMuscleGroupVolume("week");
+  const { data: recoveryData, isLoading: isLoadingRecovery } = useGetMuscleRecovery();
+
   const exercises = progressionData?.exercises || [];
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [plateauDrawerExercise, setPlateauDrawerExercise] = useState<string | null>(null);
+
+  const isLoading = isLoadingProgression || isLoadingSummary;
 
   const PLATEAU_MIN_SESSIONS = 4;
   const PLATEAU_STALLED_STREAK = 4;
@@ -99,17 +111,8 @@ const Analytics = () => {
     return { change, percent, isPositive: change >= 0 };
   };
 
-  // Stats
   const now = new Date();
-  const sessionDates = new Set(
-    exercises.flatMap((ex) => ex.entries.map((e) => e.date)),
-  );
-  const sessionsThisMonth = [...sessionDates].filter((date) => {
-    const parsed = parseDate(date);
-    return parsed.getMonth() === now.getMonth() && parsed.getFullYear() === now.getFullYear();
-  }).length;
-
-  const totalExercises = exercises.length;
+  const gender = onboardingData?.onboarding?.gender || "MALE";
 
   return (
     <div className={styles.container}>
@@ -118,18 +121,9 @@ const Analytics = () => {
         <h1 className={styles.title}>Analytics</h1>
       </header>
 
-      {/* Stats Row */}
-      {!isLoading && exercises.length > 0 && (
-        <div className={styles.statsRow}>
-          <div className={styles.statCard}>
-            <span className={styles.statValue}>{sessionsThisMonth}</span>
-            <span className={styles.statLabel}>sessions this month</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statValue}>{totalExercises}</span>
-            <span className={styles.statLabel}>exercises tracked</span>
-          </div>
-        </div>
+      {/* Summary Section */}
+      {!isLoading && summaryData?.summary && (
+        <ProgressSummary summary={summaryData.summary} />
       )}
 
       {/* Tabs */}
@@ -148,173 +142,222 @@ const Analytics = () => {
           <BarChart3 size={16} />
           <span>Volume</span>
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === "recovery" ? styles.tabActive : ""}`}
+          onClick={() => setActiveTab("recovery")}
+        >
+          <Heart size={16} />
+          <span>Recovery</span>
+        </button>
       </div>
 
-      {/* Search */}
-      {!isLoading && exercises.length > 0 && (
-        <div className={styles.searchWrap}>
-          <Search size={18} className={styles.searchIcon} />
-          <input
-            type="text"
-            placeholder="Search exercises..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={styles.searchInput}
-          />
-          {searchQuery && (
-            <button
-              className={styles.searchClear}
-              onClick={() => setSearchQuery("")}
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
+      {/* Recovery Tab Content */}
+      {activeTab === "recovery" && (
+        isLoadingRecovery ? (
+          <div className={styles.loadingState}>
+            <Loader2 size={24} className={styles.spinner} />
+          </div>
+        ) : recoveryData?.recovery ? (
+          <MuscleRecovery recovery={recoveryData.recovery} gender={gender} />
+        ) : (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>
+              <Heart size={32} />
+            </div>
+            <p className={styles.emptyTitle}>No recovery data yet</p>
+            <p className={styles.emptySubtitle}>
+              We'll track which muscles need rest based on your workout history
+            </p>
+            <p className={styles.emptyHint}>
+              Recovery tracking helps you avoid overtraining
+            </p>
+          </div>
+        )
       )}
 
-      {/* Content */}
-      {isLoading ? (
-        <div className={styles.loadingState}>
-          <Loader2 size={24} className={styles.spinner} />
-        </div>
-      ) : exercises.length === 0 ? (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>
-            <TrendingUp size={32} />
-          </div>
-          <p className={styles.emptyTitle}>No data yet</p>
-          <p className={styles.emptySubtitle}>
-            Complete workouts to see your progress
-          </p>
-        </div>
-      ) : filteredExercises.length === 0 ? (
-        <div className={styles.emptyState}>
-          <p className={styles.emptyTitle}>No matches for "{searchQuery}"</p>
-        </div>
-      ) : (
-        <div className={styles.exerciseList}>
-          {filteredExercises.map((ex) => {
-            const isExpanded = expandedExercise === ex.exercise;
-            const latestEntry = ex.entries[ex.entries.length - 1];
-            const latestWeight = latestEntry?.weight;
-            const latestVolume = Math.round(latestEntry.weight * latestEntry.reps * latestEntry.sets);
-            const bestE1rm = Math.max(...ex.entries.map((e) => e.e1rm || 0));
-            const bestVolume = Math.max(
-              ...ex.entries.map((e) => Math.round(e.weight * e.reps * e.sets)),
-            );
-            const lastTrained = parseDate(latestEntry.date);
-            const daysSince = Math.max(
-              0,
-              Math.floor((now.getTime() - lastTrained.getTime()) / (24 * 60 * 60 * 1000)),
-            );
-
-            const progress =
-              activeTab === "strength"
-                ? getProgressChange(ex.entries)
-                : getVolumeChange(ex.entries);
-
-            const chartData =
-              activeTab === "strength"
-                ? ex.entries.map((e) => ({ date: formatDate(e.date), value: e.e1rm }))
-                : ex.entries.map((e) => ({
-                    date: formatDate(e.date),
-                    value: Math.round(e.weight * e.reps * e.sets),
-                  }));
-
-            const isPlateau = plateauedNames.has(ex.exercise);
-
-            return (
-              <div key={ex.exercise} className={styles.exerciseCard}>
+      {/* Strength/Volume Tab Content */}
+      {(activeTab === "strength" || activeTab === "volume") && (
+        <>
+          {/* Search */}
+          {!isLoading && exercises.length > 0 && (
+            <div className={styles.searchWrap}>
+              <Search size={18} className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search exercises..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={styles.searchInput}
+              />
+              {searchQuery && (
                 <button
-                  className={styles.exerciseHeader}
-                  onClick={() => setExpandedExercise(isExpanded ? null : ex.exercise)}
+                  className={styles.searchClear}
+                  onClick={() => setSearchQuery("")}
                 >
-                  <div className={styles.exerciseInfo}>
-                    <div className={styles.exerciseNameRow}>
-                      <span className={styles.exerciseName}>{ex.exercise}</span>
-                      {isPlateau && (
-                        <button
-                          className={styles.plateauBadge}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPlateauDrawerExercise(ex.exercise);
-                          }}
-                        >
-                          <AlertTriangle size={12} />
-                          <span>Plateau</span>
-                        </button>
-                      )}
-                    </div>
-                    <div className={styles.exerciseMeta}>
-                      <span className={styles.latestValue}>
-                        {activeTab === "strength"
-                          ? `${latestWeight} ${weightUnit}`
-                          : `${latestVolume.toLocaleString()} ${weightUnit}`}
-                      </span>
-                      {progress && (
-                        <span
-                          className={`${styles.changeBadge} ${
-                            progress.isPositive ? styles.changePositive : styles.changeNegative
-                          }`}
-                        >
-                          {progress.isPositive ? "+" : ""}
-                          {activeTab === "strength"
-                            ? `${progress.change.toFixed(1)}`
-                            : progress.change.toLocaleString()}
-                          {" "}({progress.percent}%)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className={styles.expandIcon}>
-                    {isExpanded ? <ChevronUpIcon size={20} /> : <ChevronDownIcon size={20} />}
-                  </div>
+                  <X size={16} />
                 </button>
+              )}
+            </div>
+          )}
 
-                {isExpanded && (
-                  <div className={styles.exerciseContent}>
-                    <div className={styles.exerciseStats}>
-                      <span>
-                        Best: {activeTab === "strength"
-                          ? `${bestE1rm.toFixed(1)} ${weightUnit} e1RM`
-                          : `${bestVolume.toLocaleString()} ${weightUnit}`}
-                      </span>
-                      <span>
-                        {daysSince === 0 ? "Trained today" : `${daysSince}d ago`}
-                      </span>
-                    </div>
-
-                    {chartData.length >= 2 ? (
-                      <div className={styles.chartWrap}>
-                        <Chart
-                          type={activeTab === "strength" ? "line" : "bar"}
-                          data={chartData}
-                          xKey="date"
-                          series={[{ dataKey: "value", color: "#22c55e" }]}
-                          height={140}
-                          yDomain={["dataMin - 2", "dataMax + 2"]}
-                          yTickFormatter={(v) =>
-                            activeTab === "volume" ? `${Math.round(v / 1000)}k` : v.toFixed(0)
-                          }
-                          tooltipFormatter={(value) => [
-                            activeTab === "strength"
-                              ? `${Number(value).toFixed(1)} ${weightUnit}`
-                              : `${Number(value).toLocaleString()} ${weightUnit}`,
-                            activeTab === "strength" ? "e1RM" : "Volume",
-                          ]}
-                        />
-                      </div>
-                    ) : (
-                      <div className={styles.noData}>
-                        Need 2+ sessions to show chart
-                      </div>
-                    )}
-                  </div>
-                )}
+          {/* Content */}
+          {isLoading ? (
+            <div className={styles.loadingState}>
+              <Loader2 size={24} className={styles.spinner} />
+            </div>
+          ) : exercises.length === 0 ? (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>
+                <TrendingUp size={32} />
               </div>
-            );
-          })}
-        </div>
+              <p className={styles.emptyTitle}>No progress data yet</p>
+              <p className={styles.emptySubtitle}>
+                Complete a few workouts and we'll start tracking your strength gains
+              </p>
+              <p className={styles.emptyHint}>
+                Tip: Log at least 2 sessions of the same exercise to see trends
+              </p>
+            </div>
+          ) : filteredExercises.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p className={styles.emptyTitle}>No matches for "{searchQuery}"</p>
+            </div>
+          ) : (
+            <>
+              {/* Exercise List */}
+              <div className={styles.exerciseList}>
+                {filteredExercises.map((ex) => {
+                  const isExpanded = expandedExercise === ex.exercise;
+                  const latestEntry = ex.entries[ex.entries.length - 1];
+                  const latestWeight = latestEntry?.weight;
+                  const latestVolume = Math.round(latestEntry.weight * latestEntry.reps * latestEntry.sets);
+                  const bestE1rm = Math.max(...ex.entries.map((e) => e.e1rm || 0));
+                  const bestVolume = Math.max(
+                    ...ex.entries.map((e) => Math.round(e.weight * e.reps * e.sets)),
+                  );
+                  const lastTrained = parseDate(latestEntry.date);
+                  const daysSince = Math.max(
+                    0,
+                    Math.floor((now.getTime() - lastTrained.getTime()) / (24 * 60 * 60 * 1000)),
+                  );
+
+                  const progress =
+                    activeTab === "strength"
+                      ? getProgressChange(ex.entries)
+                      : getVolumeChange(ex.entries);
+
+                  const chartData =
+                    activeTab === "strength"
+                      ? ex.entries.map((e) => ({ date: formatDate(e.date), value: e.e1rm }))
+                      : ex.entries.map((e) => ({
+                          date: formatDate(e.date),
+                          value: Math.round(e.weight * e.reps * e.sets),
+                        }));
+
+                  const isPlateau = plateauedNames.has(ex.exercise);
+
+                  return (
+                    <div key={ex.exercise} className={styles.exerciseCard}>
+                      <button
+                        className={styles.exerciseHeader}
+                        onClick={() => setExpandedExercise(isExpanded ? null : ex.exercise)}
+                      >
+                        <div className={styles.exerciseInfo}>
+                          <div className={styles.exerciseNameRow}>
+                            <span className={styles.exerciseName}>{ex.exercise}</span>
+                            {isPlateau && (
+                              <button
+                                className={styles.plateauBadge}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPlateauDrawerExercise(ex.exercise);
+                                }}
+                              >
+                                <AlertTriangle size={12} />
+                                <span>Plateau</span>
+                              </button>
+                            )}
+                          </div>
+                          <div className={styles.exerciseMeta}>
+                            <span className={styles.latestValue}>
+                              {activeTab === "strength"
+                                ? `${latestWeight} ${weightUnit}`
+                                : `${latestVolume.toLocaleString()} ${weightUnit}`}
+                            </span>
+                            {progress && (
+                              <span
+                                className={`${styles.changeBadge} ${
+                                  progress.isPositive ? styles.changePositive : styles.changeNegative
+                                }`}
+                              >
+                                {progress.isPositive ? "+" : ""}
+                                {activeTab === "strength"
+                                  ? `${progress.change.toFixed(1)}`
+                                  : progress.change.toLocaleString()}
+                                {" "}({progress.percent}%)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className={styles.expandIcon}>
+                          {isExpanded ? <ChevronUpIcon size={20} /> : <ChevronDownIcon size={20} />}
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div className={styles.exerciseContent}>
+                          <div className={styles.exerciseStats}>
+                            <span>
+                              Best: {activeTab === "strength"
+                                ? `${bestE1rm.toFixed(1)} ${weightUnit} e1RM`
+                                : `${bestVolume.toLocaleString()} ${weightUnit}`}
+                            </span>
+                            <span>
+                              {daysSince === 0 ? "Trained today" : `${daysSince}d ago`}
+                            </span>
+                          </div>
+
+                          {chartData.length >= 2 ? (
+                            <div className={styles.chartWrap}>
+                              <Chart
+                                type={activeTab === "strength" ? "line" : "bar"}
+                                data={chartData}
+                                xKey="date"
+                                series={[{ dataKey: "value", color: "#22c55e" }]}
+                                height={140}
+                                yDomain={["dataMin - 2", "dataMax + 2"]}
+                                yTickFormatter={(v) =>
+                                  activeTab === "volume" ? `${Math.round(v / 1000)}k` : v.toFixed(0)
+                                }
+                                tooltipFormatter={(value) => [
+                                  activeTab === "strength"
+                                    ? `${Number(value).toFixed(1)} ${weightUnit}`
+                                    : `${Number(value).toLocaleString()} ${weightUnit}`,
+                                  activeTab === "strength" ? "e1RM" : "Volume",
+                                ]}
+                              />
+                            </div>
+                          ) : (
+                            <div className={styles.noData}>
+                              Need 2+ sessions to show chart
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Muscle Group Volume Section */}
+              {volumeData?.volume && (
+                <div className={styles.volumeSection}>
+                  <MuscleGroupVolume volume={volumeData.volume} />
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
 
       {plateauDrawerExercise && (

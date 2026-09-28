@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Zap, Loader2, Flame, Target, Calendar, Play } from "lucide-react";
 import {
@@ -11,6 +11,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useGetProgram } from "../../api/programs";
 import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
 import { parseDate } from "../../lib/date";
+import { AnimatedNumber } from "../../components/ui/AnimatedNumber";
+import { Confetti } from "../../components/Confetti";
 import styles from "./Home.module.css";
 
 interface Program {
@@ -21,15 +23,17 @@ interface Program {
   workouts: Workout[];
 }
 
-// Circular progress ring component
+// Circular progress ring component with draw animation
 const ProgressRing = ({
   progress,
   size = 120,
   strokeWidth = 8,
+  animate = false,
 }: {
   progress: number;
   size?: number;
   strokeWidth?: number;
+  animate?: boolean;
 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
@@ -46,7 +50,7 @@ const ProgressRing = ({
         cy={size / 2}
       />
       <circle
-        className={styles.progressRingFill}
+        className={`${styles.progressRingFill} ${animate ? styles.progressRingAnimate : ""}`}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         fill="none"
@@ -55,11 +59,23 @@ const ProgressRing = ({
         cy={size / 2}
         style={{
           strokeDasharray: circumference,
-          strokeDashoffset: offset,
-        }}
+          strokeDashoffset: animate ? offset : circumference,
+          "--target-offset": offset,
+          "--circumference": circumference,
+        } as React.CSSProperties}
       />
     </svg>
   );
+};
+
+// Check if streak is at a milestone
+const isStreakMilestone = (streak: number): boolean => {
+  return streak === 7 || streak === 14 || streak === 30 || streak === 60 || streak === 100;
+};
+
+// Check if progress is at a milestone
+const isProgressMilestone = (percent: number): boolean => {
+  return percent === 25 || percent === 50 || percent === 75 || percent === 100;
 };
 
 const Home = () => {
@@ -67,6 +83,12 @@ const Home = () => {
   const { activeProgram } = useSettings();
   const { activeWorkout, startWorkout } = useWorkout();
   const { user } = useAuth();
+
+  // Animation states
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  const previousStreak = useRef<number | null>(null);
+  const previousProgress = useRef<number | null>(null);
 
   const { data: programResponse, isLoading: isLoadingProgram } =
     useGetProgram<Program>(activeProgram?.id);
@@ -220,6 +242,36 @@ const Home = () => {
   const weekProgress = getWeekProgress();
   const programProgress = getProgramProgress();
 
+  // Trigger confetti on milestone achievements
+  useEffect(() => {
+    if (isLoadingProgram || isLoadingHistory) return;
+
+    // Check streak milestone
+    if (previousStreak.current !== null && streak > previousStreak.current) {
+      if (isStreakMilestone(streak)) {
+        setShowConfetti(true);
+      }
+    }
+    previousStreak.current = streak;
+
+    // Check progress milestone
+    if (previousProgress.current !== null && programProgress.percent > previousProgress.current) {
+      if (isProgressMilestone(programProgress.percent)) {
+        setShowConfetti(true);
+      }
+    }
+    previousProgress.current = programProgress.percent;
+  }, [streak, programProgress.percent, isLoadingProgram, isLoadingHistory]);
+
+  // Trigger animation after mount
+  useEffect(() => {
+    if (!isLoadingProgram && !isLoadingHistory && !hasAnimated) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => setHasAnimated(true), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingProgram, isLoadingHistory, hasAnimated]);
+
   const handleStartWorkout = () => {
     if (activeWorkout) {
       navigate("/workout");
@@ -269,9 +321,16 @@ const Home = () => {
 
   const isLoading = isLoadingProgram || isLoadingHistory;
   const firstName = getFirstName();
+  const showMilestoneGlow = isStreakMilestone(streak);
 
   return (
     <div className={styles.container}>
+      {/* Confetti overlay */}
+      <Confetti
+        trigger={showConfetti}
+        onComplete={() => setShowConfetti(false)}
+      />
+
       {/* Hero Header */}
       <header className={styles.header}>
         <div className={styles.headerContent}>
@@ -279,9 +338,11 @@ const Home = () => {
           <h1 className={styles.userName}>{firstName || "Athlete"}</h1>
         </div>
         {streak > 0 && (
-          <div className={styles.streakBadge}>
+          <div className={`${styles.streakBadge} ${showMilestoneGlow ? styles.streakMilestone : ""}`}>
             <Flame size={16} className={styles.streakIcon} />
-            <span className={styles.streakCount}>{streak}</span>
+            <span className={styles.streakCount}>
+              <AnimatedNumber value={streak} />
+            </span>
           </div>
         )}
       </header>
@@ -289,13 +350,13 @@ const Home = () => {
       {/* Stats Row */}
       {!isLoading && completedWorkouts.length > 0 && (
         <div className={styles.statsRow}>
-          <div className={styles.statPill}>
+          <div className={`${styles.statPill} ${hasAnimated ? styles.statPillVisible : ""}`} style={{ animationDelay: "0s" }}>
             <Calendar size={14} />
-            <span>{weeklyCount} this week</span>
+            <span><AnimatedNumber value={weeklyCount} /> this week</span>
           </div>
-          <div className={styles.statPill}>
+          <div className={`${styles.statPill} ${hasAnimated ? styles.statPillVisible : ""}`} style={{ animationDelay: "0.1s" }}>
             <Target size={14} />
-            <span>{workoutCount} this month</span>
+            <span><AnimatedNumber value={workoutCount} /> this month</span>
           </div>
         </div>
       )}
@@ -325,12 +386,14 @@ const Home = () => {
           /* Program Progress + Next Workout */
           <div className={styles.programHero}>
             <button
-              className={styles.progressCircleWrap}
+              className={`${styles.progressCircleWrap} ${isProgressMilestone(programProgress.percent) ? styles.progressMilestone : ""}`}
               onClick={() => navigate(`/programs/${activeProgram.id}`)}
             >
-              <ProgressRing progress={programProgress.percent} />
+              <ProgressRing progress={programProgress.percent} animate={hasAnimated} />
               <div className={styles.progressCircleInner}>
-                <span className={styles.progressPercent}>{programProgress.percent}%</span>
+                <span className={styles.progressPercent}>
+                  <AnimatedNumber value={programProgress.percent} suffix="%" />
+                </span>
                 <span className={styles.progressLabel}>complete</span>
               </div>
             </button>
@@ -408,7 +471,7 @@ const Home = () => {
 
       {/* Recent Activity */}
       {lastWorkout && (
-        <section className={styles.recentSection}>
+        <section className={`${styles.recentSection} ${hasAnimated ? styles.recentSectionVisible : ""}`}>
           <h3 className={styles.sectionLabel}>Recent</h3>
           <button
             className={styles.recentCard}
