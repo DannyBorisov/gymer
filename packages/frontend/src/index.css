@@ -92,6 +92,22 @@ html, body {
   box-sizing: border-box;
 }
 
+/* Remove browser tap highlight on all interactive elements for native feel */
+button,
+a,
+[role="button"],
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text selection on interactive elements */
+button,
+[role="button"] {
+  user-select: none;
+}
+
 h1,
 h2 {
   font-family: var(--heading);

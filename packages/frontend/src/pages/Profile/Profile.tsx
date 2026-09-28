@@ -1,12 +1,6 @@
 import { useState, useMemo } from "react";
-import { Check, Loader2 } from "lucide-react";
-import {
-  ExitIcon,
-  AlarmIcon,
-  VolumeHighIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from "../../assets/icons";
+import { Check, Loader2, Scale, Bell, Volume2, LogOut } from "lucide-react";
+import { ChevronDownIcon, ChevronUpIcon } from "../../assets/icons";
 import { Chart } from "../../components/ui/Chart";
 import { useGetBodyWeight, useSaveBodyWeight } from "../../api/profile";
 import { parseDate } from "../../lib/date";
@@ -22,24 +16,6 @@ import {
 } from "../../utils/notifications";
 import { hapticSelection, hapticMedium } from "../../utils/haptics";
 import styles from "./Profile.module.css";
-
-const BodyScaleIcon = ({ size = 18 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="4" y="4" width="16" height="16" rx="3" />
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 9v3" />
-    <circle cx="12" cy="12" r="0.5" fill="currentColor" />
-  </svg>
-);
 
 const getInitials = (name: string) => {
   return name
@@ -59,18 +35,13 @@ const Profile = () => {
     setRestTimerAnnounceInterval,
   } = useSettings();
 
-  // Weight reminder state
-  const [weightReminderOn, setWeightReminderOn] = useState(
-    isWeightReminderEnabled,
-  );
+  const [weightReminderOn, setWeightReminderOn] = useState(isWeightReminderEnabled);
   const [reminderTime, setReminderTime] = useState(() => {
     const { hour, minute } = getWeightReminderTime();
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   });
 
   const [avatarError, setAvatarError] = useState(false);
-
-  // Weight tracking state
   const [weightInput, setWeightInput] = useState("");
   const [showWeightHistory, setShowWeightHistory] = useState(false);
   const { data: weightData, isLoading: isLoadingWeight } = useGetBodyWeight();
@@ -78,7 +49,6 @@ const Profile = () => {
   const weightEntries = weightData?.entries || [];
   const isSavingWeight = saveBodyWeight.isPending;
 
-  // Entries are sorted ascending, so latest is last
   const latestWeight = weightEntries[weightEntries.length - 1];
   const hasLoggedToday = latestWeight
     ? parseDate(latestWeight.date).toDateString() === new Date().toDateString()
@@ -86,7 +56,6 @@ const Profile = () => {
 
   const handleSaveWeight = () => {
     if (!weightInput.trim()) return;
-
     saveBodyWeight.mutate(weightInput, {
       onSuccess: () => setWeightInput(""),
     });
@@ -103,7 +72,6 @@ const Profile = () => {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  // Prepare chart data with formatted dates for display
   const chartData = useMemo(() => {
     if (weightEntries.length === 0) return [];
     return weightEntries.map((entry) => ({
@@ -115,7 +83,6 @@ const Profile = () => {
     }));
   }, [weightEntries]);
 
-  // Recent entries for history (most recent first)
   const recentEntries = useMemo(() => {
     return [...weightEntries].reverse().slice(0, 7);
   }, [weightEntries]);
@@ -139,9 +106,7 @@ const Profile = () => {
     }
   };
 
-  const handleReminderTimeChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleReminderTimeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = e.target.value;
     setReminderTime(time);
 
@@ -157,27 +122,22 @@ const Profile = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <div>
-          <span className={styles.eyebrow}>Account</span>
-          <h1 className={styles.title}>Profile</h1>
-          <p className={styles.headerSubtitle}>
-            Your training preferences and progress.
-          </p>
-        </div>
-      </div>
+      {/* Header */}
+      <header className={styles.header}>
+        <h1 className={styles.title}>Profile</h1>
+      </header>
 
-      {/* User info card */}
+      {/* User Card */}
       <div className={styles.userCard}>
         {user.picture && !avatarError ? (
           <img
             src={user.picture}
             alt=""
-            className={styles.avatarImage}
+            className={styles.avatar}
             onError={() => setAvatarError(true)}
           />
         ) : (
-          <div className={styles.avatar}>{getInitials(user.name)}</div>
+          <div className={styles.avatarFallback}>{getInitials(user.name)}</div>
         )}
         <div className={styles.userInfo}>
           <span className={styles.userName}>{user.name}</span>
@@ -185,66 +145,60 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Weight section */}
-      <div className={styles.section}>
+      {/* Weight Section */}
+      <section className={styles.section}>
         <div className={styles.sectionHeader}>
+          <Scale size={18} className={styles.sectionIcon} />
           <div>
-            <span className={styles.sectionEyebrow}>Progress</span>
-            <h2 className={styles.sectionTitle}>Body weight</h2>
+            <h2 className={styles.sectionTitle}>Body Weight</h2>
+            {latestWeight && (
+              <span className={styles.sectionMeta}>
+                {hasLoggedToday ? "Logged today" : "Ready to log"}
+              </span>
+            )}
           </div>
-          {latestWeight && (
-            <span
-              className={`${styles.weightStatus} ${
-                hasLoggedToday ? styles.weightStatusComplete : ""
-              }`}
-            >
-              {hasLoggedToday ? "Logged today" : "Ready to log"}
-            </span>
-          )}
         </div>
 
-        <div className={styles.weightCard}>
+        <div className={styles.card}>
           {isLoadingWeight ? (
-            <div className={styles.weightLoading}>
-              <Loader2 size={18} className={styles.spinner} />
+            <div className={styles.cardLoading}>
+              <Loader2 size={20} className={styles.spinner} />
             </div>
           ) : (
             <>
-              {/* Current weight display */}
-              <div className={styles.weightMain}>
+              {/* Current Weight */}
+              <div className={styles.weightDisplay}>
                 {latestWeight ? (
-                  <div className={styles.weightCurrent}>
-                    <span className={styles.weightValue}>
-                      {latestWeight.weight}
-                    </span>
+                  <>
+                    <span className={styles.weightValue}>{latestWeight.weight}</span>
                     <span className={styles.weightUnit}>{weightUnit}</span>
-                  </div>
+                  </>
                 ) : (
-                  <span className={styles.noWeight}>No entries yet</span>
+                  <span className={styles.weightEmpty}>No entries yet</span>
                 )}
               </div>
 
-              {/* Log weight input */}
+              {/* Log Input */}
               {hasLoggedToday ? (
-                <div className={styles.loggedToday}>
+                <div className={styles.loggedBadge}>
                   <Check size={16} />
                   <span>Logged today</span>
                 </div>
               ) : (
-                <div className={styles.weightInputRow}>
+                <div className={styles.inputRow}>
                   <input
                     type="text"
                     inputMode="decimal"
                     value={weightInput}
                     onChange={(e) => setWeightInput(e.target.value)}
-                    placeholder={`Log weight (${weightUnit})`}
-                    className={styles.weightInput}
+                    placeholder={`Enter weight (${weightUnit})`}
+                    className={styles.input}
                     onKeyDown={(e) => e.key === "Enter" && handleSaveWeight()}
                   />
                   <button
                     onClick={handleSaveWeight}
                     disabled={!weightInput.trim() || isSavingWeight}
-                    className={styles.weightSaveBtn}
+                    className={styles.saveBtn}
                   >
                     {isSavingWeight ? (
                       <Loader2 size={18} className={styles.spinner} />
@@ -255,15 +209,15 @@ const Profile = () => {
                 </div>
               )}
 
-              {/* Weight Chart */}
+              {/* Chart */}
               {chartData.length >= 2 && (
-                <div className={styles.chartContainer}>
+                <div className={styles.chartWrap}>
                   <Chart
                     type="line"
                     data={chartData}
                     xKey="displayDate"
                     series={[{ dataKey: "weight" }]}
-                    height={120}
+                    height={100}
                     yDomain={["dataMin - 0.5", "dataMax + 0.5"]}
                     yTickFormatter={(v) => v.toFixed(1)}
                     tooltipFormatter={(value) => [
@@ -275,7 +229,7 @@ const Profile = () => {
                 </div>
               )}
 
-              {/* Recent history toggle */}
+              {/* History Toggle */}
               {weightEntries.length > 0 && (
                 <>
                   <button
@@ -291,16 +245,13 @@ const Profile = () => {
                   </button>
 
                   {showWeightHistory && (
-                    <div className={styles.weightHistory}>
+                    <div className={styles.historyList}>
                       {recentEntries.map((entry, idx) => (
-                        <div
-                          key={`${entry.date}-${idx}`}
-                          className={styles.historyRow}
-                        >
+                        <div key={`${entry.date}-${idx}`} className={styles.historyRow}>
                           <span className={styles.historyDate}>
                             {formatDisplayDate(entry.date)}
                           </span>
-                          <span className={styles.historyWeight}>
+                          <span className={styles.historyValue}>
                             {entry.weight} {weightUnit}
                           </span>
                         </div>
@@ -312,31 +263,24 @@ const Profile = () => {
             </>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Settings section */}
-      <div className={styles.section}>
+      {/* Settings Section */}
+      <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <div>
-            <span className={styles.sectionEyebrow}>Preferences</span>
-            <h2 className={styles.sectionTitle}>Settings</h2>
-          </div>
+          <h2 className={styles.sectionTitle}>Settings</h2>
         </div>
 
-        <div className={styles.settingsCard}>
-          <div className={styles.settingsRow}>
-            <div className={styles.settingsLabel}>
-              <BodyScaleIcon size={18} />
-              <div className={styles.settingsText}>
-                <span>Weight unit</span>
-                <span className={styles.settingsDescription}>
-                  Used when logging body weight
-                </span>
-              </div>
+        <div className={styles.card}>
+          {/* Weight Unit */}
+          <div className={styles.settingRow}>
+            <div className={styles.settingInfo}>
+              <Scale size={18} />
+              <span>Weight unit</span>
             </div>
-            <div className={styles.unitToggle}>
+            <div className={styles.toggleGroup}>
               <button
-                className={`${styles.unitBtn} ${weightUnit === "kg" ? styles.unitBtnActive : ""}`}
+                className={`${styles.toggleBtn} ${weightUnit === "kg" ? styles.toggleBtnActive : ""}`}
                 onClick={() => {
                   hapticSelection();
                   setWeightUnit("kg");
@@ -345,7 +289,7 @@ const Profile = () => {
                 kg
               </button>
               <button
-                className={`${styles.unitBtn} ${weightUnit === "lbs" ? styles.unitBtnActive : ""}`}
+                className={`${styles.toggleBtn} ${weightUnit === "lbs" ? styles.toggleBtnActive : ""}`}
                 onClick={() => {
                   hapticSelection();
                   setWeightUnit("lbs");
@@ -355,29 +299,12 @@ const Profile = () => {
               </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Notifications section */}
-      <div className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <span className={styles.sectionEyebrow}>Stay consistent</span>
-            <h2 className={styles.sectionTitle}>Notifications</h2>
-          </div>
-        </div>
-
-        <div className={styles.settingsCard}>
           {/* Weight Reminder */}
-          <div className={styles.settingsRow}>
-            <div className={styles.settingsLabel}>
-              <AlarmIcon size={18} />
-              <div className={styles.settingsText}>
-                <span>Daily weight reminder</span>
-                <span className={styles.settingsDescription}>
-                  A quick prompt to log your progress
-                </span>
-              </div>
+          <div className={styles.settingRow}>
+            <div className={styles.settingInfo}>
+              <Bell size={18} />
+              <span>Daily reminder</span>
             </div>
             <div className={styles.reminderControls}>
               {weightReminderOn && (
@@ -389,28 +316,23 @@ const Profile = () => {
                 />
               )}
               <button
-                className={`${styles.toggleBtn} ${weightReminderOn ? styles.toggleBtnActive : ""}`}
+                className={`${styles.switch} ${weightReminderOn ? styles.switchOn : ""}`}
                 onClick={handleWeightReminderToggle}
               >
-                <span className={styles.toggleKnob} />
+                <span className={styles.switchKnob} />
               </button>
             </div>
           </div>
 
-          {/* Voice Announcements for Rest Timer */}
-          <div className={styles.settingsRow}>
-            <div className={styles.settingsLabel}>
-              <VolumeHighIcon size={18} />
-              <div className={styles.settingsText}>
-                <span>Rest timer voice</span>
-                <span className={styles.settingsDescription}>
-                  Announce elapsed rest time
-                </span>
-              </div>
+          {/* Voice Announcements */}
+          <div className={styles.settingRow}>
+            <div className={styles.settingInfo}>
+              <Volume2 size={18} />
+              <span>Rest timer voice</span>
             </div>
-            <div className={styles.alertToggle}>
+            <div className={styles.toggleGroup}>
               <button
-                className={`${styles.alertBtn} ${restTimerAnnounceInterval === 0 ? styles.alertBtnActive : ""}`}
+                className={`${styles.toggleBtn} ${restTimerAnnounceInterval === 0 ? styles.toggleBtnActive : ""}`}
                 onClick={() => {
                   hapticSelection();
                   setRestTimerAnnounceInterval(0);
@@ -419,7 +341,7 @@ const Profile = () => {
                 Off
               </button>
               <button
-                className={`${styles.alertBtn} ${restTimerAnnounceInterval === 30 ? styles.alertBtnActive : ""}`}
+                className={`${styles.toggleBtn} ${restTimerAnnounceInterval === 30 ? styles.toggleBtnActive : ""}`}
                 onClick={() => {
                   hapticSelection();
                   setRestTimerAnnounceInterval(30);
@@ -428,7 +350,7 @@ const Profile = () => {
                 30s
               </button>
               <button
-                className={`${styles.alertBtn} ${restTimerAnnounceInterval === 60 ? styles.alertBtnActive : ""}`}
+                className={`${styles.toggleBtn} ${restTimerAnnounceInterval === 60 ? styles.toggleBtnActive : ""}`}
                 onClick={() => {
                   hapticSelection();
                   setRestTimerAnnounceInterval(60);
@@ -439,11 +361,11 @@ const Profile = () => {
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Sign out */}
-      <button className={styles.signOutButton} onClick={logout}>
-        <ExitIcon size={18} />
+      {/* Sign Out */}
+      <button className={styles.signOutBtn} onClick={logout}>
+        <LogOut size={18} />
         <span>Sign out</span>
       </button>
     </div>

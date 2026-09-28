@@ -1,13 +1,10 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Zap, Loader2, TrendingUp } from "lucide-react";
+import { Plus, Zap, Loader2, Flame, Target, Calendar, Play } from "lucide-react";
 import {
   ChevronRightIcon,
-  CheckmarkCircleIcon,
   DumbbellOutlineIcon,
-  PlayOutlineIcon,
 } from "../../assets/icons";
-import { ProgressBar } from "../../components/ui/ProgressBar";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -23,6 +20,47 @@ interface Program {
   isComplete: boolean;
   workouts: Workout[];
 }
+
+// Circular progress ring component
+const ProgressRing = ({
+  progress,
+  size = 120,
+  strokeWidth = 8,
+}: {
+  progress: number;
+  size?: number;
+  strokeWidth?: number;
+}) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <svg width={size} height={size} className={styles.progressRing}>
+      <circle
+        className={styles.progressRingBg}
+        strokeWidth={strokeWidth}
+        fill="none"
+        r={radius}
+        cx={size / 2}
+        cy={size / 2}
+      />
+      <circle
+        className={styles.progressRingFill}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        fill="none"
+        r={radius}
+        cx={size / 2}
+        cy={size / 2}
+        style={{
+          strokeDasharray: circumference,
+          strokeDashoffset: offset,
+        }}
+      />
+    </svg>
+  );
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -51,22 +89,67 @@ const Home = () => {
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
-    const rawFirstName = user?.name?.split(" ")[0];
-    const firstName = rawFirstName
-      ? rawFirstName.charAt(0).toUpperCase() +
-        rawFirstName.slice(1).toLowerCase()
-      : null;
-    const timeGreeting =
-      hour < 12
-        ? "Good morning"
-        : hour < 17
-          ? "Good afternoon"
-          : "Good evening";
-    return firstName ? `${timeGreeting}, ${firstName}` : timeGreeting;
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
   };
 
-  const { workoutCount, completedSetCount } = useMemo(() => {
+  const getFirstName = () => {
+    const rawFirstName = user?.name?.split(" ")[0];
+    return rawFirstName
+      ? rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase()
+      : null;
+  };
+
+  // Calculate streak (consecutive days with workouts)
+  const streak = useMemo(() => {
+    if (completedWorkouts.length === 0) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get unique workout dates
+    const workoutDates = new Set(
+      completedWorkouts.map((w) => {
+        const d = parseDate(w.date!);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }),
+    );
+
+    let streakCount = 0;
+    const checkDate = new Date(today);
+
+    // Check if worked out today or yesterday to start streak
+    const todayTime = today.getTime();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayTime = yesterday.getTime();
+
+    if (!workoutDates.has(todayTime) && !workoutDates.has(yesterdayTime)) {
+      return 0;
+    }
+
+    // Start from yesterday if no workout today
+    if (!workoutDates.has(todayTime)) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    // Count consecutive days
+    while (workoutDates.has(checkDate.getTime())) {
+      streakCount++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+
+    return streakCount;
+  }, [completedWorkouts]);
+
+  const { workoutCount, weeklyCount } = useMemo(() => {
     const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
     const workoutCount = completedWorkouts.filter((workout) => {
       const date = parseDate(workout.date!);
       return (
@@ -75,25 +158,16 @@ const Home = () => {
       );
     }).length;
 
-    const completedSetCount = completedWorkouts.reduce(
-      (total, workout) =>
-        total +
-        workout.exercises.reduce(
-          (exerciseTotal, exercise) =>
-            exerciseTotal +
-            exercise.sets.filter((set) => set.achievedReps !== undefined)
-              .length,
-          0,
-        ),
-      0,
-    );
+    const weeklyCount = completedWorkouts.filter((workout) => {
+      const date = parseDate(workout.date!);
+      return date >= startOfWeek;
+    }).length;
 
-    return { workoutCount, completedSetCount };
+    return { workoutCount, weeklyCount };
   }, [completedWorkouts]);
 
   // Find next incomplete workout (first workout without a date)
   const getNextWorkout = (): { week: number; workout: Workout } | null => {
-    // Sort by week to find the earliest incomplete
     const sorted = [...programWorkouts].sort((a, b) => a.week - b.week);
     for (const workout of sorted) {
       if (!workout.date) {
@@ -103,11 +177,18 @@ const Home = () => {
     return null;
   };
 
+  // Calculate overall program progress
+  const getProgramProgress = () => {
+    if (programWorkouts.length === 0) return { completed: 0, total: 0, percent: 0 };
+    const completed = programWorkouts.filter((w) => w.date).length;
+    const total = programWorkouts.length;
+    return { completed, total, percent: Math.round((completed / total) * 100) };
+  };
+
   // Calculate week progress
   const getWeekProgress = () => {
-    if (programWorkouts.length === 0) return { completed: 0, total: 0 };
+    if (programWorkouts.length === 0) return { completed: 0, total: 0, week: 1 };
 
-    // Group by week
     const byWeek: Record<number, { completed: number; total: number }> = {};
     for (const workout of programWorkouts) {
       const entry = byWeek[workout.week] || { completed: 0, total: 0 };
@@ -116,7 +197,6 @@ const Home = () => {
       byWeek[workout.week] = entry;
     }
 
-    // Find first incomplete week
     const weeks = Object.keys(byWeek)
       .map(Number)
       .sort((a, b) => a - b);
@@ -127,7 +207,6 @@ const Home = () => {
       }
     }
 
-    // All complete - return last week
     const lastWeek = weeks[weeks.length - 1];
     const lastWeekData = byWeek[lastWeek];
     return {
@@ -139,9 +218,7 @@ const Home = () => {
 
   const nextWorkout = getNextWorkout();
   const weekProgress = getWeekProgress();
-  const remainingSessions = weekProgress.total - weekProgress.completed;
-  const weekIsComplete =
-    weekProgress.total > 0 && remainingSessions === 0;
+  const programProgress = getProgramProgress();
 
   const handleStartWorkout = () => {
     if (activeWorkout) {
@@ -149,7 +226,6 @@ const Home = () => {
       return;
     }
 
-    // Start the workout directly
     if (nextWorkout && activeProgram && program) {
       startWorkout(
         activeProgram.id,
@@ -167,24 +243,15 @@ const Home = () => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
-    }
-    if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
-    }
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
 
     const diffDays = Math.floor(
       (today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
     );
-    if (diffDays < 7) {
-      return `${diffDays} days ago`;
-    }
+    if (diffDays < 7) return `${diffDays}d ago`;
 
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   const formatDuration = (duration: string) => {
@@ -200,196 +267,166 @@ const Home = () => {
     return duration;
   };
 
+  const isLoading = isLoadingProgram || isLoadingHistory;
+  const firstName = getFirstName();
+
   return (
     <div className={styles.container}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div>
-          <span className={styles.eyebrow}>GYMERR / TODAY</span>
-          <h1 className={styles.greeting}>{getGreeting()}</h1>
+      {/* Hero Header */}
+      <header className={styles.header}>
+        <div className={styles.headerContent}>
+          <span className={styles.greeting}>{getGreeting()}</span>
+          <h1 className={styles.userName}>{firstName || "Athlete"}</h1>
         </div>
-      </div>
-
-      {/* Week Progress - only show if has active program */}
-      {activeProgram && programWorkouts.length > 0 && (
-        <div className={styles.progressCard}>
-          <div className={styles.progressHeader}>
-            <div className={styles.progressTitle}>
-              <span className={styles.progressLabel}>
-                Week {weekProgress.week} target
-              </span>
-              {weekIsComplete && (
-                <span className={styles.progressStatus}>
-                  <CheckmarkCircleIcon size={12} />
-                  COMPLETE
-                </span>
-              )}
-            </div>
-            <span className={styles.progressCount}>
-              {weekProgress.completed} of {weekProgress.total} sessions
-            </span>
+        {streak > 0 && (
+          <div className={styles.streakBadge}>
+            <Flame size={16} className={styles.streakIcon} />
+            <span className={styles.streakCount}>{streak}</span>
           </div>
-          <ProgressBar
-            value={weekProgress.completed}
-            max={weekProgress.total}
-            className={styles.progressBar}
-            fillClassName={styles.progressFill}
-          />
-          <div className={styles.progressFooter}>
-            <span>
-              {weekIsComplete
-                ? "All planned sessions complete"
-                : `${remainingSessions} session${remainingSessions !== 1 ? "s" : ""} left this week`}
-            </span>
-            <span>
-              {Math.round((weekProgress.completed / weekProgress.total) * 100)}%
-            </span>
+        )}
+      </header>
+
+      {/* Stats Row */}
+      {!isLoading && completedWorkouts.length > 0 && (
+        <div className={styles.statsRow}>
+          <div className={styles.statPill}>
+            <Calendar size={14} />
+            <span>{weeklyCount} this week</span>
+          </div>
+          <div className={styles.statPill}>
+            <Target size={14} />
+            <span>{workoutCount} this month</span>
           </div>
         </div>
       )}
 
-      {/* Primary Action */}
-      <div className={styles.actionCard}>
-        <div className={styles.actionCardLabel}>NEXT UP</div>
+      {/* Main Action Area */}
+      <div className={styles.heroSection}>
         {isLoadingProgram ? (
-          <div className={styles.loadingAction}>
-            <Loader2 size={24} className={styles.spinner} />
+          <div className={styles.loadingState}>
+            <Loader2 size={32} className={styles.spinner} />
           </div>
         ) : activeWorkout ? (
-          // Resume active workout
-          <button
-            className={styles.primaryBtn}
-            onClick={() => navigate("/workout")}
-          >
-            <PlayOutlineIcon size={22} />
-            <div className={styles.primaryBtnText}>
-              <span className={styles.primaryBtnTitle}>Resume Workout</span>
-              <span className={styles.primaryBtnSubtitle}>
-                {activeWorkout.workoutName}
-              </span>
+          /* Resume Active Workout */
+          <button className={styles.heroCard} onClick={() => navigate("/workout")}>
+            <div className={styles.heroCardGlow} />
+            <div className={styles.heroCardContent}>
+              <div className={styles.heroIconWrap}>
+                <Play size={28} fill="currentColor" />
+              </div>
+              <div className={styles.heroTextWrap}>
+                <span className={styles.heroLabel}>In Progress</span>
+                <span className={styles.heroTitle}>{activeWorkout.workoutName}</span>
+              </div>
+              <ChevronRightIcon size={24} className={styles.heroChevron} />
             </div>
-            <ChevronRightIcon size={20} />
           </button>
         ) : activeProgram && nextWorkout ? (
-          // Start next program workout OR quick workout
-          <div className={styles.workoutOptions}>
-            <button className={styles.primaryBtn} onClick={handleStartWorkout}>
-              <DumbbellOutlineIcon size={22} />
-              <div className={styles.primaryBtnText}>
-                <span className={styles.primaryBtnTitle}>
-                  {nextWorkout.workout.name}
-                </span>
-                <span className={styles.primaryBtnSubtitle}>
-                  Week {nextWorkout.week}
-                </span>
+          /* Program Progress + Next Workout */
+          <div className={styles.programHero}>
+            <button
+              className={styles.progressCircleWrap}
+              onClick={() => navigate(`/programs/${activeProgram.id}`)}
+            >
+              <ProgressRing progress={programProgress.percent} />
+              <div className={styles.progressCircleInner}>
+                <span className={styles.progressPercent}>{programProgress.percent}%</span>
+                <span className={styles.progressLabel}>complete</span>
               </div>
-              <ChevronRightIcon size={20} />
             </button>
-            <span className={styles.orDivider}>or</span>
-            <button
-              className={styles.quickWorkoutBtn}
-              onClick={() => navigate("/quick-workout")}
-            >
-              <Zap size={16} />
-              <span>Quick Workout</span>
-            </button>
-          </div>
-        ) : activeProgram ? (
-          // Program complete
-          <div className={styles.completeState}>
-            <span>Program complete!</span>
-            <button
-              className={styles.secondaryBtn}
-              onClick={() => navigate("/quick-workout")}
-            >
-              <Zap size={18} />
-              Quick Workout
-            </button>
+
+            <div className={styles.programInfo}>
+              <button
+                className={styles.programNameBtn}
+                onClick={() => navigate(`/programs/${activeProgram.id}`)}
+              >
+                <span className={styles.programName}>{activeProgram.name}</span>
+                <ChevronRightIcon size={16} />
+              </button>
+              <span className={styles.weekIndicator}>
+                Week {weekProgress.week} · {weekProgress.completed}/{weekProgress.total} done
+              </span>
+            </div>
           </div>
         ) : (
-          // No program - show options
-          <div className={styles.noProgram}>
-            <p className={styles.noProgramText}>Ready to train?</p>
-            <div className={styles.noProgramActions}>
-              <button
-                className={styles.primaryBtn}
-                onClick={() => navigate("/quick-workout")}
-              >
-                <Zap size={20} />
-                <span>Quick Workout</span>
-              </button>
-              <button
-                className={styles.outlineBtn}
-                onClick={() => navigate("/programs/create")}
-              >
-                <Plus size={20} />
-                <span>Create Program</span>
-              </button>
+          /* Empty State - No Program */
+          <div className={styles.emptyHero}>
+            <div className={styles.emptyIconWrap}>
+              <DumbbellOutlineIcon size={40} />
             </div>
+            <h2 className={styles.emptyTitle}>Ready to train?</h2>
+            <p className={styles.emptySubtitle}>
+              Start a quick workout or create a program
+            </p>
           </div>
         )}
       </div>
 
-      {/* Last Workout */}
-      {lastWorkout && (
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Last Workout</h2>
+      {/* Primary CTA - Thumb Zone */}
+      <div className={styles.ctaSection}>
+        {activeWorkout ? (
           <button
-            className={styles.workoutCard}
+            className={styles.primaryCta}
+            onClick={() => navigate("/workout")}
+          >
+            <Play size={20} fill="currentColor" />
+            <span>Continue Workout</span>
+          </button>
+        ) : activeProgram && nextWorkout ? (
+          <>
+            <button className={styles.primaryCta} onClick={handleStartWorkout}>
+              <DumbbellOutlineIcon size={20} />
+              <span>{nextWorkout.workout.name}</span>
+            </button>
+            <button
+              className={styles.secondaryCta}
+              onClick={() => navigate("/quick-workout")}
+            >
+              <Zap size={18} />
+              <span>Quick Workout</span>
+            </button>
+          </>
+        ) : (
+          <div className={styles.ctaRow}>
+            <button
+              className={styles.primaryCta}
+              onClick={() => navigate("/quick-workout")}
+            >
+              <Zap size={20} />
+              <span>Quick Workout</span>
+            </button>
+            <button
+              className={styles.outlineCta}
+              onClick={() => navigate("/programs/create")}
+            >
+              <Plus size={20} />
+              <span>New Program</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Recent Activity */}
+      {lastWorkout && (
+        <section className={styles.recentSection}>
+          <h3 className={styles.sectionLabel}>Recent</h3>
+          <button
+            className={styles.recentCard}
             onClick={() => navigate("/history")}
           >
-            <div className={styles.workoutIcon}>
-              <DumbbellOutlineIcon size={20} />
+            <div className={styles.recentIcon}>
+              <DumbbellOutlineIcon size={18} />
             </div>
-            <div className={styles.workoutInfo}>
-              <span className={styles.workoutName}>{lastWorkout.name}</span>
-              <span className={styles.workoutMeta}>
+            <div className={styles.recentInfo}>
+              <span className={styles.recentName}>{lastWorkout.name}</span>
+              <span className={styles.recentMeta}>
                 {formatDateRelative(lastWorkout.date!)}
-                {lastWorkout.duration &&
-                  ` · ${formatDuration(lastWorkout.duration)}`}
+                {lastWorkout.duration && ` · ${formatDuration(lastWorkout.duration)}`}
               </span>
             </div>
-            <ChevronRightIcon size={18} className={styles.chevron} />
+            <ChevronRightIcon size={18} className={styles.recentChevron} />
           </button>
-        </div>
-      )}
-
-      {/* Training record */}
-      {!isLoadingHistory && completedWorkouts.length > 0 && (
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Training record</h2>
-          <div className={styles.statsGrid}>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>
-                <TrendingUp size={18} />
-              </div>
-              <div className={styles.statInfo}>
-                <span className={styles.statValue}>{workoutCount}</span>
-                <span className={styles.statLabel}>Sessions this month</span>
-              </div>
-            </div>
-            <div className={styles.statCard}>
-              <div className={styles.statIcon}>
-                <CheckmarkCircleIcon size={18} />
-              </div>
-              <div className={styles.statInfo}>
-                <span className={styles.statValue}>{completedSetCount}</span>
-                <span className={styles.statLabel}>Sets completed</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Programs Link */}
-      {activeProgram && (
-        <button
-          className={styles.linkBtn}
-          onClick={() => navigate(`/programs/${activeProgram.id}`)}
-        >
-          <span>View full program</span>
-          <ChevronRightIcon size={16} />
-        </button>
+        </section>
       )}
     </div>
   );

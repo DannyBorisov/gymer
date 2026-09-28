@@ -8,13 +8,24 @@ import { formatTime } from "../../lib/time";
 const WorkoutDrawerOverlay = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { activeWorkout, workoutData, timer, currentExerciseIndex, duration } =
+  const { activeWorkout, workoutData, timer, currentExerciseIndex, duration, stopWorkout, isQuickWorkout } =
     useWorkout();
   const isWorkoutComplete = duration !== null;
   const isWorkoutRoute = location.pathname === "/workout";
 
   const handleClose = () => {
     navigate("/home");
+  };
+
+  const handleEndWorkout = async () => {
+    await stopWorkout();
+    if (isQuickWorkout) {
+      navigate("/programs");
+    } else if (activeWorkout?.programId) {
+      navigate(`/programs/${activeWorkout.programId}`);
+    } else {
+      navigate("/home");
+    }
   };
 
   // Get current exercise name (variant shown alongside, e.g. "Row · Wide Grip")
@@ -40,6 +51,7 @@ const WorkoutDrawerOverlay = () => {
       forceCollapsed={!isWorkoutRoute && !!activeWorkout}
       closeOnCollapse={isWorkoutComplete}
       onPeekTap={!isWorkoutRoute ? handlePeekTap : undefined}
+      onEndWorkout={!isWorkoutRoute && activeWorkout ? handleEndWorkout : undefined}
       peekContent={
         activeWorkout
           ? {

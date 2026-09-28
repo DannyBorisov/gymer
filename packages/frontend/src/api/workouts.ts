@@ -4,9 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 export interface WorkoutSet {
   targetReps: number;
   targetRir: string;
+  targetRestTime?: number;
   achievedWeight?: number;
   achievedReps?: number;
   achievedRir?: string;
+  achievedRestTime?: number;
   notes?: string;
 }
 

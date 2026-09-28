@@ -130,14 +130,18 @@ export function parseProgramRows(
     // Parse set data
     const weightStr = String(row[cols.weight.index] || '').trim();
     const repsStr = String(row[cols.repsAchieved.index] || '').trim();
+    const targetRestTimeStr = String(row[cols.targetRestTime.index] || '').trim();
+    const achievedRestTimeStr = String(row[cols.achievedRestTime.index] || '').trim();
 
     const set: SetWithRowIndex = {
       rowIndex: i + 1, // 1-indexed for sheets
       targetReps: Number(row[cols.targetReps.index]) || 0,
       targetRir: String(row[cols.rir.index] || ''),
+      targetRestTime: targetRestTimeStr ? parseInt(targetRestTimeStr, 10) : undefined,
       achievedWeight: weightStr ? parseFloat(weightStr) : undefined,
       achievedReps: repsStr ? parseInt(repsStr, 10) : undefined,
       achievedRir: String(row[cols.rirAchieved.index] || '') || undefined,
+      achievedRestTime: achievedRestTimeStr ? parseInt(achievedRestTimeStr, 10) : undefined,
       notes: String(row[cols.notes.index] || '') || undefined,
     };
 
@@ -210,9 +214,11 @@ export function stripRowIndex(program: ProgramWithRowIndex): Program {
         sets: exercise.sets.map(set => ({
           targetReps: set.targetReps,
           targetRir: set.targetRir,
+          targetRestTime: set.targetRestTime,
           achievedWeight: set.achievedWeight,
           achievedReps: set.achievedReps,
           achievedRir: set.achievedRir,
+          achievedRestTime: set.achievedRestTime,
           notes: set.notes,
         })),
       })),

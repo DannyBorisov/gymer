@@ -6,6 +6,7 @@ const DEFAULT_REMINDER_HOUR = 9;
 const DEFAULT_REMINDER_MINUTE = 0;
 
 const WEIGHT_REMINDER_ID = 1001;
+const TEST_NOTIFICATION_ID = 9999;
 const CHANNEL_ID = 'gymerr_reminders';
 
 // Create notification channel for Android (required for heads-up notifications)
@@ -144,4 +145,26 @@ export async function testNotification(delaySeconds: number = 5): Promise<void> 
   });
 
   console.log(`[Notifications] Test notification scheduled for ${delaySeconds}s from now`);
+}
+
+// Navigation callback type
+type NavigateFunction = (path: string) => void;
+
+// Set up notification click listeners
+export function setupNotificationListeners(navigate: NavigateFunction): void {
+  if (!Capacitor.isNativePlatform()) {
+    return;
+  }
+
+  LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+    const notificationId = notification.notification.id;
+    console.log('[Notifications] Action performed on notification:', notificationId);
+
+    // Weight reminder notification - navigate to profile
+    if (notificationId === WEIGHT_REMINDER_ID || notificationId === TEST_NOTIFICATION_ID) {
+      navigate('/profile');
+    }
+  });
+
+  console.log('[Notifications] Listeners set up');
 }

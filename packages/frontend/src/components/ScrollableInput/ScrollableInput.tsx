@@ -64,38 +64,33 @@ export function ScrollableInput({
   const lastHapticIndex = useRef(-1);
 
   const numericValue = parseFloat(value);
-  const isEmpty = value === "" || value === "-";
+  const isEmpty = value === "" || isNaN(numericValue);
 
   // Generate fixed list of values (reversed - higher values at top)
   const values = useMemo(() => {
-    const result: (number | "-")[] = [];
+    const result: number[] = [];
     const effectiveMax = Math.min(max, step < 1 ? 500 : 200);
     for (let v = effectiveMax; v > 0; v -= step) {
       result.push(Math.round(v * 1000) / 1000);
     }
     result.push(0);
-    result.push("-");
     return result;
   }, [max, step]);
 
   // Find index of current value
   const currentIndex = useMemo(() => {
-    if (isEmpty) {
-      return values.findIndex((v) => v === "-");
-    }
-    if (numericValue === 0) {
+    if (isEmpty || numericValue === 0) {
       return values.findIndex((v) => v === 0);
     }
     const idx = values.findIndex(
-      (v) => typeof v === "number" && Math.abs(v - numericValue) < step / 2,
+      (v) => Math.abs(v - numericValue) < step / 2,
     );
-    return idx >= 0 ? idx : 0;
+    return idx >= 0 ? idx : values.length - 1; // Default to 0 (last item)
   }, [values, numericValue, isEmpty, step]);
 
   // Format value for display
   const formatValue = useCallback(
-    (val: number | "-") => {
-      if (val === "-") return "-";
+    (val: number) => {
       if (step % 1 === 0) {
         return val.toString();
       }
@@ -179,12 +174,7 @@ export function ScrollableInput({
       // Always update value when snap completes
       const selectedValue = values[clampedIndex];
       if (selectedValue !== undefined) {
-        if (selectedValue === "-") {
-          if (!isEmpty) {
-            onChange("");
-            onInputActivity?.();
-          }
-        } else if (
+        if (
           isEmpty ||
           isNaN(numericValue) ||
           Math.abs(selectedValue - numericValue) >= step / 2

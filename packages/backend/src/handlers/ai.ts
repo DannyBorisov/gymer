@@ -7,6 +7,7 @@ import type {
   GenerateProgramBodyType,
   PlateauAdviceBodyType,
 } from "../schemas/ai.js";
+import { formatExerciseName } from "../dal/gsql/utils/parser.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -54,8 +55,8 @@ export const getWorkoutTip: RouteHandler<{
       return reply.status(404).send({ error: "Workout not found" });
     }
 
-    const formatExerciseName = (ex: { name: string; variant?: string }) =>
-      ex.variant ? `${ex.name} (${ex.variant})` : ex.name;
+    const fmtEx = (ex: { name: string; variant?: string }) =>
+      formatExerciseName(ex.name, ex.variant);
 
     const currentWeekWorkouts = program.workouts
       .filter((w) => w.week === week)
@@ -63,7 +64,7 @@ export const getWorkoutTip: RouteHandler<{
         name: w.name,
         isToday: w.name === workoutName,
         completed: !!w.date,
-        exercises: w.exercises.map(formatExerciseName),
+        exercises: w.exercises.map(fmtEx),
       }));
 
     const workoutHistory = program.workouts
@@ -74,7 +75,7 @@ export const getWorkoutTip: RouteHandler<{
         week: w.week,
         date: w.date,
         exercises: w.exercises.map((ex) => ({
-          name: formatExerciseName(ex),
+          name: fmtEx(ex),
           sets: ex.sets.map((s) => ({
             weight: s.achievedWeight,
             reps: s.achievedReps,
@@ -97,7 +98,7 @@ export const getWorkoutTip: RouteHandler<{
           week: lastCompletedWorkout.week,
           date: lastCompletedWorkout.date,
           exercises: lastCompletedWorkout.exercises.map((ex) => ({
-            name: formatExerciseName(ex),
+            name: fmtEx(ex),
             sets: ex.sets.map((s) => ({
               weight: s.achievedWeight,
               reps: s.achievedReps,
@@ -124,7 +125,7 @@ export const getWorkoutTip: RouteHandler<{
         name: currentWorkout.name,
         week: currentWorkout.week,
         exercises: currentWorkout.exercises.map((ex) => ({
-          name: formatExerciseName(ex),
+          name: fmtEx(ex),
           sets: ex.sets.map((s) => ({
             targetReps: s.targetReps,
             targetRir: s.targetRir,
@@ -159,7 +160,6 @@ Based on this data, provide ONE short, insightful tip for today's workout. Make 
     const fullPrompt = `${COACH_PROMPT}\n\n---\n\n${userPrompt}`;
 
     const tip = await this.genai.generateWorkoutTip(fullPrompt);
-    console.log(tip);
     if (user?.email) {
       await prisma.aiGenerations.create(user.email, {
         type: AiGenerationType.CouchCue,

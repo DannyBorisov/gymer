@@ -1,13 +1,8 @@
 import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Dialog } from "@capacitor/dialog";
-import { Loader2, Plus } from "lucide-react";
-import {
-  ChevronRightIcon,
-  CheckmarkCircleIcon,
-  PlayOutlineIcon,
-} from "../../assets/icons";
-import { ProgressBar } from "../../components/ui/ProgressBar";
+import { Loader2, Plus, ChevronRight, Sparkles } from "lucide-react";
+import { CheckmarkCircleIcon, PlayOutlineIcon } from "../../assets/icons";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
   useGetProgram,
@@ -31,6 +26,47 @@ interface Program {
   workouts: Workout[];
 }
 
+// Circular progress ring
+const ProgressRing = ({
+  progress,
+  size = 56,
+  strokeWidth = 4,
+}: {
+  progress: number;
+  size?: number;
+  strokeWidth?: number;
+}) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <svg width={size} height={size} className={styles.progressRing}>
+      <circle
+        className={styles.progressRingBg}
+        strokeWidth={strokeWidth}
+        fill="none"
+        r={radius}
+        cx={size / 2}
+        cy={size / 2}
+      />
+      <circle
+        className={styles.progressRingFill}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        fill="none"
+        r={radius}
+        cx={size / 2}
+        cy={size / 2}
+        style={{
+          strokeDasharray: circumference,
+          strokeDashoffset: offset,
+        }}
+      />
+    </svg>
+  );
+};
+
 const Programs = () => {
   const navigate = useNavigate();
   const { activeProgram, setActiveProgram } = useSettings();
@@ -45,14 +81,12 @@ const Programs = () => {
   const pendingCopyId = copyProgram.isPending ? copyProgram.variables : undefined;
   const pendingRenameId = renameProgram.isPending ? renameProgram.variables.id : undefined;
 
-  // Calculate progress for active program
   const activeProgress = useMemo(() => {
     if (!activeProgramData) return null;
 
     const totalWorkouts = activeProgramData.workouts.length;
     const completedWorkouts = activeProgramData.workouts.filter((w) => w.date).length;
 
-    // Find current week (first week with incomplete workouts)
     const byWeek: Record<number, { completed: number; total: number }> = {};
     for (const workout of activeProgramData.workouts) {
       const entry = byWeek[workout.week] || { completed: 0, total: 0 };
@@ -61,9 +95,7 @@ const Programs = () => {
       byWeek[workout.week] = entry;
     }
 
-    const weeks = Object.keys(byWeek)
-      .map(Number)
-      .sort((a, b) => a - b);
+    const weeks = Object.keys(byWeek).map(Number).sort((a, b) => a - b);
     let currentWeek = weeks[0] || 1;
     for (const week of weeks) {
       const { completed, total } = byWeek[week];
@@ -127,25 +159,42 @@ const Programs = () => {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
+      {/* Header */}
+      <header className={styles.header}>
         <h1 className={styles.title}>Programs</h1>
-      </div>
+        <Link to="/programs/create" className={styles.addBtn}>
+          <Plus size={20} />
+        </Link>
+      </header>
 
       {isLoading ? (
         <div className={styles.loadingState}>
           <Loader2 size={24} className={styles.spinner} />
-          <span>Loading programs...</span>
         </div>
       ) : error ? (
         <div className={styles.errorState}>
-          <p>{error instanceof Error ? error.message : "Failed to load programs"}</p>
+          <p>{error instanceof Error ? error.message : "Failed to load"}</p>
+        </div>
+      ) : programs.length === 0 ? (
+        /* Empty State */
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>
+            <Sparkles size={32} />
+          </div>
+          <h2 className={styles.emptyTitle}>Start your journey</h2>
+          <p className={styles.emptySubtitle}>
+            Create a program or choose a template
+          </p>
+          <Link to="/programs/create" className={styles.emptyCta}>
+            <Plus size={18} />
+            <span>Create Program</span>
+          </Link>
         </div>
       ) : (
         <>
-          {/* Active Program Section */}
+          {/* Active Program */}
           {activeProgramInfo && (
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>Active Program</h2>
+            <section className={styles.section}>
               <div
                 className={styles.activeCard}
                 role="button"
@@ -155,44 +204,40 @@ const Programs = () => {
                   if (e.key === "Enter") handleProgramClick(activeProgramInfo);
                 }}
               >
-                <div className={styles.activeCardHeader}>
-                  <div className={styles.activeNameRow}>
-                    <EditableProgramName
-                      name={activeProgramInfo.name}
-                      className={styles.activeName}
-                      onRename={(name) => handleRename(activeProgramInfo, name)}
-                      isSaving={pendingRenameId === activeProgramInfo.id}
-                    />
-                    <span className={styles.activeBadge}>Active</span>
-                    <ProgramMenu
-                      programName={activeProgramInfo.name}
-                      onEdit={() => handleEdit(activeProgramInfo)}
-                      onCopy={() => handleCopy(activeProgramInfo)}
-                      onDelete={() => handleDelete(activeProgramInfo)}
-                      isCopying={pendingCopyId === activeProgramInfo.id}
-                      isDeleting={pendingDeleteId === activeProgramInfo.id}
-                    />
-                  </div>
+                {/* Progress Ring */}
+                <div className={styles.activeProgress}>
+                  <ProgressRing progress={activeProgress?.percent || 0} />
+                  <span className={styles.activePercent}>
+                    {activeProgress?.percent || 0}%
+                  </span>
+                </div>
+
+                {/* Info */}
+                <div className={styles.activeInfo}>
+                  <EditableProgramName
+                    name={activeProgramInfo.name}
+                    className={styles.activeName}
+                    onRename={(name) => handleRename(activeProgramInfo, name)}
+                    isSaving={pendingRenameId === activeProgramInfo.id}
+                  />
                   {activeProgress && (
-                    <span className={styles.activeWeek}>
-                      Week {activeProgress.currentWeek} of {activeProgress.totalWeeks}
+                    <span className={styles.activeMeta}>
+                      Week {activeProgress.currentWeek} · {activeProgress.completed}/{activeProgress.total} done
                     </span>
                   )}
                 </div>
-                {activeProgress && (
-                  <div className={styles.progressSection}>
-                    <ProgressBar
-                      value={activeProgress.percent}
-                      className={styles.progressBar}
-                      fillClassName={styles.progressFill}
-                    />
-                    <div className={styles.progressStats}>
-                      <span>{activeProgress.completed} of {activeProgress.total} workouts</span>
-                      <span>{activeProgress.percent}%</span>
-                    </div>
-                  </div>
-                )}
-                <div className={styles.activeCardFooter}>
+
+                {/* Actions */}
+                <div className={styles.activeActions}>
+                  <ProgramMenu
+                    programName={activeProgramInfo.name}
+                    onEdit={() => handleEdit(activeProgramInfo)}
+                    onCopy={() => handleCopy(activeProgramInfo)}
+                    onDelete={() => handleDelete(activeProgramInfo)}
+                    isCopying={pendingCopyId === activeProgramInfo.id}
+                    isDeleting={pendingDeleteId === activeProgramInfo.id}
+                  />
+
                   <button
                     className={styles.continueBtn}
                     onClick={(e) => {
@@ -200,22 +245,20 @@ const Programs = () => {
                       navigate(`/programs/${activeProgramInfo.id}`);
                     }}
                   >
-                    <PlayOutlineIcon size={16} />
-                    <span>Continue</span>
+                    <PlayOutlineIcon size={18} />
                   </button>
-                  <ChevronRightIcon size={18} className={styles.chevronIcon} />
                 </div>
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Other Programs Section */}
+          {/* Other Programs */}
           {otherPrograms.length > 0 && (
-            <div className={styles.section}>
-              <h2 className={styles.sectionTitle}>
+            <section className={styles.section}>
+              <h2 className={styles.sectionLabel}>
                 {activeProgramInfo ? "Other Programs" : "Your Programs"}
               </h2>
-              <div className={styles.programsList}>
+              <div className={styles.programList}>
                 {otherPrograms.map((program) => (
                   <div
                     key={program.id}
@@ -235,7 +278,7 @@ const Programs = () => {
                         isSaving={pendingRenameId === program.id}
                       />
                       <span className={styles.programDate}>
-                        Created {program.createdTime ? formatDate(program.createdTime) : "Unknown date"}
+                        {program.createdTime ? formatDate(program.createdTime) : ""}
                       </span>
                     </div>
                     <div className={styles.programActions}>
@@ -243,8 +286,8 @@ const Programs = () => {
                         className={styles.setActiveBtn}
                         onClick={(e) => handleSetActive(program, e)}
                       >
-                        <CheckmarkCircleIcon size={16} />
-                        <span>Set Active</span>
+                        <CheckmarkCircleIcon size={14} />
+                        <span>Activate</span>
                       </button>
                       <ProgramMenu
                         programName={program.name}
@@ -254,31 +297,15 @@ const Programs = () => {
                         isCopying={pendingCopyId === program.id}
                         isDeleting={pendingDeleteId === program.id}
                       />
-                      <ChevronRightIcon size={16} className={styles.chevronIcon} />
+                      <ChevronRight size={18} className={styles.chevron} />
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Empty state */}
-          {programs.length === 0 && (
-            <div className={styles.emptyState}>
-              <h2>Build a plan you can follow</h2>
-              <p>Start with a template, then make it your own.</p>
-              <Link to="/programs/create" className={styles.emptyStateCta}>
-                <Plus size={18} />
-                <span>Choose a template</span>
-              </Link>
-            </div>
+            </section>
           )}
         </>
       )}
-
-      <Link to="/programs/create" className={styles.fab}>
-        <Plus size={28} strokeWidth={2.5} />
-      </Link>
     </div>
   );
 };

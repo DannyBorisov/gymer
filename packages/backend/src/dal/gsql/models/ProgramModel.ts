@@ -27,6 +27,7 @@ interface AchievedSetData {
   achievedWeight?: number;
   achievedReps?: number;
   achievedRir?: string;
+  achievedRestTime?: number;
   notes?: string;
 }
 
@@ -85,6 +86,7 @@ function buildAchievedDataLookup(
           set.achievedWeight === undefined &&
           set.achievedReps === undefined &&
           set.achievedRir === undefined &&
+          set.achievedRestTime === undefined &&
           !set.notes
         ) {
           return;
@@ -95,6 +97,7 @@ function buildAchievedDataLookup(
             achievedWeight: set.achievedWeight,
             achievedReps: set.achievedReps,
             achievedRir: set.achievedRir,
+            achievedRestTime: set.achievedRestTime,
             notes: set.notes,
           },
         );
@@ -184,6 +187,8 @@ function buildProgramRows(
             achievedSet?.achievedReps ?? "",
             achievedSet?.achievedRir ?? "",
             achievedSet?.notes ?? "",
+            exercise.targetRestTime ?? "",
+            achievedSet?.achievedRestTime ?? "",
           ]);
           workoutRowNumber++;
         }
@@ -228,7 +233,7 @@ export class ProgramModel extends BaseModel {
         this.sheets.getFileName(this.tokens, id),
       ]);
 
-      const rows = await this.sheets.get(this.tokens, id, `${sheetName}!A:K`);
+      const rows = await this.sheets.get(this.tokens, id, `${sheetName}!A:M`);
       if (!rows || rows.length < 2) return null;
 
       return parseProgramRows(rows as string[][], id, programName);
@@ -306,7 +311,7 @@ export class ProgramModel extends BaseModel {
     // Clear the whole data range first — the new template may generate
     // fewer rows than before, and a plain overwrite would leave stale rows
     // trailing past the new content.
-    await this.sheets.clear(this.tokens, id, `${sheetName}!A2:K`);
+    await this.sheets.clear(this.tokens, id, `${sheetName}!A2:M`);
     await this.sheets.update(this.tokens, id, `${sheetName}!A1`, rows);
 
     return {
@@ -463,6 +468,12 @@ export class ProgramModel extends BaseModel {
             values: [[setData.notes]],
           });
         }
+        if (setData.achievedRestTime !== undefined) {
+          updates.push({
+            range: `${sheetName}!${cols.achievedRestTime.column}${set.rowIndex}`,
+            values: [[setData.achievedRestTime]],
+          });
+        }
       }
     }
 
@@ -543,6 +554,13 @@ export class ProgramModel extends BaseModel {
       updates.push({
         range: `${sheetName}!${cols.notes.column}${rowIndex}`,
         values: [[data.notes]],
+      });
+    }
+
+    if (data.achievedRestTime !== undefined) {
+      updates.push({
+        range: `${sheetName}!${cols.achievedRestTime.column}${rowIndex}`,
+        values: [[data.achievedRestTime]],
       });
     }
 
@@ -665,7 +683,7 @@ export class ProgramModel extends BaseModel {
       this.tokens,
       id,
     );
-    const rows = await this.sheets.get(this.tokens, id, `${sheetName}!A:K`);
+    const rows = await this.sheets.get(this.tokens, id, `${sheetName}!A:M`);
     if (!rows || rows.length < 2) throw new Error("Program not found or empty");
 
     const cols = ProgramSchema.columns;
@@ -714,6 +732,8 @@ export class ProgramModel extends BaseModel {
         "", // Reps Achieved
         "", // RIR Achieved
         "", // Notes
+        String(lastRow[cols.targetRestTime.index] || ""), // Target Rest
+        "", // Rest Time
       ],
     ]);
   }
@@ -755,6 +775,8 @@ export class ProgramModel extends BaseModel {
             "", // Reps Achieved
             "", // RIR Achieved
             "", // Notes
+            set.targetRestTime ?? "", // Target Rest
+            "", // Rest Time
           ]);
         });
       }

@@ -11,6 +11,7 @@ export interface Exercise {
   reps: number;
   rir: number;
   customRir?: boolean; // Override dynamic RIR with manual value
+  targetRestTime?: number; // Optional rest target in seconds
 }
 
 // Utility to parse exercise name with variant: "Lat Pulldown (Wide Grip)" → { name, variant }
@@ -56,9 +57,11 @@ export interface ExerciseRow {
   set: number;
   targetReps: number;
   rir: string;
+  targetRestTime?: number; // From program template, in seconds
   weight: string;
   repsAchieved: string;
   rirAchieved: string;
+  achievedRestTime?: number; // Measured rest time in seconds
   notes: string;
 }
 

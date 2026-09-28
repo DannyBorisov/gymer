@@ -1,145 +1,88 @@
 .container {
-  width: 100%;
-  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
   margin: 0 auto;
-  padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 1.5rem);
 }
 
-@media (max-width: 767px) {
-  .container {
-    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
-  }
-}
-
-.eyebrow {
-  display: block;
-  margin-bottom: 0.4rem;
-  color: var(--accent-green);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
 }
 
 .title {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.75rem;
+  font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 0.25rem 0;
-  letter-spacing: -0.025em;
+  margin: 0;
+  letter-spacing: -0.03em;
 }
 
-@media (max-width: 767px) {
-  .title {
-    font-size: 1.25rem;
-  }
-}
-
-/* Stats Section */
-.statsSection {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-}
-
-.statsHeader {
+.statBadge {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-.statsHeader svg {
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--accent-green-soft);
+  border-radius: 999px;
   color: var(--accent-green);
-}
-
-.statsEyebrow {
-  display: block;
-  color: var(--text-muted);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.statsHeader h2 {
-  margin: 0.15rem 0 0;
-  color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
-.statsHighlight {
+/* ============================================================
+   STATS ROW
+   ============================================================ */
+.statsRow {
   display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 1rem;
-  border-radius: var(--radius-md);
-  background: var(--bg-interactive);
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
 }
 
-.highlightValue {
-  color: var(--text-primary);
-  font-size: 2rem;
+.statPill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.875rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.statValue {
+  font-size: 1.5rem;
   font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
-.highlightCopy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.highlightCopy strong {
-  color: var(--text-primary);
-  font-size: 0.9375rem;
-}
-
-.highlightCopy span {
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.achievementGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.achievementItem {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.25rem 0.125rem;
-}
-
-.achievementValue {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.achievementLabel {
+.statLabel {
   font-size: 0.6875rem;
+  font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1.35;
+  letter-spacing: 0.06em;
 }
 
-/* Loading State */
+/* ============================================================
+   LOADING & EMPTY STATES
+   ============================================================ */
 .loadingState {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 3rem;
-  color: var(--text-secondary);
-  font-size: 0.9375rem;
+  padding: 4rem;
+  color: var(--text-muted);
 }
 
 .spinner {
@@ -151,135 +94,135 @@
   to { transform: rotate(360deg); }
 }
 
-/* Empty State */
 .emptyState {
-  background: var(--bg-elevated);
-  padding: 3rem;
-  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  font-size: 0.9375rem;
+  padding: 3rem 1.5rem;
 }
 
-.emptyState p {
-  margin: 0.25rem 0;
-}
-
-/* Group Selector */
-.groupSelector {
+.emptyIcon {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  color: var(--text-muted);
   margin-bottom: 1rem;
 }
 
-.groupSelectorLabel {
-  font-size: 0.8125rem;
-  color: var(--text-muted);
+.emptyTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
 }
 
-.groupOptions {
+.emptySubtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ============================================================
+   GROUP TOGGLE
+   ============================================================ */
+.groupToggle {
   display: flex;
   gap: 0.25rem;
-  background: var(--bg-interactive);
-  border-radius: var(--radius-md);
-  padding: 0.1875rem;
+  padding: 0.25rem;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
 }
 
-.groupOption {
-  padding: 0.3125rem 0.625rem;
+.groupBtn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
   background: none;
   border: none;
-  border-radius: var(--radius-sm);
-  font-size: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.groupOptionActive {
+.groupBtnActive {
   background: var(--bg-elevated);
   color: var(--text-primary);
 }
 
-/* Workout List */
+/* ============================================================
+   WORKOUT LIST
+   ============================================================ */
 .workoutList {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-/* Date Group */
-.dateGroup {
+.group {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
-.workoutDate {
+.groupLabel {
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.25rem 0.125rem;
 }
 
-.dateHeader {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0;
-}
-
-/* Workout Cards */
-.workoutCards {
+/* ============================================================
+   WORKOUT CARDS
+   ============================================================ */
+.cards {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  overflow: visible;
 }
 
-.workoutCard {
+.card {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.875rem;
   width: 100%;
-  padding: 1rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
+  padding: 0.875rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   text-align: left;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  box-sizing: border-box;
-  overflow: visible;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.workoutCard:hover:not(:disabled) {
-  border-color: var(--border-emphasis);
+.card:active {
   background: var(--bg-hover);
+  border-color: var(--border-emphasis);
 }
 
-.workoutCard:active {
-  background: var(--bg-active);
-}
-
-.workoutIcon {
+.cardIcon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  background: var(--bg-interactive);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  width: 40px;
+  height: 40px;
+  background: var(--accent-green-soft);
+  border-radius: 12px;
+  color: var(--accent-green);
   flex-shrink: 0;
 }
 
-.workoutInfo {
+.cardContent {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -287,7 +230,7 @@
   min-width: 0;
 }
 
-.workoutName {
+.cardName {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
@@ -296,38 +239,49 @@
   white-space: nowrap;
 }
 
-.programName {
+.cardDate {
   font-size: 0.8125rem;
   color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.workoutMeta {
-  font-size: 0.8125rem;
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.drawerHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 0 1rem 1rem;
-  border-bottom: 1px solid var(--border-default);
+.dot {
+  color: var(--text-muted);
+}
+
+.cardChevron {
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
-.drawerHeaderInfo {
-  flex: 1;
-  min-width: 0;
+/* ============================================================
+   DRAWER
+   ============================================================ */
+.drawer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.drawerHeader {
+  padding: 0 1.25rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .drawerTitle {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.375rem;
+  letter-spacing: -0.02em;
 }
 
 .drawerMeta {
@@ -338,110 +292,137 @@
   color: var(--text-secondary);
 }
 
-.metaDot {
-  color: var(--text-muted);
-}
-
-.closeBtn {
+.drawerStats {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background: var(--bg-interactive);
-  border: none;
-  border-radius: 50%;
-  color: var(--text-secondary);
-  cursor: pointer;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
   flex-shrink: 0;
 }
 
-.closeBtn:active {
-  background: var(--bg-active);
+.drawerStat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.75rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+}
+
+.drawerStatValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.drawerStatLabel {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .drawerContent {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
 }
 
-/* Exercise List */
-.exerciseList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* ============================================================
+   EXERCISES IN DRAWER
+   ============================================================ */
+.exercise {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.exerciseCard {
-  background: var(--bg-interactive);
-  border-radius: var(--radius-md);
-  padding: 0.875rem;
+.exercise:last-child {
+  border-bottom: none;
 }
 
-.exerciseName {
+.exerciseHeader {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9375rem;
+  margin-bottom: 0.75rem;
+}
+
+.exerciseName {
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 0.625rem 0;
+  margin: 0;
 }
 
 .exerciseVariant {
-  font-size: 0.6875rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--bg-interactive);
   padding: 0.125rem 0.5rem;
-  border-radius: 4px;
+  background: var(--accent-green-soft);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--accent-green);
 }
 
-.setsList {
+.sets {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.5rem;
 }
 
-.setRow {
+.set {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
 }
 
-.setNumber {
-  width: 24px;
-  height: 24px;
+.setNum {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 24px;
+  height: 24px;
   background: var(--bg-elevated);
   border-radius: 50%;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
   flex-shrink: 0;
 }
 
-.setDetails {
+.setData {
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
+  flex: 1;
 }
 
-.setData {
-  font-size: 0.875rem;
+.setMain {
+  font-size: 0.9375rem;
+  font-weight: 600;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .setRir {
-  color: var(--text-secondary);
-}
-
-.setNotes {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.setNote {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
   font-style: italic;
+  margin-left: auto;
+  max-width: 120px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

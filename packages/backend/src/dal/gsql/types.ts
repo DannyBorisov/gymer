@@ -25,9 +25,11 @@ export interface CreateUserExerciseInput {
 export interface Set {
   targetReps: number;
   targetRir: string;
+  targetRestTime?: number;
   achievedWeight?: number;
   achievedReps?: number;
   achievedRir?: string;
+  achievedRestTime?: number;
   notes?: string;
 }
 
@@ -83,6 +85,7 @@ export interface SetUpdateData {
   achievedWeight?: number;
   achievedReps?: number;
   achievedRir?: string;
+  achievedRestTime?: number;
   notes?: string;
 }
 
@@ -105,6 +108,7 @@ export interface CreateProgramExercise {
   reps: number;
   rir: number;
   customRir?: boolean;
+  targetRestTime?: number;
 }
 
 export interface CreateProgramWorkout {

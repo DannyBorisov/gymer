@@ -24,6 +24,7 @@ interface WorkoutDrawerProps {
   forceCollapsed?: boolean;
   closeOnCollapse?: boolean;
   onPeekTap?: () => void;
+  onEndWorkout?: () => void;
   peekContent?: {
     timer: string;
     exerciseName: string;
@@ -37,19 +38,28 @@ export const WorkoutDrawer = ({
   forceCollapsed,
   closeOnCollapse,
   onPeekTap,
+  onEndWorkout,
   peekContent,
 }: WorkoutDrawerProps) => {
   const [isExpanded, setIsExpanded] = useState(!forceCollapsed);
+  const [isVisible, setIsVisible] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const touchStartY = useRef(0);
   const drawerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Reset expanded state based on forceCollapsed
+  // Handle mount/unmount with animation
   useEffect(() => {
     if (isOpen) {
-      setIsExpanded(!forceCollapsed);
+      // Small delay to ensure DOM is ready before animation
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+        setIsExpanded(!forceCollapsed);
+      });
+    } else {
+      setIsVisible(false);
+      setIsExpanded(false);
     }
   }, [isOpen, forceCollapsed]);
 
@@ -107,20 +117,20 @@ export const WorkoutDrawer = ({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isVisible) return null;
 
   return (
     <DrawerContext.Provider value={{ isExpanded, setIsExpanded }}>
       {/* Backdrop */}
       <div
-        className={`${styles.backdrop} ${isExpanded ? styles.backdropVisible : ""}`}
+        className={`${styles.backdrop} ${isExpanded && isVisible ? styles.backdropVisible : ""}`}
         onClick={collapse}
       />
 
       {/* Drawer */}
       <div
         ref={drawerRef}
-        className={`${styles.drawer} ${isExpanded ? styles.drawerExpanded : styles.drawerCollapsed}`}
+        className={`${styles.drawer} ${isExpanded && isVisible ? styles.drawerExpanded : styles.drawerCollapsed}`}
         style={{
           transform: isDragging ? `translateY(${dragY}px)` : undefined,
           transition: isDragging ? "none" : undefined,
@@ -139,8 +149,22 @@ export const WorkoutDrawer = ({
           {/* Peek content - visible when collapsed */}
           {!isExpanded && peekContent && (
             <div className={styles.peekContent}>
-              <span className={styles.peekTimer}>{peekContent.timer}</span>
-              <span className={styles.peekExercise}>{peekContent.exerciseName}</span>
+              <div className={styles.peekInfo}>
+                <span className={styles.peekTimer}>{peekContent.timer}</span>
+                <span className={styles.peekExercise}>{peekContent.exerciseName}</span>
+              </div>
+              {onEndWorkout && (
+                <button
+                  className={styles.peekEndBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEndWorkout();
+                  }}
+                  aria-label="End workout"
+                >
+                  End
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -5,7 +5,7 @@
   background: rgba(0, 0, 0, 0);
   z-index: 999;
   pointer-events: none;
-  transition: background 0.3s ease;
+  transition: background 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .backdropVisible {
@@ -13,32 +13,36 @@
   pointer-events: auto;
 }
 
-/* Drawer */
+/* Drawer container - clips the content */
 .drawer {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
   background: var(--bg-primary);
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  transition: height 0.3s ease, transform 0.3s ease, bottom 0.3s ease;
-  will-change: height, transform;
   box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.5);
+  border-radius: 16px 16px 0 0;
+  overflow: hidden;
+  /* Animate bottom position for collapsed peek strip placement */
+  transition:
+    height 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+    bottom 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: height, bottom;
 }
 
 .drawerExpanded {
-  /* Almost full screen, but respect safe area for battery/wifi (leave ~24px gap) */
+  bottom: 0;
+  /* Almost full screen, respect safe area */
   height: calc(100vh - env(safe-area-inset-top, 20px) - 8px);
   height: calc(100dvh - env(safe-area-inset-top, 20px) - 8px);
 }
 
 .drawerCollapsed {
-  height: 64px;
   /* Position above the bottom nav */
   bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  border-radius: 16px 16px 0 0;
+  height: 64px;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -68,11 +72,19 @@
 .peekContent {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 8px;
   width: 100%;
-  justify-content: center;
   padding: 0 16px;
+}
+
+.peekInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .peekTimer {
@@ -81,16 +93,33 @@
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
 .peekExercise {
   font-size: 0.9375rem;
   font-weight: 500;
   color: var(--text-secondary);
-  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.peekEndBtn {
+  flex-shrink: 0;
+  padding: 0.375rem 0.75rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  color: var(--accent-red);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.peekEndBtn:active {
+  background: rgba(239, 68, 68, 0.25);
 }
 
 /* Content area */
@@ -99,8 +128,19 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  /* Fade content during expand/collapse */
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.2s ease 0.12s,
+    transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 .drawerCollapsed .content {
-  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease,
+    transform 0.2s ease;
 }

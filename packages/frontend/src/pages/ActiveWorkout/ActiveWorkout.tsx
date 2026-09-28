@@ -30,8 +30,10 @@ import { ScrollableInput } from "../../components/ScrollableInput";
 import { Button } from "../../components/ui/Button";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { formatTime, formatRestTimer } from "../../lib/time";
+import { REST_ADJUSTMENT_SECONDS } from "../../lib/constants";
 import { updateExerciseName } from "../../utils/liveActivity";
 import { announceTime } from "../../utils/speech";
+import { hapticLight } from "../../utils/haptics";
 import { Haptics, NotificationType } from "@capacitor/haptics";
 import { parseExerciseName } from "../../types/shared";
 import styles from "./ActiveWorkout.module.css";
@@ -53,6 +55,7 @@ const ActiveWorkout = () => {
     isRestTimerActive,
     startRestTimer,
     stopRestTimer,
+    adjustRestTimer,
     stopWorkout,
     updateExercise,
     adjustValue,
@@ -80,6 +83,7 @@ const ActiveWorkout = () => {
   const [showPreviousWorkout, setShowPreviousWorkout] = useState(false);
   const [workoutTip, setWorkoutTip] = useState<string | null>(null);
   const [tipDismissed, setTipDismissed] = useState(false);
+  const [restTimeLogged, setRestTimeLogged] = useState<number | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const celebratedProgressionExercises = useRef(new Set<string>());
 
@@ -267,7 +271,7 @@ const ActiveWorkout = () => {
   const handleCompleteSet = (rowIndex: number, isExerciseComplete: boolean) => {
     completeSet(rowIndex);
     setShowSetComplete(true);
-    setTimeout(() => setShowSetComplete(false), 400);
+    setTimeout(() => setShowSetComplete(false), 1000);
 
     if (!isExerciseComplete) return;
 
@@ -276,6 +280,16 @@ const ActiveWorkout = () => {
     const progression = row ? checkForProgression(row.exercise) : null;
     if (row && progression) {
       celebrateProgression(row.exercise, progression);
+    }
+  };
+
+  // Handle stopping rest timer - show toast if >= 30 seconds
+  const handleStopRestTimer = () => {
+    const exerciseName = currentExerciseSets[0]?.exercise || "";
+    const stoppedAt = stopRestTimer(exerciseName);
+    if (stoppedAt >= 30) {
+      setRestTimeLogged(stoppedAt);
+      setTimeout(() => setRestTimeLogged(null), 3000);
     }
   };
 
@@ -411,6 +425,10 @@ const ActiveWorkout = () => {
   const currentSetData = currentSet ? getRow(currentSet.rowIndex) : null;
   const isSetCompleted = currentSetData?.weight && currentSetData?.repsAchieved;
   const prevStats = previousStats[currentExerciseName];
+
+  // Target rest time for current exercise (use first set's target since it's exercise-level)
+  const currentTargetRestTime = currentExerciseSets[0]?.targetRestTime;
+  const isOverTargetRest = currentTargetRestTime !== undefined && restTimer > currentTargetRestTime;
 
   const handleOpenAddSet = () => {
     if (!currentExerciseName) return;
@@ -707,6 +725,20 @@ const ActiveWorkout = () => {
         </div>
       )}
 
+      {/* Rest time logged notification */}
+      {restTimeLogged !== null && (
+        <div
+          className={styles.restTimeToast}
+          role="status"
+          aria-live="polite"
+        >
+          <Timer size={16} className={styles.restTimeToastIcon} />
+          <span className={styles.restTimeToastText}>
+            Rest logged: {formatRestTimer(restTimeLogged)}
+          </span>
+        </div>
+      )}
+
       {/* Main content area */}
       <div className={styles.mainContent}>
         {currentSet && (
@@ -898,44 +930,72 @@ const ActiveWorkout = () => {
               )}
 
               {!isWorkoutComplete && (
-                <div className={styles.mainButtonsRow}>
-                  <Button
-                    icon={<Check size={24} />}
-                    disabled={
-                      !getRow(currentSet.rowIndex)?.weight ||
-                      !getRow(currentSet.rowIndex)?.repsAchieved
-                    }
-                    onClick={() =>
-                      isLastSet
-                        ? handleCompleteWorkout(currentSet.rowIndex)
-                        : handleCompleteSet(
-                            currentSet.rowIndex,
-                            currentSetIndex === currentExerciseSets.length - 1,
-                          )
-                    }
-                    className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
-                  >
-                    {isLastSet
-                      ? "Complete workout"
-                      : currentSetIndex === currentExerciseSets.length - 1
-                        ? "Complete exercise"
-                        : "Complete set"}
-                  </Button>
+                <>
+                  {isRestTimerActive && (
+                    <div className={styles.restTimerAdjust}>
+                      <button
+                        type="button"
+                        className={styles.adjustBtn}
+                        onClick={() => {
+                          adjustRestTimer(-REST_ADJUSTMENT_SECONDS);
+                          void hapticLight();
+                        }}
+                      >
+                        -{REST_ADJUSTMENT_SECONDS}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.adjustBtn}
+                        onClick={() => {
+                          adjustRestTimer(REST_ADJUSTMENT_SECONDS);
+                          void hapticLight();
+                        }}
+                      >
+                        +{REST_ADJUSTMENT_SECONDS}
+                      </button>
+                    </div>
+                  )}
+                  <div className={styles.mainButtonsRow}>
+                    <Button
+                      icon={<Check size={24} />}
+                      disabled={!getRow(currentSet.rowIndex)?.repsAchieved}
+                      onClick={() =>
+                        isLastSet
+                          ? handleCompleteWorkout(currentSet.rowIndex)
+                          : handleCompleteSet(
+                              currentSet.rowIndex,
+                              currentSetIndex === currentExerciseSets.length - 1,
+                            )
+                      }
+                      className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
+                    >
+                      {isLastSet
+                        ? "Complete workout"
+                        : currentSetIndex === currentExerciseSets.length - 1
+                          ? "Complete exercise"
+                          : "Complete set"}
+                    </Button>
 
-                  <button
-                    onClick={() =>
-                      isRestTimerActive
-                        ? stopRestTimer(currentExerciseName)
-                        : handleStartRestTimer(currentExerciseName)
-                    }
-                    className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ""}`}
-                  >
-                    <Timer size={20} />
-                    <span className={styles.restTimerValue}>
-                      {formatRestTimer(restTimer)}
-                    </span>
-                  </button>
-                </div>
+                    <button
+                      onClick={() =>
+                        isRestTimerActive
+                          ? handleStopRestTimer()
+                          : handleStartRestTimer(currentExerciseName)
+                      }
+                      className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ""} ${isOverTargetRest ? styles.restTimerBtnOverTarget : ""}`}
+                    >
+                      <Timer size={20} className={isOverTargetRest ? styles.timerIconWarning : ""} />
+                      <span className={styles.restTimerValue}>
+                        {formatRestTimer(restTimer)}
+                        {currentTargetRestTime !== undefined && isRestTimerActive && (
+                          <span className={styles.restTargetIndicator}>
+                            /{formatRestTimer(currentTargetRestTime)}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>

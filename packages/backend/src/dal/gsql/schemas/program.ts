@@ -12,6 +12,8 @@ export const ProgramSchema = {
     repsAchieved: { index: 8, column: 'I' },
     rirAchieved: { index: 9, column: 'J' },
     notes: { index: 10, column: 'K' },
+    targetRestTime: { index: 11, column: 'L' },
+    achievedRestTime: { index: 12, column: 'M' },
   },
   headers: [
     'Date',
@@ -25,5 +27,7 @@ export const ProgramSchema = {
     'Reps Achieved',
     'RIR Achieved',
     'Notes',
+    'Target Rest',
+    'Rest Time',
   ],
 } as const;

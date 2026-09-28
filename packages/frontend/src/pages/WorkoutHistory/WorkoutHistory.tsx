@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Calendar, TrendingUp, ChevronRight } from "lucide-react";
 import { ClockIcon, DumbbellOutlineIcon } from "../../assets/icons";
 import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -12,7 +12,7 @@ const WorkoutHistory = () => {
   const { weightUnit } = useSettings();
   const { data: rawData = { workouts: [] }, isLoading } =
     useGetWorkoutHistory();
-  // Only dated workouts belong in history; guard against nulls/undated rows.
+
   const data = useMemo(
     () => ({
       workouts: rawData.workouts.filter(
@@ -23,9 +23,9 @@ const WorkoutHistory = () => {
   );
 
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
-  const [groupMode, setGroupMode] = useState<
-    "none" | "week" | "month" | "workout" | "program"
-  >("none");
+  const [groupMode, setGroupMode] = useState<"none" | "month" | "workout">(
+    "none",
+  );
 
   const formatDateDisplay = (dateStr: string) => {
     const date = parseDate(dateStr);
@@ -33,12 +33,16 @@ const WorkoutHistory = () => {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (date.toDateString() === today.toDateString()) {
-      return "Today";
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+
+    const diffDays = Math.floor(
+      (today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    if (diffDays < 7) {
+      return date.toLocaleDateString("en-US", { weekday: "long" });
     }
-    if (date.toDateString() === yesterday.toDateString()) {
-      return "Yesterday";
-    }
+
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
@@ -52,16 +56,13 @@ const WorkoutHistory = () => {
       if (parts.length === 3) {
         const hours = parseInt(parts[0], 10);
         const mins = parseInt(parts[1], 10);
-        if (hours > 0) {
-          return `${hours}h ${mins}m`;
-        }
-        return `${mins} min`;
+        if (hours > 0) return `${hours}h ${mins}m`;
+        return `${mins}m`;
       }
     }
     const seconds = parseInt(duration, 10);
     if (isNaN(seconds)) return duration;
-    const mins = Math.floor(seconds / 60);
-    return `${mins} min`;
+    return `${Math.floor(seconds / 60)}m`;
   };
 
   const sortedWorkouts = useMemo(
@@ -72,7 +73,6 @@ const WorkoutHistory = () => {
     [data.workouts],
   );
 
-  // Group workouts by the selected grouping (or a single flat group)
   const workoutGroups = useMemo(() => {
     if (groupMode === "none") {
       return [{ label: null as string | null, workouts: sortedWorkouts }];
@@ -83,16 +83,12 @@ const WorkoutHistory = () => {
 
     for (const workout of sortedWorkouts) {
       const label =
-        groupMode === "week"
-          ? `Week ${workout.week}`
-          : groupMode === "workout"
-            ? workout.name
-            : groupMode === "program"
-              ? workout.programName || "Unknown Program"
-              : parseDate(workout.date!).toLocaleDateString("en-US", {
-                  month: "long",
-                  year: "numeric",
-                });
+        groupMode === "workout"
+          ? workout.name
+          : parseDate(workout.date!).toLocaleDateString("en-US", {
+              month: "long",
+              year: "numeric",
+            });
 
       let index = groupIndexByLabel[label];
       if (index === undefined) {
@@ -106,67 +102,59 @@ const WorkoutHistory = () => {
     return groups;
   }, [sortedWorkouts, groupMode]);
 
-  const totalWorkouts = data.workouts.length;
-  const { completedSetCount, bestWeekCount } = useMemo(() => {
-    const weekCounts: Record<string, number> = {};
-    let completedSetCount = 0;
+  const stats = useMemo(() => {
+    const totalWorkouts = data.workouts.length;
+    const totalSets = data.workouts.reduce(
+      (sum, w) =>
+        sum +
+        w.exercises.reduce(
+          (eSum, e) =>
+            eSum + e.sets.filter((s) => s.achievedReps !== undefined).length,
+          0,
+        ),
+      0,
+    );
 
-    for (const workout of data.workouts) {
-      completedSetCount += workout.exercises.reduce(
-        (total, exercise) =>
-          total +
-          exercise.sets.filter((set) => set.achievedReps !== undefined).length,
-        0,
-      );
+    // This month
+    const now = new Date();
+    const thisMonthCount = data.workouts.filter((w) => {
+      const d = parseDate(w.date!);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
 
-      const date = parseDate(workout.date!);
-      const weekStart = new Date(date);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const weekKey = weekStart.toISOString().slice(0, 10);
-      weekCounts[weekKey] = (weekCounts[weekKey] ?? 0) + 1;
-    }
-
-    return {
-      completedSetCount,
-      bestWeekCount: Math.max(...Object.values(weekCounts), 0),
-    };
+    return { totalWorkouts, totalSets, thisMonthCount };
   }, [data.workouts]);
+
+  // Calculate total sets for a workout
+  const getWorkoutSetCount = (workout: Workout) =>
+    workout.exercises.reduce(
+      (sum, e) => sum + e.sets.filter((s) => s.achievedReps !== undefined).length,
+      0,
+    );
 
   return (
     <div className={styles.container}>
-      <span className={styles.eyebrow}>GYMERR / LOG</span>
-      <h1 className={styles.title}>History</h1>
+      {/* Header */}
+      <header className={styles.header}>
+        <h1 className={styles.title}>History</h1>
+        {!isLoading && data.workouts.length > 0 && (
+          <div className={styles.statBadge}>
+            <TrendingUp size={14} />
+            <span>{stats.thisMonthCount} this month</span>
+          </div>
+        )}
+      </header>
 
-      {/* Stats Section */}
+      {/* Quick Stats */}
       {!isLoading && data.workouts.length > 0 && (
-        <div className={styles.statsSection}>
-          <div className={styles.statsHeader}>
-            <DumbbellOutlineIcon size={18} />
-            <div>
-              <span className={styles.statsEyebrow}>Training record</span>
-              <h2>Your completed work</h2>
-            </div>
+        <div className={styles.statsRow}>
+          <div className={styles.statPill}>
+            <span className={styles.statValue}>{stats.totalWorkouts}</span>
+            <span className={styles.statLabel}>workouts</span>
           </div>
-          <div className={styles.statsHighlight}>
-            <span className={styles.highlightValue}>{totalWorkouts}</span>
-            <div className={styles.highlightCopy}>
-              <strong>
-                workout{totalWorkouts !== 1 ? "s" : ""} completed
-              </strong>
-              <span>Every session is part of the record.</span>
-            </div>
-          </div>
-          <div className={styles.achievementGrid}>
-            <div className={styles.achievementItem}>
-              <span className={styles.achievementValue}>{completedSetCount}</span>
-              <span className={styles.achievementLabel}>Sets logged</span>
-            </div>
-            <div className={styles.achievementItem}>
-              <span className={styles.achievementValue}>{bestWeekCount}</span>
-              <span className={styles.achievementLabel}>
-                Sessions in your best week
-              </span>
-            </div>
+          <div className={styles.statPill}>
+            <span className={styles.statValue}>{stats.totalSets}</span>
+            <span className={styles.statLabel}>sets</span>
           </div>
         </div>
       )}
@@ -174,85 +162,84 @@ const WorkoutHistory = () => {
       {isLoading ? (
         <div className={styles.loadingState}>
           <Loader2 size={24} className={styles.spinner} />
-          <span>Loading workouts...</span>
         </div>
       ) : data.workouts.length === 0 ? (
         <div className={styles.emptyState}>
-          <p>No workouts recorded yet.</p>
-          <p>Start a workout to see it here.</p>
+          <div className={styles.emptyIcon}>
+            <Calendar size={32} />
+          </div>
+          <p className={styles.emptyTitle}>No workouts yet</p>
+          <p className={styles.emptySubtitle}>
+            Complete a workout to see it here
+          </p>
         </div>
       ) : (
         <>
-          <div className={styles.groupSelector}>
-            <span className={styles.groupSelectorLabel}>Group by</span>
-            <div className={styles.groupOptions}>
-              {(
-                [
-                  { mode: "none", label: "Date" },
-                  { mode: "month", label: "Month" },
-                  { mode: "workout", label: "Workout" },
-                  { mode: "program", label: "Program" },
-                ] as const
-              ).map(({ mode, label }) => (
-                <button
-                  key={mode}
-                  className={`${styles.groupOption} ${
-                    groupMode === mode ? styles.groupOptionActive : ""
-                  }`}
-                  onClick={() => setGroupMode(mode)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+          {/* Group Toggle */}
+          <div className={styles.groupToggle}>
+            {(
+              [
+                { mode: "none", label: "Recent" },
+                { mode: "month", label: "Month" },
+                { mode: "workout", label: "Type" },
+              ] as const
+            ).map(({ mode, label }) => (
+              <button
+                key={mode}
+                className={`${styles.groupBtn} ${groupMode === mode ? styles.groupBtnActive : ""}`}
+                onClick={() => setGroupMode(mode)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
+          {/* Workout List */}
           <div className={styles.workoutList}>
             {workoutGroups.map((group, groupIdx) => (
-              <div
+              <section
                 key={group.label ?? `flat-${groupIdx}`}
-                className={styles.dateGroup}
+                className={styles.group}
               >
                 {group.label && (
-                  <h2 className={styles.dateHeader}>{group.label}</h2>
+                  <h2 className={styles.groupLabel}>{group.label}</h2>
                 )}
-                <div className={styles.workoutCards}>
+                <div className={styles.cards}>
                   {group.workouts.map((workout, idx) => (
                     <button
-                      key={`${workout.date}-${workout.name}-${workout.week}-${idx}`}
-                      className={styles.workoutCard}
+                      key={`${workout.date}-${workout.name}-${idx}`}
+                      className={styles.card}
                       onClick={() => setSelectedWorkout(workout)}
                     >
-                      <div className={styles.workoutIcon}>
-                        <DumbbellOutlineIcon size={20} />
+                      <div className={styles.cardIcon}>
+                        <DumbbellOutlineIcon size={18} />
                       </div>
-                      <div className={styles.workoutInfo}>
-                        {groupMode === "none" && (
-                          <span className={styles.workoutDate}>
-                            {formatDateDisplay(workout.date!)}
-                          </span>
-                        )}
-                        <span className={styles.workoutName}>
+                      <div className={styles.cardContent}>
+                        <span className={styles.cardName}>
                           {groupMode === "workout"
                             ? formatDateDisplay(workout.date!)
                             : workout.name}
                         </span>
-                        {groupMode !== "program" && workout.programName && (
-                          <span className={styles.programName}>
-                            {workout.programName}
+                        {groupMode !== "workout" && (
+                          <span className={styles.cardDate}>
+                            {formatDateDisplay(workout.date!)}
                           </span>
                         )}
-                        <span className={styles.workoutMeta}>
-                          {workout.exercises.length} exercise
-                          {workout.exercises.length !== 1 ? "s" : ""}
-                          {workout.duration &&
-                            ` · ${formatDuration(workout.duration)}`}
-                        </span>
+                        <div className={styles.cardMeta}>
+                          <span>{getWorkoutSetCount(workout)} sets</span>
+                          {workout.duration && (
+                            <>
+                              <span className={styles.dot}>·</span>
+                              <span>{formatDuration(workout.duration)}</span>
+                            </>
+                          )}
+                        </div>
                       </div>
+                      <ChevronRight size={18} className={styles.cardChevron} />
                     </button>
                   ))}
                 </div>
-              </div>
+              </section>
             ))}
           </div>
         </>
@@ -262,73 +249,82 @@ const WorkoutHistory = () => {
       <SwipeableDrawer
         isOpen={!!selectedWorkout}
         onClose={() => setSelectedWorkout(null)}
-        maxHeight="85vh"
+        maxHeight="90vh"
       >
         {selectedWorkout && (
-          <>
+          <div className={styles.drawer}>
+            {/* Drawer Header */}
             <div className={styles.drawerHeader}>
-              <div className={styles.drawerHeaderInfo}>
-                <h2 className={styles.drawerTitle}>{selectedWorkout.name}</h2>
-                <div className={styles.drawerMeta}>
-                  <span>{formatDateDisplay(selectedWorkout.date!)}</span>
-                  {selectedWorkout.duration && (
-                    <>
-                      <span className={styles.metaDot}>·</span>
-                      <ClockIcon size={14} />
-                      <span>{formatDuration(selectedWorkout.duration)}</span>
-                    </>
-                  )}
-                </div>
+              <h2 className={styles.drawerTitle}>{selectedWorkout.name}</h2>
+              <div className={styles.drawerMeta}>
+                <span>{formatDateDisplay(selectedWorkout.date!)}</span>
+                {selectedWorkout.duration && (
+                  <>
+                    <span className={styles.dot}>·</span>
+                    <ClockIcon size={14} />
+                    <span>{formatDuration(selectedWorkout.duration)}</span>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className={styles.drawerContent}>
-              <div className={styles.exerciseList}>
-                {selectedWorkout.exercises.map((exercise) => {
-                  const { name, variant } = parseExerciseName(
-                    exercise.variant
-                      ? `${exercise.name} (${exercise.variant})`
-                      : exercise.name,
-                  );
-                  return (
-                    <div key={exercise.name} className={styles.exerciseCard}>
-                      <h3 className={styles.exerciseName}>
-                        {name}
-                        {variant && (
-                          <span className={styles.exerciseVariant}>
-                            {variant}
-                          </span>
-                        )}
-                      </h3>
-                      <div className={styles.setsList}>
-                        {exercise.sets.map((set, idx) => (
-                          <div key={idx} className={styles.setRow}>
-                            <span className={styles.setNumber}>{idx + 1}</span>
-                            <span className={styles.setData}>
-                              {set.achievedWeight ?? "-"}
-                              {weightUnit} × {set.achievedReps ?? "-"}
-                              {set.achievedRir && (
-                                <span className={styles.setRir}>
-                                  {" "}
-                                  @ {set.achievedRir} RIR
-                                </span>
-                              )}
-                              {set.notes && (
-                                <span className={styles.setNotes}>
-                                  {" "}
-                                  · {set.notes}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Summary Stats */}
+            <div className={styles.drawerStats}>
+              <div className={styles.drawerStat}>
+                <span className={styles.drawerStatValue}>
+                  {selectedWorkout.exercises.length}
+                </span>
+                <span className={styles.drawerStatLabel}>exercises</span>
+              </div>
+              <div className={styles.drawerStat}>
+                <span className={styles.drawerStatValue}>
+                  {getWorkoutSetCount(selectedWorkout)}
+                </span>
+                <span className={styles.drawerStatLabel}>sets</span>
               </div>
             </div>
-          </>
+
+            {/* Exercises */}
+            <div className={styles.drawerContent}>
+              {selectedWorkout.exercises.map((exercise, exIdx) => {
+                const { name, variant } = parseExerciseName(
+                  exercise.variant
+                    ? `${exercise.name} (${exercise.variant})`
+                    : exercise.name,
+                );
+                return (
+                  <div key={exIdx} className={styles.exercise}>
+                    <div className={styles.exerciseHeader}>
+                      <h3 className={styles.exerciseName}>{name}</h3>
+                      {variant && (
+                        <span className={styles.exerciseVariant}>{variant}</span>
+                      )}
+                    </div>
+                    <div className={styles.sets}>
+                      {exercise.sets.map((set, setIdx) => (
+                        <div key={setIdx} className={styles.set}>
+                          <span className={styles.setNum}>{setIdx + 1}</span>
+                          <div className={styles.setData}>
+                            <span className={styles.setMain}>
+                              {set.achievedWeight ?? "—"}{weightUnit} × {set.achievedReps ?? "—"}
+                            </span>
+                            {set.achievedRir !== undefined && (
+                              <span className={styles.setRir}>
+                                @ {set.achievedRir} RIR
+                              </span>
+                            )}
+                          </div>
+                          {set.notes && (
+                            <span className={styles.setNote}>{set.notes}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </SwipeableDrawer>
     </div>

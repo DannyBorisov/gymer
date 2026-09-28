@@ -1,7 +1,15 @@
 import { useState, type ReactNode } from "react";
-import { TrashIcon, TagIcon, UndoIcon } from "../../../assets/icons";
+import { TrashIcon, TagIcon, UndoIcon, ClockIcon } from "../../../assets/icons";
 import type { Exercise } from "../../../types/program";
 import styles from "../CreateProgram.module.css";
+
+// Format seconds to a display string like "90s" or "2m"
+const formatRestTime = (seconds: number): string => {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs > 0 ? `${mins}m${secs}s` : `${mins}m`;
+};
 
 export interface ExerciseRowProps {
   exercise: Exercise;
@@ -30,6 +38,7 @@ export const ExerciseRow = ({
   handle,
 }: ExerciseRowProps) => {
   const [showVariant, setShowVariant] = useState(!!exercise.variant);
+  const [showRestTime, setShowRestTime] = useState(!!exercise.targetRestTime);
 
   return (
     <div className={styles.exerciseRow}>
@@ -75,6 +84,42 @@ export const ExerciseRow = ({
             >
               <TagIcon size={12} />
               <span className={styles.variantButtonText}>Variation</span>
+            </button>
+          )}
+          {/* Rest time badge or toggle */}
+          {exercise.targetRestTime && !showRestTime && (
+            <button
+              type="button"
+              className={styles.restBadge}
+              onClick={() => setShowRestTime(true)}
+            >
+              <ClockIcon size={10} />
+              {formatRestTime(exercise.targetRestTime)}
+            </button>
+          )}
+          {showRestTime && (
+            <input
+              type="number"
+              value={exercise.targetRestTime || ""}
+              onChange={(e) => onUpdate("targetRestTime", Number(e.target.value) || 0)}
+              onBlur={() => !exercise.targetRestTime && setShowRestTime(false)}
+              className={styles.restInput}
+              placeholder="sec"
+              min={0}
+              max={600}
+              inputMode="numeric"
+              autoFocus
+            />
+          )}
+          {!showRestTime && !exercise.targetRestTime && (
+            <button
+              type="button"
+              className={styles.addRestBtn}
+              onClick={() => setShowRestTime(true)}
+              title="Add rest time target"
+            >
+              <ClockIcon size={12} />
+              <span className={styles.restButtonText}>Rest</span>
             </button>
           )}
         </div>

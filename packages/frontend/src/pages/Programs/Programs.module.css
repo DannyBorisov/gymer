@@ -1,39 +1,57 @@
 .container {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: calc(var(--mobile-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 1.5rem);
 }
 
+/* ============================================================
+   HEADER
+   ============================================================ */
 .header {
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
 }
 
 .title {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.75rem;
+  font-weight: 700;
   color: var(--text-primary);
   margin: 0;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.03em;
 }
 
-@media (max-width: 767px) {
-  .title {
-    font-size: 1.25rem;
-  }
+.addBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
+.addBtn:active {
+  background: var(--bg-hover);
+  border-color: var(--border-emphasis);
+}
+
+/* ============================================================
+   LOADING & ERROR STATES
+   ============================================================ */
 .loadingState {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  padding: 3rem;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-}
-
-@media (max-width: 767px) {
-  .loadingState {
-    padding: 2rem;
-  }
+  padding: 4rem;
+  color: var(--text-muted);
 }
 
 .spinner {
@@ -41,225 +59,204 @@
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .errorState {
-  background: rgba(var(--color-red-500-rgb), 0.1);
   padding: 2rem;
-  border-radius: var(--radius-md);
+  background: rgba(var(--color-red-500-rgb), 0.1);
+  border: 1px solid rgba(var(--color-red-500-rgb), 0.2);
+  border-radius: var(--radius-lg);
   text-align: center;
   color: var(--accent-red);
-  border: 1px solid rgba(var(--color-red-500-rgb), 0.2);
   font-size: 0.875rem;
-}
-
-@media (max-width: 767px) {
-  .errorState {
-    padding: 1.5rem;
-  }
 }
 
 .errorState p {
   margin: 0;
 }
 
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
 .emptyState {
-  background: var(--bg-elevated);
-  padding: 3rem;
-  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
-  font-size: 0.875rem;
+  padding: 3rem 1.5rem;
 }
 
-@media (max-width: 767px) {
-  .emptyState {
-    padding: 2rem 1.5rem;
-  }
+.emptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: var(--accent-green-soft);
+  border-radius: 24px;
+  color: var(--accent-green);
+  margin-bottom: 1.25rem;
 }
 
-.emptyState p {
-  margin: 0.25rem 0 1.25rem;
-}
-
-.emptyState h2 {
-  margin: 0;
-  color: var(--text-primary);
+.emptyTitle {
   font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.375rem;
 }
 
-.emptyStateCta {
-  display: inline-flex;
+.emptySubtitle {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem;
+}
+
+.emptyCta {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: var(--touch-target);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  background: var(--text-primary);
-  color: var(--bg-primary);
-  font-size: 0.875rem;
+  padding: 0.875rem 1.5rem;
+  background: var(--accent-gradient);
+  border-radius: 999px;
+  color: var(--on-primary);
+  font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
+  box-shadow: var(--accent-glow);
+  transition: transform 0.12s var(--ease-out);
 }
 
-/* Section */
+.emptyCta:active {
+  transform: scale(0.97);
+}
+
+/* ============================================================
+   SECTIONS
+   ============================================================ */
 .section {
   margin-bottom: 1.5rem;
 }
 
-.sectionTitle {
-  font-size: 0.75rem;
+.sectionLabel {
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0 0 0.75rem 0;
+  letter-spacing: 0.1em;
+  margin: 0 0 0.75rem 0.125rem;
 }
 
-/* Active Program Card */
+/* ============================================================
+   ACTIVE PROGRAM CARD
+   ============================================================ */
 .activeCard {
-  width: 100%;
-  padding: 1.25rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-emphasis);
-  border-radius: var(--radius-lg);
-  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-green);
+  border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background 0.15s ease;
 }
 
 .activeCard:active {
   background: var(--bg-hover);
 }
 
-.activeCard:focus-visible,
-.programCard:focus-visible {
-  outline: 2px solid var(--border-emphasis);
+.activeCard:focus-visible {
+  outline: 2px solid var(--accent-green);
   outline-offset: 2px;
 }
 
-.activeCardHeader {
+/* Progress Ring */
+.activeProgress {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.progressRing {
+  transform: rotate(-90deg);
+}
+
+.progressRingBg {
+  stroke: var(--bg-elevated);
+}
+
+.progressRingFill {
+  stroke: var(--accent-green);
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.activePercent {
+  position: absolute;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Active Info */
+.activeInfo {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin-bottom: 0.75rem;
-}
-
-.activeNameRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.activeNameRow > :last-child {
-  margin-left: auto;
+  min-width: 0;
 }
 
 .activeName {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
   min-width: 0;
-  flex-shrink: 1;
 }
 
-.activeBadge {
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  background: rgba(var(--color-green-500-rgb), 0.15);
-  color: var(--accent-green);
-}
-
-.activeWeek {
+.activeMeta {
   font-size: 0.8125rem;
   color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
-.progressSection {
-  margin-bottom: 1rem;
-}
-
-.progressBar {
-  height: 6px;
-  border-radius: 3px;
-  margin-bottom: 0.5rem;
-}
-
-.progressFill {
-  background: var(--accent-green);
-  border-radius: 3px;
-}
-
-.progressStats {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.activeCardFooter {
+/* Active Actions (menu + continue button) */
+.activeActions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .continueBtn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   background: var(--accent-gradient);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 50%;
   color: var(--on-primary);
-  font-size: 0.875rem;
-  font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.continueBtn:hover {
-  filter: brightness(1.05);
+  flex-shrink: 0;
+  box-shadow: var(--accent-glow);
+  transition: transform 0.12s var(--ease-out);
 }
 
 .continueBtn:active {
-  transform: scale(0.96);
+  transform: scale(0.92);
 }
 
-/* Set Active Button */
-.setActiveBtn {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-interactive);
-  border: none;
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.setActiveBtn:active {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.programsList {
+/* ============================================================
+   PROGRAM LIST
+   ============================================================ */
+.programList {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -269,199 +266,70 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
-  padding: 1rem 1.25rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  text-align: left;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all var(--transition-fast);
-  min-height: var(--touch-target);
-}
-
-@media (max-width: 767px) {
-  .programCard {
-    padding: 1rem;
-  }
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .programCard:active {
   background: var(--bg-hover);
-}
-
-.programCardActive {
   border-color: var(--border-emphasis);
-  background: var(--bg-interactive);
 }
 
-.programActions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-.activeBadge {
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  background: var(--bg-interactive);
-  color: var(--text-primary);
+.programCard:focus-visible {
+  outline: 2px solid var(--border-emphasis);
+  outline-offset: 2px;
 }
 
 .programInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.programName {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--text-primary);
-  overflow-wrap: break-word;
-}
-
-.programDate {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
-.chevronIcon {
-  color: var(--text-muted);
-  transition: color var(--transition-fast);
-  flex-shrink: 0;
-}
-
-.programCard:hover .chevronIcon {
-  color: var(--text-primary);
-}
-
-/* Floating Action Buttons */
-.fab,
-.fabLeft {
-  position: fixed;
-  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
-  width: 56px;
-  height: 56px;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--bg-primary);
-  text-decoration: none;
-  transition: all 0.2s ease;
-  z-index: 50;
-}
-
-.fab {
-  right: 1.5rem;
-  background: var(--text-primary);
-  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2);
-}
-
-.fabLeft {
-  left: 1.5rem;
-  background: var(--accent-orange);
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
-}
-
-.fab:active,
-.fabLeft:active {
-  transform: scale(0.92);
-}
-
-@media (min-width: 768px) {
-  .fab,
-  .fabLeft {
-    bottom: 2rem;
-  }
-
-  .fab {
-    right: 2rem;
-  }
-
-  .fabLeft {
-    left: 2rem;
-  }
-}
-
-/* Quick Workout Card */
-.quickWorkoutCard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  transition: all var(--transition-fast);
-  min-height: var(--touch-target);
-}
-
-@media (max-width: 767px) {
-  .quickWorkoutCard {
-    padding: 1rem;
-  }
-}
-
-.quickWorkoutCard:hover {
-  border-color: var(--border-subtle);
-  background: var(--bg-hover);
-}
-
-.quickWorkoutInfo {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
-.quickWorkoutIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: var(--accent-orange);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  flex-shrink: 0;
-}
-
-.quickWorkoutText {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
   min-width: 0;
 }
 
-.quickWorkoutName {
+.programName {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.quickWorkoutDescription {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
-.quickWorkoutCard .chevronIcon {
+.programDate {
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.quickWorkoutCard:hover .chevronIcon {
-  color: var(--text-primary);
+.programActions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.setActiveBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.625rem;
+  background: var(--accent-green-soft);
+  border: none;
+  border-radius: 6px;
+  color: var(--accent-green);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.setActiveBtn:active {
+  background: rgba(var(--color-green-500-rgb), 0.25);
+}
+
+.chevron {
+  color: var(--text-muted);
 }

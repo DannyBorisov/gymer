@@ -35,6 +35,7 @@ export interface SetUpdateData {
   achievedWeight?: number;
   achievedReps?: number;
   achievedRir?: string;
+  achievedRestTime?: number;
   notes?: string;
 }
 
