@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Square,
@@ -8,16 +8,15 @@ import {
   MoreVertical,
   SkipForward,
   TrendingUp,
-  Lightbulb,
+  MessageCircle,
 } from "lucide-react";
 import {
-  BubbleIcon,
   HistoryIcon,
   ClockIcon,
   CrossIcon,
+  BubbleIcon,
 } from "../../assets/icons";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
-import { useGetWorkoutTip } from "../../api/ai";
 import { useSettings } from "../../contexts/SettingsContext";
 import {
   useWorkout,
@@ -25,18 +24,24 @@ import {
   type QuickExercise,
 } from "../../contexts/WorkoutContext";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
+import { useExercises } from "../../api/exercises";
 import { SwipeableDrawer } from "../../components/SwipeableDrawer";
+import {
+  WorkoutDetailDrawer,
+  type WorkoutDetailData,
+} from "../../components/WorkoutDetailDrawer";
 import { ScrollableInput } from "../../components/ScrollableInput";
 import { Button } from "../../components/ui/Button";
 import { ProgressBar } from "../../components/ui/ProgressBar";
 import { formatTime, formatRestTimer } from "../../lib/time";
-import { REST_ADJUSTMENT_SECONDS } from "../../lib/constants";
+import { MIN_RECORDED_REST_SECONDS, REST_ADJUSTMENT_SECONDS } from "../../lib/constants";
 import { updateExerciseName } from "../../utils/liveActivity";
 import { announceTime } from "../../utils/speech";
-import { hapticLight } from "../../utils/haptics";
+import { hapticLight, hapticHeavy } from "../../utils/haptics";
+import { playCompletionSound } from "../../utils/sound";
 import { parseExerciseName } from "../../types/shared";
+import { CoachChat } from "./CoachChat";
 import styles from "./ActiveWorkout.module.css";
-import useClickOutside from "../../hooks/useClickOutside";
 
 const ActiveWorkout = () => {
   const navigate = useNavigate();
@@ -64,6 +69,7 @@ const ActiveWorkout = () => {
     setCurrentSetIndex,
     addExerciseToWorkout,
     addSetToExercise,
+    swapExercise,
   } = useWorkout();
 
   const [showNotes, setShowNotes] = useState(false);
@@ -80,36 +86,12 @@ const ActiveWorkout = () => {
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showPreviousWorkout, setShowPreviousWorkout] = useState(false);
-  const [workoutTip, setWorkoutTip] = useState<string | null>(null);
-  const [tipDismissed, setTipDismissed] = useState(false);
+  const [showCoachChat, setShowCoachChat] = useState(false);
+  const [showSwapExercise, setShowSwapExercise] = useState(false);
   const [restTimeLogged, setRestTimeLogged] = useState<number | null>(null);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
   const celebratedProgressionExercises = useRef(new Set<string>());
 
-  const workoutTipMutation = useGetWorkoutTip();
-
-  const handleGetWorkoutTip = async () => {
-    if (!activeWorkout?.programId || !activeWorkout?.workoutName) return;
-
-    setWorkoutTip(null);
-    setTipDismissed(false);
-
-    try {
-      const result = await workoutTipMutation.mutateAsync({
-        programId: activeWorkout.programId,
-        week: activeWorkout.week,
-        workoutName: activeWorkout.workoutName,
-      });
-      setWorkoutTip(result.tip);
-    } catch (error) {
-      console.error("Failed to get workout tip:", error);
-    }
-  };
-
-  useEffect(() => {
-    setWorkoutTip(null);
-    setTipDismissed(false);
-  }, [activeWorkout]);
+  const { data: exercisesData } = useExercises();
 
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -202,8 +184,6 @@ const ActiveWorkout = () => {
     };
   }, []);
 
-  useClickOutside(moreMenuRef.current, setShowMoreMenu);
-
   // Update Live Activity when exercise changes
   useEffect(() => {
     if (activeWorkout && currentExerciseIndex >= 0 && !isRestTimerActive) {
@@ -286,7 +266,9 @@ const ActiveWorkout = () => {
   const handleStopRestTimer = () => {
     const exerciseName = currentExerciseSets[0]?.exercise || "";
     const stoppedAt = stopRestTimer(exerciseName);
-    if (stoppedAt >= 30) {
+    if (stoppedAt >= MIN_RECORDED_REST_SECONDS) {
+      hapticHeavy();
+      playCompletionSound();
       setRestTimeLogged(stoppedAt);
       setTimeout(() => setRestTimeLogged(null), 3000);
     }
@@ -331,7 +313,8 @@ const ActiveWorkout = () => {
     previousSet: ExerciseRow,
   ) => {
     void Haptics.impact({ style: ImpactStyle.Medium });
-    if (previousSet.weight) {
+    // Use != null to allow weight of 0 (bodyweight exercises)
+    if (previousSet.weight != null) {
       updateExercise(currentSet.rowIndex, "weight", previousSet.weight);
     }
     if (previousSet.repsAchieved) {
@@ -359,7 +342,8 @@ const ActiveWorkout = () => {
     },
   ) => {
     void Haptics.impact({ style: ImpactStyle.Medium });
-    if (stats.weight) updateExercise(rowIndex, "weight", String(stats.weight));
+    // Use != null to allow weight of 0 (bodyweight exercises)
+    if (stats.weight != null) updateExercise(rowIndex, "weight", String(stats.weight));
     if (stats.reps) updateExercise(rowIndex, "repsAchieved", String(stats.reps));
     if (stats.rir) updateExercise(rowIndex, "rirAchieved", String(stats.rir));
   };
@@ -421,9 +405,48 @@ const ActiveWorkout = () => {
   const isSetCompleted = currentSetData?.weight && currentSetData?.repsAchieved;
   const prevStats = previousStats[currentExerciseName];
 
+  // Find muscle group of current exercise for swap filtering
+  const currentExerciseMuscleGroup = (() => {
+    if (!currentExerciseName || !exercisesData?.exercises) return undefined;
+    const { name } = parseExerciseName(currentExerciseName);
+    const nameLower = name.toLowerCase();
+    // Try exact match first, then partial match
+    const exercise = exercisesData.exercises.find(
+      (ex) => ex.name.toLowerCase() === nameLower
+    ) ?? exercisesData.exercises.find(
+      (ex) => ex.name.toLowerCase().includes(nameLower) || nameLower.includes(ex.name.toLowerCase())
+    );
+    return exercise?.muscleGroup;
+  })();
+
   // Target rest time for current exercise (use first set's target since it's exercise-level)
   const currentTargetRestTime = currentExerciseSets[0]?.targetRestTime;
   const isOverTargetRest = currentTargetRestTime !== undefined && restTimer > currentTargetRestTime;
+
+  // Convert previousStats to WorkoutDetailData for shared drawer
+  const previousWorkoutData: WorkoutDetailData | null = useMemo(() => {
+    const entries = Object.entries(previousStats);
+    if (entries.length === 0) return null;
+    const week = entries[0]?.[1]?.week;
+    return {
+      title: "Previous Workout",
+      subtitle: week ? `Week ${week}` : undefined,
+      exercises: entries.map(([fullName, stats]) => {
+        const { name, variant } = parseExerciseName(fullName);
+        return {
+          name,
+          variant: variant || undefined,
+          sets: stats.sets.map((s) => ({
+            weight: s.weight,
+            reps: s.reps,
+            rir: s.rir || undefined,
+            notes: s.notes,
+            restTime: s.restTime,
+          })),
+        };
+      }),
+    };
+  }, [previousStats]);
 
   const handleOpenAddSet = () => {
     if (!currentExerciseName) return;
@@ -479,61 +502,20 @@ const ActiveWorkout = () => {
           {/* Header buttons */}
           <div className={styles.headerButtons}>
             <button
-              className={`${styles.tipBtn} ${workoutTipMutation.isPending ? styles.tipBtnLoading : ""}`}
-              onClick={handleGetWorkoutTip}
-              disabled={workoutTipMutation.isPending}
-              aria-label="Get coach cue"
-              title="Get coach cue"
+              className={styles.chatBtn}
+              onClick={() => setShowCoachChat(true)}
+              aria-label="Ask coach"
+              title="Ask coach"
             >
-              <Lightbulb size={20} />
+              <MessageCircle size={20} />
             </button>
-            <div className={styles.moreMenuWrapper} ref={moreMenuRef}>
-              <button
-                className={styles.moreBtn}
-                onClick={() => setShowMoreMenu(!showMoreMenu)}
-                aria-label="More options"
-              >
-                <MoreVertical size={20} />
-              </button>
-              {showMoreMenu && (
-                <div className={styles.moreMenu}>
-                  {Object.keys(previousStats).length > 0 && (
-                    <button
-                      className={styles.moreMenuItem}
-                      onClick={() => {
-                        setShowMoreMenu(false);
-                        setShowPreviousWorkout(true);
-                      }}
-                    >
-                      <HistoryIcon size={16} />
-                      <span>Previous workout</span>
-                    </button>
-                  )}
-                  {currentSetIndex < currentExerciseSets.length - 1 && (
-                    <button
-                      className={styles.moreMenuItem}
-                      onClick={() => {
-                        setShowMoreMenu(false);
-                        setCurrentSetIndex(currentSetIndex + 1);
-                      }}
-                    >
-                      <SkipForward size={16} />
-                      <span>Skip set</span>
-                    </button>
-                  )}
-                  <button
-                    className={`${styles.moreMenuItem} ${styles.moreMenuItemDanger}`}
-                    onClick={() => {
-                      setShowMoreMenu(false);
-                      handleStopWorkout();
-                    }}
-                  >
-                    <Square size={16} />
-                    <span>End workout</span>
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              className={styles.moreBtn}
+              onClick={() => setShowMoreMenu(true)}
+              aria-label="More options"
+            >
+              <MoreVertical size={20} />
+            </button>
           </div>
         </div>
       )}
@@ -655,41 +637,25 @@ const ActiveWorkout = () => {
           {(() => {
             const { name, variant } = parseExerciseName(currentExerciseName);
             return (
-              <h2 className={styles.currentExerciseName}>
-                {name}
-                {variant && (
-                  <span className={styles.currentExerciseVariant}>
-                    {variant}
-                  </span>
-                )}
-              </h2>
+              <button
+                className={styles.currentExerciseNameBtn}
+                onClick={() => !isWorkoutComplete && setShowSwapExercise(true)}
+                disabled={isWorkoutComplete}
+              >
+                <h2 className={styles.currentExerciseName}>
+                  {name}
+                  {variant && (
+                    <span className={styles.currentExerciseVariant}>
+                      {variant}
+                    </span>
+                  )}
+                </h2>
+              </button>
             );
           })()}
           <span className={styles.targetText}>
             {currentSet.targetReps} reps @ {currentSet.rir} RIR
           </span>
-        </div>
-      )}
-
-      {/* AI Tip */}
-      {!tipDismissed && (workoutTip || workoutTipMutation.isPending) && (
-        <div className={styles.tipContainer} role="status" aria-live="polite">
-          <Lightbulb size={16} className={styles.tipIcon} />
-          <div className={styles.tipContent}>
-            <span className={styles.tipLabel}>Coach cue</span>
-            <p className={styles.tipText}>
-              {workoutTipMutation.isPending
-                ? "Preparing a coach cue..."
-                : workoutTip}
-            </p>
-          </div>
-          <button
-            className={styles.tipClose}
-            onClick={() => setTipDismissed(true)}
-            aria-label="Dismiss tip"
-          >
-            <CrossIcon size={14} />
-          </button>
         </div>
       )}
 
@@ -890,7 +856,7 @@ const ActiveWorkout = () => {
                   {/* Secondary row: quick fill + rest timer adjust */}
                   <div className={styles.secondaryButtonsRow}>
                     {/* Quick fill buttons */}
-                    {(prevStats?.sets[currentSetIndex] || (previousSet && getRow(previousSet.rowIndex)?.weight)) && (
+                    {(prevStats?.sets[currentSetIndex] || (previousSet && getRow(previousSet.rowIndex)?.repsAchieved)) && (
                       <div className={styles.quickFillGroup}>
                         {prevStats?.sets[currentSetIndex] && (
                           <button
@@ -908,7 +874,7 @@ const ActiveWorkout = () => {
                             </span>
                           </button>
                         )}
-                        {previousSet && getRow(previousSet.rowIndex)?.weight && (
+                        {previousSet && getRow(previousSet.rowIndex)?.repsAchieved && (
                           <button
                             className={styles.quickFillBtn}
                             onClick={() =>
@@ -920,7 +886,7 @@ const ActiveWorkout = () => {
                           >
                             <span className={styles.quickFillBtnLabel}>Set {previousSet.set}</span>
                             <span className={styles.quickFillBtnText}>
-                              {getRow(previousSet.rowIndex)?.weight} × {getRow(previousSet.rowIndex)?.repsAchieved || previousSet.targetReps}
+                              {getRow(previousSet.rowIndex)?.weight} × {getRow(previousSet.rowIndex)?.repsAchieved}
                             </span>
                           </button>
                         )}
@@ -1010,64 +976,15 @@ const ActiveWorkout = () => {
       />
 
       {/* Previous Workout Drawer */}
-      <SwipeableDrawer
+      <WorkoutDetailDrawer
         isOpen={showPreviousWorkout}
         onClose={() => setShowPreviousWorkout(false)}
-        maxHeight="85vh"
+        data={previousWorkoutData}
+        weightUnit={weightUnit}
+        currentExercise={currentExerciseName}
+        currentSetIndex={currentSetIndex}
         dark
-      >
-        <div className={styles.prevWorkoutHeader}>
-          <div className={styles.prevWorkoutHeaderInfo}>
-            <h2 className={styles.prevWorkoutTitle}>Previous Workout</h2>
-            <div className={styles.prevWorkoutMeta}>
-              <ClockIcon size={14} />
-              <span>Week {Object.values(previousStats)[0]?.week}</span>
-            </div>
-          </div>
-        </div>
-        <div className={styles.prevWorkoutContent}>
-          <div className={styles.prevExerciseList}>
-            {Object.entries(previousStats).map(([fullName, stats]) => {
-              const { name, variant } = parseExerciseName(fullName);
-              return (
-                <div key={fullName} className={styles.prevExerciseCard}>
-                  <h3 className={styles.prevExerciseName}>
-                    {name}
-                    {variant && (
-                      <span className={styles.prevExerciseVariant}>
-                        {variant}
-                      </span>
-                    )}
-                  </h3>
-                  <div className={styles.prevSetsList}>
-                    {stats.sets.map((set, idx) => (
-                      <div key={idx} className={styles.prevSetRow}>
-                        <span className={styles.prevSetNumber}>{idx + 1}</span>
-                        <span className={styles.prevSetData}>
-                          {set.weight}
-                          {weightUnit} × {set.reps}
-                          {set.rir && (
-                            <span className={styles.prevSetRir}>
-                              {" "}
-                              @ {set.rir} RIR
-                            </span>
-                          )}
-                          {set.notes && (
-                            <span className={styles.prevSetNotes}>
-                              {" "}
-                              · {set.notes}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </SwipeableDrawer>
+      />
 
       {/* Add Set Drawer */}
       <SwipeableDrawer
@@ -1115,6 +1032,87 @@ const ActiveWorkout = () => {
         </div>
       </SwipeableDrawer>
 
+      {/* More Options Drawer */}
+      <SwipeableDrawer
+        isOpen={showMoreMenu}
+        onClose={() => setShowMoreMenu(false)}
+        maxHeight="auto"
+        dark
+      >
+        <div className={styles.optionsDrawer}>
+          {Object.keys(previousStats).length > 0 && (
+            <button
+              className={styles.optionItem}
+              onClick={() => {
+                setShowMoreMenu(false);
+                setShowPreviousWorkout(true);
+              }}
+            >
+              <HistoryIcon size={20} />
+              <span>Previous workout</span>
+            </button>
+          )}
+          {currentSetIndex < currentExerciseSets.length - 1 && (
+            <button
+              className={styles.optionItem}
+              onClick={() => {
+                setShowMoreMenu(false);
+                setCurrentSetIndex(currentSetIndex + 1);
+              }}
+            >
+              <SkipForward size={20} />
+              <span>Skip set</span>
+            </button>
+          )}
+          <button
+            className={`${styles.optionItem} ${styles.optionItemDanger}`}
+            onClick={() => {
+              setShowMoreMenu(false);
+              handleStopWorkout();
+            }}
+          >
+            <Square size={20} />
+            <span>End workout</span>
+          </button>
+        </div>
+      </SwipeableDrawer>
+
+      {/* Coach Chat */}
+      {activeWorkout && !isQuickWorkout && (
+        <CoachChat
+          isOpen={showCoachChat}
+          onClose={() => setShowCoachChat(false)}
+          week={activeWorkout.week}
+          workoutName={activeWorkout.workoutName}
+          currentExercise={currentExerciseName}
+          currentSetIndex={currentSetIndex}
+          workoutData={workoutData.map((row) => ({
+            exercise: row.exercise,
+            setIndex: row.set - 1,
+            // Target values
+            targetReps: row.targetReps,
+            targetRir: row.rir ? parseInt(row.rir, 10) : undefined,
+            targetRestTime: row.targetRestTime,
+            // Achieved values
+            weight: row.weight ? parseFloat(row.weight) : undefined,
+            reps: row.repsAchieved ? parseInt(row.repsAchieved, 10) : undefined,
+            rir: row.rirAchieved ? parseInt(row.rirAchieved, 10) : undefined,
+            restTime: row.achievedRestTime,
+            isComplete: !!(row.repsAchieved && parseInt(row.repsAchieved, 10) > 0),
+          }))}
+        />
+      )}
+
+      {/* Swap Exercise Drawer */}
+      <ExerciseDrawer
+        isOpen={showSwapExercise}
+        onClose={() => setShowSwapExercise(false)}
+        onSelect={(newName) => swapExercise(currentExerciseName, newName)}
+        currentValue={currentExerciseName}
+        excludeExercises={[currentExerciseName]}
+        title="Swap Exercise"
+        filterToMuscleGroup={currentExerciseMuscleGroup}
+      />
     </div>
   );
 };

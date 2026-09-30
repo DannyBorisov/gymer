@@ -27,17 +27,21 @@ const Analytics = () => {
   const { data: onboardingData } = useGetOnboarding();
   const isPlateauEligible = PLATEAU_ELIGIBLE_GOALS.has(onboardingData?.onboarding?.goal ?? "");
 
-  const { data: progressionData, isLoading: isLoadingProgression } = useGetAnalyticsProgression();
-  const { data: summaryData, isLoading: isLoadingSummary } = useGetAnalyticsSummary();
-  const { data: volumeData } = useGetMuscleGroupVolume("week");
-  const { data: recoveryData, isLoading: isLoadingRecovery } = useGetMuscleRecovery();
+  // Only fetch data for the active tab
+  const isStrengthOrVolume = activeTab === "strength" || activeTab === "volume";
+  const isRecoveryTab = activeTab === "recovery";
+
+  const { data: progressionData, isLoading: isLoadingProgression } = useGetAnalyticsProgression(isStrengthOrVolume);
+  const { data: summaryData, isLoading: isLoadingSummary } = useGetAnalyticsSummary(isStrengthOrVolume);
+  const { data: volumeData } = useGetMuscleGroupVolume("week", isStrengthOrVolume);
+  const { data: recoveryData, isLoading: isLoadingRecovery } = useGetMuscleRecovery(isRecoveryTab);
 
   const exercises = progressionData?.exercises || [];
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [plateauDrawerExercise, setPlateauDrawerExercise] = useState<string | null>(null);
 
-  const isLoading = isLoadingProgression || isLoadingSummary;
+  const isLoading = isStrengthOrVolume && (isLoadingProgression || isLoadingSummary);
 
   const PLATEAU_MIN_SESSIONS = 4;
   const PLATEAU_STALLED_STREAK = 4;
@@ -94,21 +98,80 @@ const Analytics = () => {
 
   const getProgressChange = (entries: ProgressionEntry[]) => {
     if (entries.length < 2) return null;
-    const first = entries[0].weight;
-    const last = entries[entries.length - 1].weight;
-    const change = last - first;
+
+    const last = entries[entries.length - 1];
+    const lastE1rm = last.e1rm || 0;
+    const lastDate = parseDate(last.date);
+
+    // Time periods to check: 1W, 1M, 3M, 6M
+    const periods = [
+      { days: 7, label: "1W" },
+      { days: 30, label: "1M" },
+      { days: 90, label: "3M" },
+      { days: 180, label: "6M" },
+    ];
+
+    // Find the best matching period (longest period with data)
+    for (const period of periods.reverse()) {
+      const cutoff = new Date(lastDate);
+      cutoff.setDate(cutoff.getDate() - period.days);
+
+      // Find entry closest to (but not after) cutoff
+      const compareEntry = entries.find((e) => parseDate(e.date) <= cutoff);
+      if (compareEntry && compareEntry.e1rm) {
+        const compareE1rm = compareEntry.e1rm;
+        const change = lastE1rm - compareE1rm;
+        const percent = ((change / compareE1rm) * 100).toFixed(1);
+        return { change, percent, isPositive: change >= 0, period: period.label };
+      }
+    }
+
+    // Fallback: compare first to last if no period matches
+    const first = entries[0].e1rm || 0;
+    if (first === 0) return null;
+    const change = lastE1rm - first;
     const percent = ((change / first) * 100).toFixed(1);
-    return { change, percent, isPositive: change >= 0 };
+    return { change, percent, isPositive: change >= 0, period: null };
   };
 
   const getVolumeChange = (entries: ProgressionEntry[]) => {
     if (entries.length < 2) return null;
+
+    const last = entries[entries.length - 1];
+    const lastVolume = last.weight * last.reps * last.sets;
+    const lastDate = parseDate(last.date);
+
+    // Time periods to check: 1W, 1M, 3M, 6M
+    const periods = [
+      { days: 7, label: "1W" },
+      { days: 30, label: "1M" },
+      { days: 90, label: "3M" },
+      { days: 180, label: "6M" },
+    ];
+
+    // Find the best matching period (longest period with data)
+    for (const period of periods.reverse()) {
+      const cutoff = new Date(lastDate);
+      cutoff.setDate(cutoff.getDate() - period.days);
+
+      // Find entry closest to (but not after) cutoff
+      const compareEntry = entries.find((e) => parseDate(e.date) <= cutoff);
+      if (compareEntry) {
+        const compareVolume = compareEntry.weight * compareEntry.reps * compareEntry.sets;
+        if (compareVolume > 0) {
+          const change = lastVolume - compareVolume;
+          const percent = ((change / compareVolume) * 100).toFixed(1);
+          return { change, percent, isPositive: change >= 0, period: period.label };
+        }
+      }
+    }
+
+    // Fallback: compare first to last if no period matches
     const first = entries[0].weight * entries[0].reps * entries[0].sets;
-    const last = entries[entries.length - 1].weight * entries[entries.length - 1].reps * entries[entries.length - 1].sets;
     if (first === 0) return null;
-    const change = last - first;
+    const change = lastVolume - first;
     const percent = ((change / first) * 100).toFixed(1);
-    return { change, percent, isPositive: change >= 0 };
+    return { change, percent, isPositive: change >= 0, period: null };
   };
 
   const now = new Date();
@@ -291,10 +354,10 @@ const Analytics = () => {
                                 }`}
                               >
                                 {progress.isPositive ? "+" : ""}
-                                {activeTab === "strength"
-                                  ? `${progress.change.toFixed(1)}`
-                                  : progress.change.toLocaleString()}
-                                {" "}({progress.percent}%)
+                                {progress.percent}%
+                                {progress.period && (
+                                  <span className={styles.changePeriod}>{progress.period}</span>
+                                )}
                               </span>
                             )}
                           </div>

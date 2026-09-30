@@ -8,8 +8,15 @@ import {
 } from "react";
 import { useSaveQuickWorkout } from "../api/workouts";
 import { useGetExerciseBests } from "../api/analytics";
-import { useUpdateProgram, useAddSet, type ProgramUpdateInput } from "../api/programs";
-import type { Workout as ApiWorkout, QuickWorkoutPayload } from "../api/workouts";
+import {
+  useUpdateProgram,
+  useAddSet,
+  type ProgramUpdateInput,
+} from "../api/programs";
+import type {
+  Workout as ApiWorkout,
+  QuickWorkoutPayload,
+} from "../api/workouts";
 import { formatExerciseName } from "../types/shared";
 import { formatDuration } from "../lib/time";
 import { MIN_RECORDED_REST_SECONDS } from "../lib/constants";
@@ -45,7 +52,7 @@ export type { Workout as ApiWorkout } from "../api/workouts";
 export interface PreviousStats {
   week: number;
   workout: string;
-  sets: { weight: string; reps: string; rir: string; notes?: string }[];
+  sets: { weight: string; reps: string; rir: string; notes?: string; restTime?: number }[];
 }
 
 export interface ExerciseBest {
@@ -128,6 +135,7 @@ interface WorkoutContextType {
   setCurrentExerciseIndex: (index: number) => void;
   setCurrentSetIndex: (index: number) => void;
   saveWorkout: (includeDate?: boolean) => Promise<void>;
+  swapExercise: (oldExerciseName: string, newExerciseName: string) => void;
 }
 
 const WorkoutContext = createContext<WorkoutContextType | null>(null);
@@ -240,7 +248,11 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     null,
   );
   // Store rest timer config for rescheduling on adjustment and live activity updates
-  const restTimerConfigRef = useRef<{ duration: number; announceInterval: number; exerciseName: string } | null>(null);
+  const restTimerConfigRef = useRef<{
+    duration: number;
+    announceInterval: number;
+    exerciseName: string;
+  } | null>(null);
 
   // Track when the last set was completed to calculate rest time
   const lastSetCompletedAtRef = useRef<number | null>(null);
@@ -335,60 +347,60 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
   // Live Activity timer auto-updates natively - no need to send updates from app
 
-  const saveWorkout = async (includeDate = false) => {
-    if (!activeWorkout || workoutData.length === 0) return;
-
-    // Quick workouts don't auto-save to server
-    if (isQuickWorkout) return;
-
-    setIsSaving(true);
-    try {
-      const updates = buildSetUpdates(
-        workoutData,
-        activeWorkout.week,
-        activeWorkout.workoutName,
-      );
-
-      if (includeDate) {
-        updates.push(
-          buildCompletionUpdate(
-            activeWorkout.week,
-            activeWorkout.workoutName,
-            timer,
-          ),
-        );
-      }
-
-      if (updates.length > 0) {
-        await updateProgram.mutateAsync({
-          id: activeWorkout.programId,
-          input: updates,
-        });
-      }
-
-      setHasUnsavedChanges(false);
-      hasUnsavedChangesRef.current = false;
-    } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      console.error("Failed to save:", errMsg);
-      console.error("Program ID:", activeWorkout.programId);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   // Auto-save every 5 seconds during active workout
   useEffect(() => {
-    if (!activeWorkout) return;
+    if (!activeWorkout || isQuickWorkout) return;
 
-    const interval = setInterval(() => {
-      if (hasUnsavedChangesRef.current) {
-        saveWorkout();
+    const interval = setInterval(async () => {
+      if (!hasUnsavedChangesRef.current || workoutDataRef.current.length === 0)
+        return;
+
+      const data = workoutDataRef.current;
+      const { programId, week, workoutName } = activeWorkout;
+
+      setIsSaving(true);
+      try {
+        const updates = buildSetUpdates(data, week, workoutName);
+        if (updates.length > 0) {
+          await updateProgram.mutateAsync({ id: programId, input: updates });
+        }
+        setHasUnsavedChanges(false);
+        hasUnsavedChangesRef.current = false;
+      } catch (error) {
+        console.error("Auto-save failed:", error);
+      } finally {
+        setIsSaving(false);
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [activeWorkout, saveWorkout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkout, isQuickWorkout]);
+
+  const saveWorkout = async (includeDate = false) => {
+    if (!activeWorkout || isQuickWorkout || workoutDataRef.current.length === 0)
+      return;
+
+    const data = workoutDataRef.current;
+    const { programId, week, workoutName } = activeWorkout;
+
+    setIsSaving(true);
+    try {
+      const updates = buildSetUpdates(data, week, workoutName);
+      if (includeDate) {
+        updates.push(buildCompletionUpdate(week, workoutName, timer));
+      }
+      if (updates.length > 0) {
+        await updateProgram.mutateAsync({ id: programId, input: updates });
+      }
+      setHasUnsavedChanges(false);
+      hasUnsavedChangesRef.current = false;
+    } catch (error) {
+      console.error("Failed to save:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Start rest timer
   const startRestTimer = (
@@ -435,26 +447,46 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
-    // Save rest time to current set if >= 30 seconds
+    // Save rest time to the last completed set that doesn't have rest time yet
+    // This handles the case where user moves to next set before stopping timer
     if (stoppedAt >= MIN_RECORDED_REST_SECONDS) {
-      // Get current set's rowIndex
-      const groupedByExercise = Object.values(
-        workoutDataRef.current.reduce(
-          (acc, ex) => {
-            if (!acc[ex.exercise]) acc[ex.exercise] = [];
-            acc[ex.exercise].push(ex);
-            return acc;
-          },
-          {} as Record<string, ExerciseRow[]>,
-        ),
+      // Find the last completed set without rest time (in row order)
+      const completedSetsWithoutRest = workoutDataRef.current.filter(
+        (row) => row.repsAchieved && !row.achievedRestTime,
       );
-      const currentSet = groupedByExercise[currentExerciseIndex]?.[currentSetIndex];
-      if (currentSet) {
+      console.log(
+        "[stopRestTimer] completed sets without rest:",
+        completedSetsWithoutRest.length,
+      );
+      // Take the last one (most recently completed), or fall back to current set
+      let targetSet = completedSetsWithoutRest[completedSetsWithoutRest.length - 1];
+
+      if (!targetSet) {
+        // No completed sets without rest - fall back to current set
+        const groupedByExercise = Object.values(
+          workoutDataRef.current.reduce(
+            (acc, ex) => {
+              if (!acc[ex.exercise]) acc[ex.exercise] = [];
+              acc[ex.exercise].push(ex);
+              return acc;
+            },
+            {} as Record<string, ExerciseRow[]>,
+          ),
+        );
+        targetSet = groupedByExercise[currentExerciseIndex]?.[currentSetIndex];
+      }
+      if (targetSet) {
+        console.log(
+          "[stopRestTimer] saving rest time to set:",
+          targetSet.set,
+          "time:",
+          stoppedAt,
+        );
         // Update the set with rest time
         const newData = workoutDataRef.current.map((row) =>
-          row.rowIndex === currentSet.rowIndex
+          row.rowIndex === targetSet.rowIndex
             ? { ...row, achievedRestTime: stoppedAt }
-            : row
+            : row,
         );
         workoutDataRef.current = newData;
         setWorkoutData(newData);
@@ -495,21 +527,35 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
   // Adjust rest timer by delta seconds (+/- buttons)
   const adjustRestTimer = (delta: number) => {
-    if (!isRestTimerActive || !restTimerStartTime || !restTimerConfigRef.current) return;
+    if (
+      !isRestTimerActive ||
+      !restTimerStartTime ||
+      !restTimerConfigRef.current
+    )
+      return;
     // Adjust the start time to change the displayed elapsed time
     const newStartTime = restTimerStartTime - delta * 1000;
     setRestTimerStartTime(newStartTime);
-    const newElapsed = Math.max(0, Math.floor((Date.now() - newStartTime) / 1000));
+    const newElapsed = Math.max(
+      0,
+      Math.floor((Date.now() - newStartTime) / 1000),
+    );
     setRestTimer(newElapsed);
 
     // Reschedule the notification with the new start time
-    const { duration, announceInterval, exerciseName } = restTimerConfigRef.current;
+    const { duration, announceInterval, exerciseName } =
+      restTimerConfigRef.current;
     cancelRestTimerNotification();
     scheduleRestTimerNotification(duration, announceInterval, newStartTime);
 
     // Update live activity with new start time
     if (activeWorkout) {
-      updateRestTimerLiveActivity(true, activeWorkout.workoutName, exerciseName, newStartTime);
+      updateRestTimerLiveActivity(
+        true,
+        activeWorkout.workoutName,
+        exerciseName,
+        newStartTime,
+      );
     }
   };
 
@@ -596,8 +642,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
       for (const prevWorkout of prevWorkouts) {
         const prevExercise = prevWorkout.exercises.find(
-          (e) =>
-            e.name === exercise.name && e.variant === exercise.variant,
+          (e) => e.name === exercise.name && e.variant === exercise.variant,
         );
         if (!prevExercise) continue;
 
@@ -614,6 +659,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
               reps: s.achievedReps?.toString() || "",
               rir: s.achievedRir || "",
               notes: s.notes || undefined,
+              restTime: s.achievedRestTime,
             })),
           };
           break;
@@ -1005,6 +1051,18 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Swap all sets of one exercise with another exercise name
+  const swapExercise = (oldExerciseName: string, newExerciseName: string) => {
+    workoutDataRef.current = workoutDataRef.current.map((row) =>
+      row.exercise === oldExerciseName
+        ? { ...row, exercise: newExerciseName }
+        : row,
+    );
+    setWorkoutData(workoutDataRef.current);
+    setHasUnsavedChanges(true);
+    hasUnsavedChangesRef.current = true;
+  };
+
   return (
     <WorkoutContext.Provider
       value={{
@@ -1042,6 +1100,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         setCurrentExerciseIndex,
         setCurrentSetIndex,
         saveWorkout,
+        swapExercise,
       }}
     >
       {children}

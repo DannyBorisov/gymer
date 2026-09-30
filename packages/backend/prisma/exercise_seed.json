@@ -763,7 +763,7 @@
     "variant": []
   },
   {
-    "name":"Overhead Press",
+    "name": "Overhead Press",
     "muscleGroup": "SHOULDERS",
     "variant": []
   },
@@ -3103,7 +3103,7 @@
     "muscleGroup": "BACK",
     "variant": []
   },
-    {
+  {
     "name": "Triceps Extension",
     "muscleGroup": "TRICEPS",
     "variant": []
@@ -6535,5 +6535,200 @@
     "variant": [
       "Supine"
     ]
+  },
+  {
+    "name": "Deadlift",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "Squat",
+    "muscleGroup": "LEGS",
+    "variant": []
+  },
+  {
+    "name": "Bench Press",
+    "muscleGroup": "CHEST",
+    "variant": []
+  },
+  {
+    "name": "Pull Up",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "Chin Up",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "Row",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "Cable Row",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "Cable Fly",
+    "muscleGroup": "CHEST",
+    "variant": []
+  },
+  {
+    "name": "Cable Curl",
+    "muscleGroup": "BICEPS",
+    "variant": []
+  },
+  {
+    "name": "Cable Pushdown",
+    "muscleGroup": "TRICEPS",
+    "variant": []
+  },
+  {
+    "name": "Cable Face Pull",
+    "muscleGroup": "SHOULDERS",
+    "variant": []
+  },
+  {
+    "name": "Lat Pulldown",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "Leg Press",
+    "muscleGroup": "LEGS",
+    "variant": []
+  },
+  {
+    "name": "Leg Extension",
+    "muscleGroup": "LEGS",
+    "variant": []
+  },
+  {
+    "name": "Leg Curl",
+    "muscleGroup": "LEGS",
+    "variant": []
+  },
+  {
+    "name": "Calf Raise",
+    "muscleGroup": "LEGS",
+    "variant": []
+  },
+  {
+    "name": "Lunge",
+    "muscleGroup": "LEGS",
+    "variant": []
+  },
+  {
+    "name": "Romanian Deadlift",
+    "muscleGroup": "LEGS",
+    "variant": []
+  },
+  {
+    "name": "Hip Thrust",
+    "muscleGroup": "LEGS",
+    "variant": []
+  },
+  {
+    "name": "Bicep Curl",
+    "muscleGroup": "BICEPS",
+    "variant": []
+  },
+  {
+    "name": "Hammer Curl",
+    "muscleGroup": "BICEPS",
+    "variant": []
+  },
+  {
+    "name": "Preacher Curl",
+    "muscleGroup": "BICEPS",
+    "variant": []
+  },
+  {
+    "name": "Tricep Extension",
+    "muscleGroup": "TRICEPS",
+    "variant": []
+  },
+  {
+    "name": "Skull Crusher",
+    "muscleGroup": "TRICEPS",
+    "variant": []
+  },
+  {
+    "name": "Close Grip Bench Press",
+    "muscleGroup": "TRICEPS",
+    "variant": []
+  },
+  {
+    "name": "Incline Bench Press",
+    "muscleGroup": "CHEST",
+    "variant": []
+  },
+  {
+    "name": "Decline Bench Press",
+    "muscleGroup": "CHEST",
+    "variant": []
+  },
+  {
+    "name": "Chest Fly",
+    "muscleGroup": "CHEST",
+    "variant": []
+  },
+  {
+    "name": "Push Up",
+    "muscleGroup": "CHEST",
+    "variant": []
+  },
+  {
+    "name": "Bent Over Row",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "Seated Row",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "T-Bar Row",
+    "muscleGroup": "BACK",
+    "variant": []
+  },
+  {
+    "name": "Lateral Raise",
+    "muscleGroup": "SHOULDERS",
+    "variant": []
+  },
+  {
+    "name": "Front Raise",
+    "muscleGroup": "SHOULDERS",
+    "variant": []
+  },
+  {
+    "name": "Rear Delt Fly",
+    "muscleGroup": "SHOULDERS",
+    "variant": []
+  },
+  {
+    "name": "Shrug",
+    "muscleGroup": "SHOULDERS",
+    "variant": []
+  },
+  {
+    "name": "Arnold Press",
+    "muscleGroup": "SHOULDERS",
+    "variant": []
+  },
+  {
+    "name": "Sit Up",
+    "muscleGroup": "ABS",
+    "variant": []
+  },
+  {
+    "name": "Russian Twist",
+    "muscleGroup": "ABS",
+    "variant": []
   }
 ]

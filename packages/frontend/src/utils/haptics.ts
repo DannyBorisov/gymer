@@ -60,3 +60,18 @@ export async function hapticSuccess() {
     navigator.vibrate([10, 50, 10]);
   }
 }
+
+/**
+ * Heavy haptic feedback for rest timer completion
+ */
+export async function hapticHeavy() {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Heavy });
+    } catch {
+      // Haptics not available
+    }
+  } else if (navigator.vibrate) {
+    navigator.vibrate(30);
+  }
+}

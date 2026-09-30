@@ -8,7 +8,15 @@ import AppRoutes from "./Routes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setupNotificationListeners } from "./utils/notifications";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 30_000, // 30 seconds
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 // Inner component that has access to router context
 const AppContent = () => {

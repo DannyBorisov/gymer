@@ -4,6 +4,7 @@ import { createGSQL, prisma, AiGenerationType } from "../dal/index.js";
 import type { CreateProgramInput } from "../dal/gsql/types.js";
 import type {
   WorkoutTipBodyType,
+  WorkoutChatBodyType,
   GenerateProgramBodyType,
   PlateauAdviceBodyType,
 } from "../schemas/ai.js";
@@ -17,6 +18,9 @@ const __dirname = dirname(__filename);
 
 const coachPromptPath = join(__dirname, "../agents/workout-coach.md");
 const COACH_PROMPT = readFileSync(coachPromptPath, "utf-8");
+
+const chatCoachPromptPath = join(__dirname, "../agents/workout-chat.md");
+const CHAT_COACH_PROMPT = readFileSync(chatCoachPromptPath, "utf-8");
 
 const programGeneratorPromptPath = join(
   __dirname,
@@ -171,6 +175,101 @@ Based on this data, provide ONE short, insightful tip for today's workout. Make 
   } catch (error) {
     this.log.error(error);
     return reply.status(500).send({ error: "Failed to generate workout tip" });
+  }
+};
+
+export const postWorkoutChat: RouteHandler<{
+  Body: WorkoutChatBodyType;
+}> = async function (request, reply) {
+  const {
+    week,
+    workoutName,
+    message,
+    currentExercise,
+    currentSetIndex,
+    workoutData,
+    conversationHistory,
+  } = request.body;
+
+  try {
+    // Build context from the data passed by the frontend (no Google Sheets fetch)
+    // This avoids rate limits and is faster
+    const sessionProgress = workoutData && workoutData.length > 0
+      ? workoutData.map((d) => ({
+          exercise: d.exercise,
+          set: d.setIndex + 1,
+          target: { reps: d.targetReps, rir: d.targetRir, restTime: d.targetRestTime },
+          achieved: d.isComplete
+            ? { weight: d.weight, reps: d.reps, rir: d.rir, restTime: d.restTime }
+            : null,
+          status: d.isComplete ? "DONE" : "PENDING",
+        }))
+      : [];
+
+    // Group exercises for planned exercises section
+    const exerciseGroups = new Map<string, { targetRestTime?: number; sets: Array<{ targetReps?: number; targetRir?: number }> }>();
+    workoutData?.forEach((d) => {
+      if (!exerciseGroups.has(d.exercise)) {
+        exerciseGroups.set(d.exercise, { targetRestTime: d.targetRestTime, sets: [] });
+      }
+      exerciseGroups.get(d.exercise)!.sets.push({ targetReps: d.targetReps, targetRir: d.targetRir });
+    });
+
+    const contextPrompt = `
+CURRENT WORKOUT: ${workoutName} (Week ${week})
+${currentExercise ? `CURRENT EXERCISE: ${currentExercise}` : ""}
+${currentSetIndex !== undefined ? `CURRENT SET: ${currentSetIndex + 1}` : ""}
+
+TODAY'S SESSION PROGRESS:
+${sessionProgress.length > 0
+  ? sessionProgress.map((s) => {
+      if (s.status === "DONE") {
+        const rirDiff = s.target.rir !== undefined && s.achieved?.rir !== undefined
+          ? s.achieved.rir - s.target.rir
+          : null;
+        const rirNote = rirDiff !== null
+          ? rirDiff < 0
+            ? ` (${Math.abs(rirDiff)} RIR UNDER target - weight was too heavy)`
+            : rirDiff > 0
+              ? ` (${rirDiff} RIR OVER target - weight was too light)`
+              : " (hit target RIR)"
+          : "";
+        const restInfo = s.achieved?.restTime !== undefined
+          ? `, rest ${s.achieved.restTime}s${s.target.restTime ? ` (target: ${s.target.restTime}s)` : ""}`
+          : "";
+        return `✓ ${s.exercise} Set ${s.set}: ${s.achieved?.weight}kg × ${s.achieved?.reps} @ RIR ${s.achieved?.rir}${rirNote}${restInfo} (target: ${s.target.reps} reps @ RIR ${s.target.rir})`;
+      }
+      const targetRestInfo = s.target.restTime ? `, rest ${s.target.restTime}s` : "";
+      return `○ ${s.exercise} Set ${s.set}: PENDING (target: ${s.target.reps} reps @ RIR ${s.target.rir}${targetRestInfo})`;
+    }).join("\n")
+  : "No sets completed yet"}
+
+PLANNED EXERCISES:
+${Array.from(exerciseGroups.entries()).map(([name, data]) => {
+  const restTime = data.targetRestTime ? ` (rest: ${data.targetRestTime}s)` : "";
+  const sets = data.sets
+    .map((s, i) => `Set ${i + 1}: ${s.targetReps} reps @ RIR ${s.targetRir}`)
+    .join(", ");
+  return `- ${name}${restTime}: ${sets}`;
+}).join("\n")}
+`;
+
+    // Build conversation
+    const messages = [
+      { role: "system" as const, content: CHAT_COACH_PROMPT + "\n\n---\n\n" + contextPrompt },
+      ...(conversationHistory || []).map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+      { role: "user" as const, content: message },
+    ];
+
+    const response = await this.genai.chat(messages);
+
+    return { response };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to process chat message" });
   }
 };
 

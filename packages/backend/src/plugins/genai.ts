@@ -82,6 +82,35 @@ class GenAIService {
       throw new Error("Gemini returned an invalid program response");
     }
   }
+
+  async chat(
+    messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+  ): Promise<string> {
+    // Convert messages to Gemini format
+    // System message goes into systemInstruction, others become contents
+    const systemMessage = messages.find((m) => m.role === "system");
+    const chatMessages = messages.filter((m) => m.role !== "system");
+
+    const contents = chatMessages.map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+    const response = await this.client.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents,
+      config: {
+        systemInstruction: systemMessage?.content,
+      },
+    });
+
+    const text = response.text;
+    if (!text) {
+      throw new Error("Gemini returned an empty chat response");
+    }
+
+    return text.trim();
+  }
 }
 
 const genaiPlugin: FastifyPluginAsync = async (fastify) => {

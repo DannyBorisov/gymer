@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
 import { Loader2, Calendar, TrendingUp, ChevronRight } from "lucide-react";
-import { ClockIcon, DumbbellOutlineIcon } from "../../assets/icons";
+import { DumbbellOutlineIcon } from "../../assets/icons";
 import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
 import { useSettings } from "../../contexts/SettingsContext";
-import { SwipeableDrawer } from "../../components/SwipeableDrawer";
-import { parseExerciseName } from "../../types/shared";
+import {
+  WorkoutDetailDrawer,
+  type WorkoutDetailData,
+} from "../../components/WorkoutDetailDrawer";
 import { parseDate } from "../../lib/date";
 import styles from "./WorkoutHistory.module.css";
 
@@ -49,6 +51,28 @@ const WorkoutHistory = () => {
       day: "numeric",
     });
   };
+
+  // Convert Workout to WorkoutDetailData for the shared drawer
+  const selectedWorkoutData: WorkoutDetailData | null = selectedWorkout
+    ? {
+        title: selectedWorkout.name,
+        subtitle: formatDateDisplay(selectedWorkout.date!),
+        duration: selectedWorkout.duration,
+        exercises: selectedWorkout.exercises.map((e) => ({
+          name: e.name,
+          variant: e.variant,
+          sets: e.sets
+            .filter((s) => s.achievedReps !== undefined)
+            .map((s) => ({
+              weight: s.achievedWeight?.toString() || "",
+              reps: s.achievedReps?.toString() || "",
+              rir: s.achievedRir,
+              notes: s.notes,
+              restTime: s.achievedRestTime,
+            })),
+        })),
+      }
+    : null;
 
   const formatDuration = (duration: string) => {
     if (duration.includes(":")) {
@@ -249,87 +273,12 @@ const WorkoutHistory = () => {
       )}
 
       {/* Workout Detail Drawer */}
-      <SwipeableDrawer
+      <WorkoutDetailDrawer
         isOpen={!!selectedWorkout}
         onClose={() => setSelectedWorkout(null)}
-        maxHeight="90vh"
-      >
-        {selectedWorkout && (
-          <div className={styles.drawer}>
-            {/* Drawer Header */}
-            <div className={styles.drawerHeader}>
-              <h2 className={styles.drawerTitle}>{selectedWorkout.name}</h2>
-              <div className={styles.drawerMeta}>
-                <span>{formatDateDisplay(selectedWorkout.date!)}</span>
-                {selectedWorkout.duration && (
-                  <>
-                    <span className={styles.dot}>·</span>
-                    <ClockIcon size={14} />
-                    <span>{formatDuration(selectedWorkout.duration)}</span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Summary Stats */}
-            <div className={styles.drawerStats}>
-              <div className={styles.drawerStat}>
-                <span className={styles.drawerStatValue}>
-                  {selectedWorkout.exercises.length}
-                </span>
-                <span className={styles.drawerStatLabel}>exercises</span>
-              </div>
-              <div className={styles.drawerStat}>
-                <span className={styles.drawerStatValue}>
-                  {getWorkoutSetCount(selectedWorkout)}
-                </span>
-                <span className={styles.drawerStatLabel}>sets</span>
-              </div>
-            </div>
-
-            {/* Exercises */}
-            <div className={styles.drawerContent}>
-              {selectedWorkout.exercises.map((exercise, exIdx) => {
-                const { name, variant } = parseExerciseName(
-                  exercise.variant
-                    ? `${exercise.name} (${exercise.variant})`
-                    : exercise.name,
-                );
-                return (
-                  <div key={exIdx} className={styles.exercise}>
-                    <div className={styles.exerciseHeader}>
-                      <h3 className={styles.exerciseName}>{name}</h3>
-                      {variant && (
-                        <span className={styles.exerciseVariant}>{variant}</span>
-                      )}
-                    </div>
-                    <div className={styles.sets}>
-                      {exercise.sets.map((set, setIdx) => (
-                        <div key={setIdx} className={styles.set}>
-                          <span className={styles.setNum}>{setIdx + 1}</span>
-                          <div className={styles.setData}>
-                            <span className={styles.setMain}>
-                              {set.achievedWeight ?? "—"}{weightUnit} × {set.achievedReps ?? "—"}
-                            </span>
-                            {set.achievedRir !== undefined && (
-                              <span className={styles.setRir}>
-                                @ {set.achievedRir} RIR
-                              </span>
-                            )}
-                          </div>
-                          {set.notes && (
-                            <span className={styles.setNote}>{set.notes}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </SwipeableDrawer>
+        data={selectedWorkoutData}
+        weightUnit={weightUnit}
+      />
     </div>
   );
 };

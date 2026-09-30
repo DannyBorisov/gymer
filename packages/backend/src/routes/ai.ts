@@ -2,11 +2,13 @@ import type { FastifyPluginAsync } from "fastify";
 import { requireAuth } from "../middlewares/auth.js";
 import {
   getWorkoutTip,
+  postWorkoutChat,
   generateAiProgram,
   getPlateauAdvice,
 } from "../handlers/ai.js";
 import type {
   WorkoutTipBodyType,
+  WorkoutChatBodyType,
   GenerateProgramBodyType,
   PlateauAdviceBodyType,
 } from "../schemas/ai.js";
@@ -16,6 +18,12 @@ const aiRoutes: FastifyPluginAsync = async (server) => {
     "/workout-tip",
     { preHandler: requireAuth },
     getWorkoutTip,
+  );
+
+  server.post<{ Body: WorkoutChatBodyType }>(
+    "/workout-chat",
+    { preHandler: requireAuth },
+    postWorkoutChat,
   );
 
   server.post<{ Body: GenerateProgramBodyType }>(

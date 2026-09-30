@@ -51,7 +51,7 @@ const WorkoutDrawerOverlay = () => {
       forceCollapsed={!isWorkoutRoute && !!activeWorkout}
       closeOnCollapse={isWorkoutComplete}
       onPeekTap={!isWorkoutRoute ? handlePeekTap : undefined}
-      onEndWorkout={!isWorkoutRoute && activeWorkout ? handleEndWorkout : undefined}
+      onEndWorkout={activeWorkout ? handleEndWorkout : undefined}
       peekContent={
         activeWorkout
           ? {

@@ -40,6 +40,8 @@ interface ExerciseDrawerProps {
   multiSelect?: boolean;
   excludeExercises?: string[];
   includeOnly?: string[]; // If provided, only show these exercises
+  title?: string; // Custom title for the drawer
+  filterToMuscleGroup?: MuscleGroup; // Pre-filter to specific muscle group
 }
 
 export const ExerciseDrawer = ({
@@ -51,12 +53,14 @@ export const ExerciseDrawer = ({
   multiSelect = false,
   excludeExercises = [],
   includeOnly,
+  title,
+  filterToMuscleGroup,
 }: ExerciseDrawerProps) => {
   const [search, setSearch] = useState("");
   const [customName, setCustomName] = useState("");
   const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<MuscleGroup | "ALL">(
-    "ALL"
+    filterToMuscleGroup ?? "ALL"
   );
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState("");
@@ -91,12 +95,15 @@ export const ExerciseDrawer = ({
     [exerciseOptions]
   );
 
+  // Reset state when drawer opens
+  const prevIsOpen = useRef(isOpen);
   useEffect(() => {
-    if (isOpen) {
+    // Only reset when transitioning from closed to open
+    if (isOpen && !prevIsOpen.current) {
       setSearch("");
       setCustomName(currentValue);
       setSelectedExercises([]);
-      setActiveCategory("ALL");
+      setActiveCategory(filterToMuscleGroup ?? "ALL");
       setIsAddingExercise(false);
       setNewExerciseName("");
       setNewExerciseMuscleGroup(null);
@@ -104,7 +111,8 @@ export const ExerciseDrawer = ({
         searchInputRef.current?.focus();
       }, 100);
     }
-  }, [isOpen, currentValue]);
+    prevIsOpen.current = isOpen;
+  }, [isOpen, currentValue, filterToMuscleGroup]);
 
   useEffect(() => {
     if (isOpen) {
@@ -223,9 +231,11 @@ export const ExerciseDrawer = ({
         <h2 className={styles.title}>
           {isAddingExercise
             ? "Add Exercise"
-            : multiSelect
-              ? "Select Exercises"
-              : "Select Exercise"}
+            : title
+              ? title
+              : multiSelect
+                ? "Select Exercises"
+                : "Select Exercise"}
         </h2>
       </div>
 

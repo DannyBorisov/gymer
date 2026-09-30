@@ -53,3 +53,28 @@ export function unlockAudio() {
     // Audio not supported
   }
 }
+
+// Play a short completion beep
+export function playCompletionSound() {
+  try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") return;
+
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.frequency.value = 880; // A5 note
+    oscillator.type = "sine";
+
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.15);
+  } catch {
+    // Audio not supported
+  }
+}

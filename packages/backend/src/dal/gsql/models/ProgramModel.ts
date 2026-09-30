@@ -581,7 +581,9 @@ export class ProgramModel extends BaseModel {
   }
 
   /**
-   * Get all completed sets from all programs for analytics
+   * Get all completed sets from all programs for analytics.
+   * Only includes sets from workouts that have both date AND duration,
+   * meaning the workout was actually completed (not just started).
    */
   async getCompletedSets(): Promise<CompletedSet[]> {
     const programs = await this.findAll();
@@ -602,7 +604,9 @@ export class ProgramModel extends BaseModel {
         if (!rows || rows.length < 2) return;
 
         let currentDate: Date | null = null;
+        let currentDuration: string | null = null;
         let currentWorkout = "";
+        let rowInWorkout = 0;
 
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
@@ -613,22 +617,34 @@ export class ProgramModel extends BaseModel {
           const repsStr = String(row[cols.repsAchieved.index] || "").trim();
           const rirStr = String(row[cols.rirAchieved.index] || "").trim();
 
-          // Track date
+          // Track date and duration for workout completion check
           if (isDateFormat(dateOrDuration)) {
             currentDate = parseDate(dateOrDuration);
+            currentDuration = null; // Reset duration, will be set on next row
             currentWorkout = workout;
+            rowInWorkout = 0;
+          } else if (isDuration(dateOrDuration) && rowInWorkout === 1) {
+            // Duration is on the second row of the workout
+            currentDuration = dateOrDuration;
           } else if (workout && workout !== currentWorkout) {
+            // New workout without date means not completed
             currentDate = null;
+            currentDuration = null;
             currentWorkout = workout;
+            rowInWorkout = 0;
           }
 
-          if (!currentDate || !exercise || !weightStr || !repsStr) continue;
+          rowInWorkout++;
+
+          // Only include sets from completed workouts (have both date AND duration)
+          if (!currentDate || !currentDuration || !exercise || !weightStr || !repsStr) continue;
 
           const weight = +weightStr;
           const reps = +repsStr;
           const rir = parseRir(rirStr);
 
-          if (weight > 0 && reps > 0) {
+          // Weight can be 0 for bodyweight exercises
+          if (weight >= 0 && reps > 0) {
             allSets.push({ date: currentDate, exercise, weight, reps, rir });
           }
         }

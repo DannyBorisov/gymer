@@ -12,6 +12,38 @@ interface WorkoutTipResponse {
   tip: string;
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface WorkoutChatRequest {
+  week: number;
+  workoutName: string;
+  message: string;
+  currentExercise?: string;
+  currentSetIndex?: number;
+  workoutData?: Array<{
+    exercise: string;
+    setIndex: number;
+    // Target values
+    targetReps?: number;
+    targetRir?: number;
+    targetRestTime?: number;
+    // Achieved values
+    weight?: number;
+    reps?: number;
+    rir?: number;
+    restTime?: number;
+    isComplete: boolean;
+  }>;
+  conversationHistory?: ChatMessage[];
+}
+
+interface WorkoutChatResponse {
+  response: string;
+}
+
 interface GenerateProgramRequest {
   durationWeeks: number;
   frequency: number;
@@ -26,6 +58,17 @@ export function useGetWorkoutTip() {
   return useMutation({
     mutationFn: (payload: WorkoutTipRequest) =>
       request<WorkoutTipResponse>("/api/ai/workout-tip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+  });
+}
+
+export function useWorkoutChat() {
+  return useMutation({
+    mutationFn: (payload: WorkoutChatRequest) =>
+      request<WorkoutChatResponse>("/api/ai/workout-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

@@ -313,10 +313,19 @@
 }
 
 .changeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.125rem 0.375rem;
   border-radius: 4px;
+}
+
+.changePeriod {
+  font-size: 0.625rem;
+  font-weight: 500;
+  opacity: 0.7;
 }
 
 .changePositive {

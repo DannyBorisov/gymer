@@ -110,8 +110,8 @@ export const analyticsQueryKeys = {
   recovery: ["analytics", "recovery"] as const,
 };
 
-export function useGetAnalyticsProgression() {
-  return useQuery({ queryKey: analyticsQueryKeys.progression, queryFn: analyticsApi.progression });
+export function useGetAnalyticsProgression(enabled = true) {
+  return useQuery({ queryKey: analyticsQueryKeys.progression, queryFn: analyticsApi.progression, enabled });
 }
 
 export function useGetExerciseBests(enabled = true) {
@@ -122,10 +122,11 @@ export function useGetExerciseBests(enabled = true) {
   });
 }
 
-export function useGetAnalyticsSummary() {
+export function useGetAnalyticsSummary(enabled = true) {
   return useQuery({
     queryKey: analyticsQueryKeys.summary,
     queryFn: analyticsApi.summary,
+    enabled,
   });
 }
 
@@ -143,16 +144,18 @@ export function useGetWorkoutConsistency() {
   });
 }
 
-export function useGetMuscleGroupVolume(period: "week" | "month" = "week") {
+export function useGetMuscleGroupVolume(period: "week" | "month" = "week", enabled = true) {
   return useQuery({
     queryKey: analyticsQueryKeys.volume(period),
     queryFn: () => analyticsApi.volume(period),
+    enabled,
   });
 }
 
-export function useGetMuscleRecovery() {
+export function useGetMuscleRecovery(enabled = true) {
   return useQuery({
     queryKey: analyticsQueryKeys.recovery,
     queryFn: analyticsApi.recovery,
+    enabled,
   });
 }

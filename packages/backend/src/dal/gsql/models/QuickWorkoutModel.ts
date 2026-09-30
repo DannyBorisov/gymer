@@ -1,6 +1,6 @@
 import { BaseModel } from './BaseModel.js';
 import { QuickWorkoutSchema } from '../schemas/quickWorkout.js';
-import { formatDateTime, parseDate, isDateFormat } from '../utils/dateUtils.js';
+import { formatDateTime, parseDate, isDateFormat, isDuration } from '../utils/dateUtils.js';
 import type {
   QuickWorkout,
   QuickWorkoutSet,
@@ -141,39 +141,47 @@ export class QuickWorkoutModel extends BaseModel {
   }
 
   /**
-   * Get all completed sets for analytics
+   * Get all completed sets for analytics.
+   * Only includes sets from workouts that have both date AND duration,
+   * meaning the workout was actually completed.
    */
   async getCompletedSets(): Promise<CompletedSet[]> {
     const spreadsheetId = await this.getSheetId();
     if (!spreadsheetId) return [];
 
     const sheetName = await this.getSheetName(spreadsheetId);
-    const rows = await this.sheets.get(this.tokens, spreadsheetId, `${sheetName}!A:G`);
+    const rows = await this.sheets.get(this.tokens, spreadsheetId, `${sheetName}!A:I`);
     if (!rows || rows.length < 2) return [];
 
     const cols = QuickWorkoutSchema.columns;
     const sets: CompletedSet[] = [];
     let currentDate: Date | null = null;
+    let currentDuration: string | null = null;
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const dateStr = String(row[cols.date.index] || '').trim();
+      const durationStr = String(row[cols.duration.index] || '').trim();
       const exercise = String(row[cols.exercise.index] || '').trim();
       const weightStr = String(row[cols.weight.index] || '').trim();
       const repsStr = String(row[cols.reps.index] || '').trim();
       const rirStr = String(row[cols.rir.index] || '').trim();
 
+      // Track date and duration for workout completion check
       if (isDateFormat(dateStr)) {
         currentDate = parseDate(dateStr);
+        currentDuration = isDuration(durationStr) ? durationStr : null;
       }
 
-      if (!currentDate || !exercise || !weightStr || !repsStr) continue;
+      // Only include sets from completed workouts (have both date AND duration)
+      if (!currentDate || !currentDuration || !exercise || !weightStr || !repsStr) continue;
 
       const weight = parseFloat(weightStr);
       const reps = parseInt(repsStr, 10);
       const rir = parseRir(rirStr);
 
-      if (weight > 0 && reps > 0) {
+      // Weight can be 0 for bodyweight exercises
+      if (weight >= 0 && reps > 0) {
         sets.push({ date: currentDate, exercise, weight, reps, rir });
       }
     }

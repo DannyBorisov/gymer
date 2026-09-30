@@ -28,6 +28,7 @@ function calculateE1RM(weight: number, reps: number): number {
 export class AnalyticsModel {
   private programs: ProgramModel;
   private quickWorkouts: QuickWorkoutModel;
+  private cachedSets: CompletedSet[] | null = null;
 
   constructor(sheets: GoogleSheets, tokens: AuthTokens) {
     this.programs = new ProgramModel(sheets, tokens);
@@ -35,15 +36,17 @@ export class AnalyticsModel {
   }
 
   /**
-   * Get all completed sets from both programs and quick workouts
+   * Get all completed sets from both programs and quick workouts.
+   * Cached per-instance to avoid redundant Google Sheets calls.
    */
   private async getAllCompletedSets(): Promise<CompletedSet[]> {
+    if (this.cachedSets) return this.cachedSets;
     const [programSets, quickSets] = await Promise.all([
       this.programs.getCompletedSets(),
       this.quickWorkouts.getCompletedSets(),
     ]);
-    console.log(programSets)
-    return [...programSets, ...quickSets];
+    this.cachedSets = [...programSets, ...quickSets];
+    return this.cachedSets;
   }
 
   /**
@@ -526,17 +529,24 @@ export class AnalyticsModel {
 
   /**
    * Get muscle recovery status based on recent training
-   * Recovery times based on research:
+   *
+   * Base recovery times per muscle group:
    * - Abs: 24-30 hours
    * - Biceps/Triceps/Forearms: 48 hours
    * - Chest/Shoulders: 48-56 hours
    * - Back: 48-72 hours
    * - Legs (Quads/Hamstrings/Glutes): 72 hours
    *
-   * RIR (Reps In Reserve) affects fatigue level, not recovery time:
-   * - RIR 0 (failure): Higher fatigue shown
-   * - RIR 1-2: Moderate fatigue boost
-   * - RIR 3+: Baseline fatigue
+   * RIR affects BOTH fatigue and recovery time (based on research):
+   * Training to failure creates more fatigue but recovery difference is modest.
+   * - RIR 0 (failure): +15% recovery time (~7h extra for chest)
+   * - RIR 1: +10% recovery time
+   * - RIR 2: +5% recovery time
+   * - RIR 3-4: Baseline recovery
+   * - RIR 5+: -5% recovery time (slightly faster)
+   *
+   * Reference: Studies show failure training results in slower recovery,
+   * with effects noticeable 24-48 hours later, but still within normal range.
    */
   async getMuscleRecovery(): Promise<MuscleRecoveryEntry[]> {
     const sets = await this.getAllCompletedSets();
@@ -607,17 +617,25 @@ export class AnalyticsModel {
       data.sets += 1;
 
       // Calculate intensity factor based on RIR
-      // Lower RIR = higher intensity = more fatigue displayed
+      // Lower RIR = higher intensity = more fatigue AND slightly longer recovery
+      // Based on research: failure creates disproportionately more fatigue
+      // but recovery differences are modest (hours, not days)
       if (set.rir !== undefined) {
-        // RIR 0 = 1.3x fatigue, RIR 1 = 1.2x, RIR 2 = 1.1x, RIR 3+ = 1.0x
         let intensityFactor = 1.0;
         if (set.rir === 0) {
-          intensityFactor = 1.3;
+          // Failure: +15% fatigue/recovery time
+          intensityFactor = 1.15;
         } else if (set.rir === 1) {
-          intensityFactor = 1.2;
-        } else if (set.rir === 2) {
+          // Near failure: +10%
           intensityFactor = 1.1;
+        } else if (set.rir === 2) {
+          // Moderate effort: +5%
+          intensityFactor = 1.05;
+        } else if (set.rir >= 5) {
+          // Easy sets: -5% (slightly faster recovery)
+          intensityFactor = 0.95;
         }
+        // RIR 3-4 = baseline 1.0
         data.totalIntensity += intensityFactor;
         data.setsWithRir += 1;
       }
@@ -632,12 +650,16 @@ export class AnalyticsModel {
     const result: MuscleRecoveryEntry[] = [];
 
     for (const [muscleGroup, data] of muscleData) {
-      const recoveryTime = recoveryHours[muscleGroup];
+      const baseRecoveryTime = recoveryHours[muscleGroup];
 
       // Calculate average intensity factor from RIR data
       // If no RIR data, assume baseline (1.0x)
       const avgIntensity =
         data.setsWithRir > 0 ? data.totalIntensity / data.setsWithRir : 1.0;
+
+      // Adjust recovery time based on training intensity (RIR)
+      // Training to failure = longer recovery, high RIR = faster recovery
+      const adjustedRecoveryTime = baseRecoveryTime * avgIntensity;
 
       let fatiguePercent = 0;
       let hoursToRecovery = 0;
@@ -646,21 +668,22 @@ export class AnalyticsModel {
         const hoursSinceTraining =
           (now.getTime() - data.lastTrained.getTime()) / (1000 * 60 * 60);
 
-        // Calculate fatigue based on time since training and volume
+        // Calculate fatigue based on time since training, volume, and intensity
         const volumeFactor = Math.min(data.sets / 10, 1.5); // caps at 15 sets
-        const timeFactor = Math.max(0, 1 - hoursSinceTraining / recoveryTime);
+        const timeFactor = Math.max(
+          0,
+          1 - hoursSinceTraining / adjustedRecoveryTime,
+        );
 
-        // Base fatigue from time and volume
-        let baseFatigue = timeFactor * 100 * volumeFactor;
-
-        // Apply intensity multiplier from RIR (affects displayed fatigue, not recovery time)
+        // Fatigue considers time, volume, and intensity
+        const baseFatigue = timeFactor * 100 * volumeFactor;
         fatiguePercent = Math.round(baseFatigue * avgIntensity);
         fatiguePercent = Math.min(100, Math.max(0, fatiguePercent));
 
-        // Recovery time is fixed based on muscle group research
+        // Recovery time now factors in intensity from RIR
         hoursToRecovery = Math.max(
           0,
-          Math.round(recoveryTime - hoursSinceTraining),
+          Math.round(adjustedRecoveryTime - hoursSinceTraining),
         );
       }
 

@@ -1,9 +1,10 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Zap, Loader2, Flame, Target, Calendar, Play } from "lucide-react";
+import { Plus, Zap, Loader2, Flame, Target, Calendar, Play, Clock } from "lucide-react";
 import {
   ChevronRightIcon,
   DumbbellOutlineIcon,
+  ListIcon,
 } from "../../assets/icons";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
@@ -13,6 +14,8 @@ import { useGetWorkoutHistory, type Workout } from "../../api/workouts";
 import { parseDate } from "../../lib/date";
 import { AnimatedNumber } from "../../components/ui/AnimatedNumber";
 import { Confetti } from "../../components/Confetti";
+import { Button } from "../../components/ui/Button";
+import gymerrLogo from "../../assets/gymerr-logo.png";
 import styles from "./Home.module.css";
 
 interface Program {
@@ -242,6 +245,19 @@ const Home = () => {
   const weekProgress = getWeekProgress();
   const programProgress = getProgramProgress();
 
+  // Get exercise count and estimated duration for next workout
+  const getNextWorkoutInfo = () => {
+    if (!nextWorkout) return null;
+    const exercises = nextWorkout.workout.exercises || [];
+    const exerciseCount = exercises.length;
+    // Rough estimate: 3-4 min per set, average 3 sets per exercise
+    const totalSets = exercises.reduce((sum, ex) => sum + (ex.sets?.length || 3), 0);
+    const estimatedMinutes = Math.round(totalSets * 3.25);
+    return { exerciseCount, estimatedMinutes };
+  };
+
+  const nextWorkoutInfo = getNextWorkoutInfo();
+
   // Trigger confetti on milestone achievements
   useEffect(() => {
     if (isLoadingProgram || isLoadingHistory) return;
@@ -383,32 +399,68 @@ const Home = () => {
             </div>
           </button>
         ) : activeProgram && nextWorkout ? (
-          /* Program Progress + Next Workout */
-          <div className={styles.programHero}>
+          /* Today's Workout Card with Progress Ring */
+          <div className={styles.programHeroSection}>
+            {/* Progress Card */}
             <button
-              className={`${styles.progressCircleWrap} ${isProgressMilestone(programProgress.percent) ? styles.progressMilestone : ""}`}
+              className={styles.progressCard}
               onClick={() => navigate(`/programs/${activeProgram.id}`)}
             >
-              <ProgressRing progress={programProgress.percent} animate={hasAnimated} />
-              <div className={styles.progressCircleInner}>
-                <span className={styles.progressPercent}>
+              <div className={styles.progressCardContent}>
+                <span className={styles.progressCardLabel}>Program Progress</span>
+                <span className={styles.progressCardPercent}>
                   <AnimatedNumber value={programProgress.percent} suffix="%" />
                 </span>
-                <span className={styles.progressLabel}>complete</span>
+                <span className={styles.progressCardHint}>
+                  {programProgress.percent === 100 ? "🎉 Complete!" : "Keep it up!"}
+                </span>
+              </div>
+              <div className={`${styles.progressCircleWrap} ${isProgressMilestone(programProgress.percent) ? styles.progressMilestone : ""}`}>
+                <ProgressRing progress={programProgress.percent} size={100} strokeWidth={6} animate={hasAnimated} />
+                <div className={styles.progressCircleInner}>
+                  <img src={gymerrLogo} alt="Gymerr" className={styles.progressLogo} />
+                </div>
               </div>
             </button>
 
-            <div className={styles.programInfo}>
-              <button
-                className={styles.programNameBtn}
-                onClick={() => navigate(`/programs/${activeProgram.id}`)}
+            {/* Workout Card */}
+            <div className={styles.todayWorkoutCard}>
+              <div className={styles.todayWorkoutHeader}>
+                <span className={styles.todayWorkoutLabel}>Next Workout</span>
+                <button
+                  className={styles.todayWorkoutChange}
+                  onClick={() => navigate(`/programs/${activeProgram.id}`)}
+                >
+                  Change
+                </button>
+              </div>
+              <div className={styles.todayWorkoutContent}>
+                <h2 className={styles.todayWorkoutName}>{nextWorkout.workout.name}</h2>
+                <div className={styles.todayWorkoutMeta}>
+                  {nextWorkoutInfo && (
+                    <>
+                      <span className={styles.todayWorkoutMetaItem}>
+                        <ListIcon size={14} />
+                        {nextWorkoutInfo.exerciseCount} Exercises
+                      </span>
+                      <span className={styles.todayWorkoutMetaItem}>
+                        <Clock size={14} />
+                        ~{nextWorkoutInfo.estimatedMinutes} min
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className={styles.todayWorkoutWeek}>
+                  Week {weekProgress.week} · {weekProgress.completed}/{weekProgress.total} done
+                </div>
+              </div>
+              <Button
+                onClick={handleStartWorkout}
+                icon={<Play size={20} fill="currentColor" />}
+                className={styles.todayWorkoutCta}
               >
-                <span className={styles.programName}>{activeProgram.name}</span>
-                <ChevronRightIcon size={16} />
-              </button>
-              <span className={styles.weekIndicator}>
-                Week {weekProgress.week} · {weekProgress.completed}/{weekProgress.total} done
-              </span>
+                Start Workout
+              </Button>
             </div>
           </div>
         ) : (
@@ -436,19 +488,13 @@ const Home = () => {
             <span>Continue Workout</span>
           </button>
         ) : activeProgram && nextWorkout ? (
-          <>
-            <button className={styles.primaryCta} onClick={handleStartWorkout}>
-              <DumbbellOutlineIcon size={20} />
-              <span>{nextWorkout.workout.name}</span>
-            </button>
-            <button
-              className={styles.secondaryCta}
-              onClick={() => navigate("/quick-workout")}
-            >
-              <Zap size={18} />
-              <span>Quick Workout</span>
-            </button>
-          </>
+          <button
+            className={styles.secondaryCta}
+            onClick={() => navigate("/quick-workout")}
+          >
+            <Zap size={18} />
+            <span>Quick Workout</span>
+          </button>
         ) : (
           <div className={styles.ctaRow}>
             <button

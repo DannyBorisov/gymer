@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import Body from "react-muscle-highlighter";
+import Body, { type ExtendedBodyPart, type Slug } from "react-muscle-highlighter";
 import type { MuscleRecoveryEntry } from "../../../api/analytics";
 import type { Gender } from "../../../api/onboarding";
 import styles from "./MuscleRecovery.module.css";
@@ -10,7 +10,7 @@ interface MuscleRecoveryProps {
 }
 
 // Map our muscle groups to react-muscle-highlighter slugs
-const MUSCLE_TO_SLUG: Record<string, string[]> = {
+const MUSCLE_TO_SLUG: Record<string, Slug[]> = {
   ABS: ["abs", "obliques"],
   BICEPS: ["biceps"],
   TRICEPS: ["triceps"],
@@ -66,8 +66,8 @@ function formatLastTrained(isoDate: string | null): string {
 
 export function MuscleRecovery({ recovery, gender }: MuscleRecoveryProps) {
   // Build body data for the muscle highlighter
-  const bodyData = useMemo(() => {
-    const data: Array<{ slug: string; color: string }> = [];
+  const bodyData = useMemo((): ExtendedBodyPart[] => {
+    const data: ExtendedBodyPart[] = [];
 
     for (const entry of recovery) {
       const slugs = MUSCLE_TO_SLUG[entry.muscleGroup];
