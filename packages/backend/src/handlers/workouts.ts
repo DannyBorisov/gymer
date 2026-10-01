@@ -9,10 +9,10 @@ import type {
 } from "../schemas/workouts.js";
 
 export const getExercises: RouteHandler = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const exercises = await gsql.analytics.getExerciseNames();
     return { exercises };
   } catch (error) {
@@ -24,7 +24,7 @@ export const getExercises: RouteHandler = async function (request, reply) {
 export const saveQuickWorkout: RouteHandler<{
   Body: SaveQuickWorkoutBodyType;
 }> = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
   const { workoutId, duration, sets } = request.body;
 
   if (!workoutId || !sets || sets.length === 0) {
@@ -32,7 +32,8 @@ export const saveQuickWorkout: RouteHandler<{
   }
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    // Quick workout is a completed workout, so sync to Sheets
+    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
     const workout = await gsql.quickWorkouts.create(request.body);
     return { success: true, workout };
   } catch (error) {
@@ -45,12 +46,12 @@ export const getWorkoutDetail: RouteHandler<{
   Params: GetWorkoutDetailParamsType;
   Querystring: GetWorkoutDetailQueryType;
 }> = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
   const { id } = request.params;
   const { type, programId, week, workout: workoutName } = request.query;
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
 
     if (type === "quick") {
       const workout = await gsql.quickWorkouts.find(id);
@@ -133,10 +134,10 @@ export const getWorkoutDetail: RouteHandler<{
 };
 
 export const getWorkoutHistory: RouteHandler = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const [programs, quickWorkouts] = await Promise.all([
       gsql.programs.findAll(),
       gsql.quickWorkouts.findAll(),

@@ -124,3 +124,15 @@ export const AddSetBodySchema = z.object({
   targetRir: z.string().optional(),
 });
 export type AddSetBodyType = z.infer<typeof AddSetBodySchema>;
+
+// Cache-only update (no Sheets sync) - used during active workout
+export const UpdateProgramCacheParamsSchema = z.object({
+  id: z.string(),
+});
+export type UpdateProgramCacheParamsType = z.infer<typeof UpdateProgramCacheParamsSchema>;
+
+export const UpdateProgramCacheBodySchema = z.union([
+  ProgramUpdateInputSchema,
+  z.array(ProgramUpdateInputSchema),
+]);
+export type UpdateProgramCacheBodyType = z.infer<typeof UpdateProgramCacheBodySchema>;

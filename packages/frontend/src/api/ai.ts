@@ -47,6 +47,7 @@ interface WorkoutChatResponse {
 interface GenerateProgramRequest {
   durationWeeks: number;
   frequency: number;
+  goals?: string;
 }
 
 interface GenerateProgramResponse {

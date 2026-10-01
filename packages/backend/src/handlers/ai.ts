@@ -40,11 +40,11 @@ const PLATEAU_ADVICE_PROMPT = readFileSync(plateauAdvicePromptPath, "utf-8");
 export const getWorkoutTip: RouteHandler<{
   Body: WorkoutTipBodyType;
 }> = async function (request, reply) {
-  const { tokens, user } = getAuthSession(request);
+  const session = getAuthSession(request);
   const { programId, week, workoutName } = request.body;
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const program = await gsql.programs.find(programId);
 
     if (!program) {
@@ -114,9 +114,9 @@ export const getWorkoutTip: RouteHandler<{
       : null;
 
     // 4. Get previous tips to avoid repetition
-    const previousTips = user?.email
+    const previousTips = session.user?.email
       ? await prisma.aiGenerations.findRecent(
-          user.email,
+          session.user.email,
           AiGenerationType.CouchCue,
           10,
         )
@@ -164,8 +164,8 @@ Based on this data, provide ONE short, insightful tip for today's workout. Make 
     const fullPrompt = `${COACH_PROMPT}\n\n---\n\n${userPrompt}`;
 
     const tip = await this.genai.generateWorkoutTip(fullPrompt);
-    if (user?.email) {
-      await prisma.aiGenerations.create(user.email, {
+    if (session.user?.email) {
+      await prisma.aiGenerations.create(session.user.email, {
         type: AiGenerationType.CouchCue,
         content: tip,
       });
@@ -280,11 +280,11 @@ interface PlateauAdviceResponse {
 export const getPlateauAdvice: RouteHandler<{
   Body: PlateauAdviceBodyType;
 }> = async function (request, reply) {
-  const { tokens, user } = getAuthSession(request);
+  const session = getAuthSession(request);
   const { exercise } = request.body;
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const progression = await gsql.analytics.getProgression();
     const exerciseData = progression.find((p) => p.exercise === exercise);
 
@@ -332,8 +332,8 @@ next session.
       throw new Error("Gemini returned plateau advice without text");
     }
 
-    if (user?.email) {
-      await prisma.aiGenerations.create(user.email, {
+    if (session.user?.email) {
+      await prisma.aiGenerations.create(session.user.email, {
         type: AiGenerationType.PlateauAdvice,
         content: advice,
       });
@@ -349,13 +349,13 @@ next session.
 export const generateAiProgram: RouteHandler<{
   Body: GenerateProgramBodyType;
 }> = async function (request, reply) {
-  const { tokens, user } = getAuthSession(request);
+  const session = getAuthSession(request);
 
-  if (!user?.email) {
+  if (!session.user?.email) {
     return reply.status(401).send({ error: "Not authenticated" });
   }
 
-  const { durationWeeks, frequency } = request.body ?? {};
+  const { durationWeeks, frequency, goals } = request.body ?? {};
   if (!durationWeeks || !frequency) {
     return reply
       .status(400)
@@ -363,7 +363,7 @@ export const generateAiProgram: RouteHandler<{
   }
 
   try {
-    const onboarding = await prisma.onboarding.get(user.email);
+    const onboarding = await prisma.onboarding.get(session.user.email);
     if (!onboarding) {
       return reply
         .status(400)
@@ -399,6 +399,7 @@ ${JSON.stringify(
 
 PROGRAM PARAMETERS (chosen by the user):
 ${JSON.stringify({ durationWeeks, frequency }, null, 2)}
+${goals ? `\nUSER'S GOALS/PREFERENCES:\n${goals}` : ""}
 
 AVAILABLE EXERCISES (grouped by muscle group — parentheses list available
 variants; only pick exercises and variants from this catalog):
@@ -411,10 +412,11 @@ Design a training program for this user.
     const generated =
       await this.genai.generateProgram<CreateProgramInput>(fullPrompt);
 
-    const gsql = createGSQL(tokens, this.sheets);
+    // Creating AI-generated program - sync to Sheets to persist
+    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
     const program = await gsql.programs.create(generated);
 
-    await prisma.aiGenerations.create(user.email, {
+    await prisma.aiGenerations.create(session.user.email, {
       type: AiGenerationType.CreateProgram,
       content: JSON.stringify(generated),
     });

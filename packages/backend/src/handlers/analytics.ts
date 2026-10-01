@@ -4,10 +4,10 @@ import { createGSQL } from "../dal/index.js";
 import { formatDate } from "../dal/gsql/utils/dateUtils.js";
 
 export const getExerciseBests: RouteHandler = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const bests = await gsql.analytics.getBests();
     return { bests };
   } catch (error) {
@@ -20,10 +20,10 @@ export const getExerciseProgression: RouteHandler = async function (
   request,
   reply,
 ) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const progressionData = await gsql.analytics.getProgression();
 
     // Format dates as strings for API response
@@ -51,10 +51,10 @@ export const getAnalyticsSummary: RouteHandler = async function (
   request,
   reply,
 ) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const summary = await gsql.analytics.getSummary();
     return { summary };
   } catch (error) {
@@ -69,10 +69,10 @@ export const getPersonalRecords: RouteHandler = async function (
   request,
   reply,
 ) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const records = await gsql.analytics.getPersonalRecords();
     return { records };
   } catch (error) {
@@ -87,10 +87,10 @@ export const getWorkoutConsistency: RouteHandler = async function (
   request,
   reply,
 ) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const consistency = await gsql.analytics.getWorkoutConsistency();
     return { consistency };
   } catch (error) {
@@ -105,12 +105,12 @@ export const getMuscleGroupVolume: RouteHandler = async function (
   request,
   reply,
 ) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
   const query = request.query as { period?: "week" | "month" };
   const period = query.period || "week";
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const volume = await gsql.analytics.getMuscleGroupVolume(period);
     return { volume };
   } catch (error) {
@@ -122,10 +122,10 @@ export const getMuscleGroupVolume: RouteHandler = async function (
 };
 
 export const getMuscleRecovery: RouteHandler = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   try {
-    const gsql = createGSQL(tokens, this.sheets);
+    const gsql = createGSQL(session, this.sheets);
     const recovery = await gsql.analytics.getMuscleRecovery();
     return { recovery };
   } catch (error) {

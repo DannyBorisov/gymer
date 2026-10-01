@@ -78,6 +78,7 @@ const CreateProgram = () => {
   );
   const [aiFrequency, setAiFrequency] = useState(4);
   const [aiDurationWeeks, setAiDurationWeeks] = useState(8);
+  const [aiGoals, setAiGoals] = useState("");
   const [result, setResult] = useState<{
     success: boolean;
     error?: string;
@@ -182,7 +183,11 @@ const CreateProgram = () => {
 
   const handleGenerateWithAi = () => {
     generateProgram.mutate(
-      { durationWeeks: aiDurationWeeks, frequency: aiFrequency },
+      {
+        durationWeeks: aiDurationWeeks,
+        frequency: aiFrequency,
+        goals: aiGoals.trim() || undefined,
+      },
       {
         onSuccess: (data) => {
           setActiveProgram({ id: data.program.id, name: data.program.name });
@@ -351,6 +356,21 @@ const CreateProgram = () => {
               ]}
             />
           </div>
+        </div>
+
+        <div className={styles.goalsSection}>
+          <label className={styles.goalsLabel}>
+            What are you looking for?
+            <span className={styles.goalsOptional}>(optional)</span>
+          </label>
+          <textarea
+            className={styles.goalsInput}
+            value={aiGoals}
+            onChange={(e) => setAiGoals(e.target.value)}
+            placeholder="e.g. Focus on upper body, include drop sets, minimize leg work..."
+            rows={3}
+            maxLength={500}
+          />
         </div>
 
         <div className={styles.formActions}>

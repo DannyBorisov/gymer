@@ -10,6 +10,7 @@ import { useSaveQuickWorkout } from "../api/workouts";
 import { useGetExerciseBests } from "../api/analytics";
 import {
   useUpdateProgram,
+  useUpdateProgramCache,
   useAddSet,
   type ProgramUpdateInput,
 } from "../api/programs";
@@ -231,7 +232,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [isQuickWorkout, setIsQuickWorkout] = useState(false);
 
   // Server calls
-  const updateProgram = useUpdateProgram();
+  const updateProgram = useUpdateProgram(); // Full sync (Sheets + cache) - for completion
+  const updateProgramCache = useUpdateProgramCache(); // Cache only - for during workout
   const addSetMutation = useAddSet();
   const saveQuickWorkout = useSaveQuickWorkout();
   // Reference data for PR detection; only fetched once a workout is active
@@ -347,7 +349,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
   // Live Activity timer auto-updates natively - no need to send updates from app
 
-  // Auto-save every 5 seconds during active workout
+  // Auto-save every 5 seconds during active workout (cache only - no Sheets sync)
   useEffect(() => {
     if (!activeWorkout || isQuickWorkout) return;
 
@@ -362,7 +364,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       try {
         const updates = buildSetUpdates(data, week, workoutName);
         if (updates.length > 0) {
-          await updateProgram.mutateAsync({ id: programId, input: updates });
+          // Use cache-only update to avoid Sheets quota during workout
+          await updateProgramCache.mutateAsync({ id: programId, input: updates });
         }
         setHasUnsavedChanges(false);
         hasUnsavedChangesRef.current = false;
@@ -391,7 +394,13 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         updates.push(buildCompletionUpdate(week, workoutName, timer));
       }
       if (updates.length > 0) {
-        await updateProgram.mutateAsync({ id: programId, input: updates });
+        if (includeDate) {
+          // Workout completion - full sync to Sheets
+          await updateProgram.mutateAsync({ id: programId, input: updates });
+        } else {
+          // Intermediate save - cache only
+          await updateProgramCache.mutateAsync({ id: programId, input: updates });
+        }
       }
       setHasUnsavedChanges(false);
       hasUnsavedChangesRef.current = false;
@@ -491,7 +500,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         workoutDataRef.current = newData;
         setWorkoutData(newData);
 
-        // Save to backend
+        // Save to backend (cache only during workout)
         const doSave = async () => {
           if (!activeWorkout) return;
           // Skip saving for quick workouts - they save on completion
@@ -505,7 +514,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
               activeWorkout.workoutName,
             );
             if (updates.length > 0) {
-              await updateProgram.mutateAsync({
+              // Use cache-only update during workout
+              await updateProgramCache.mutateAsync({
                 id: activeWorkout.programId,
                 input: updates,
               });
@@ -623,47 +633,65 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       setCompletedSets(new Set());
     }
 
-    // Calculate previous stats for each exercise from the SAME workout type only.
+    // Calculate previous stats for each exercise - find the last instance
+    // of this exercise anywhere in the program (any workout, any week).
     // Keyed by the combined "Name (Variant)" so it matches the workout rows.
     const stats: Record<string, PreviousStats> = {};
-    const currentWorkoutName = workout.name;
     const currentWeek = workout.week;
+
+    // Flatten all completed exercises across all workouts, sorted by week desc
+    const allCompletedExercises: {
+      week: number;
+      workout: string;
+      name: string;
+      variant?: string;
+      sets: typeof programWorkouts[0]["exercises"][0]["sets"];
+    }[] = [];
+
+    for (const w of programWorkouts) {
+      if (!w.date) continue; // Only completed workouts
+      // Skip current week's workouts (want previous instances only)
+      if (w.week >= currentWeek) continue;
+
+      for (const e of w.exercises) {
+        const completedSets = e.sets.filter(
+          (s) => s.achievedWeight !== undefined && s.achievedReps !== undefined,
+        );
+        if (completedSets.length > 0) {
+          allCompletedExercises.push({
+            week: w.week,
+            workout: w.name,
+            name: e.name,
+            variant: e.variant,
+            sets: completedSets,
+          });
+        }
+      }
+    }
+
+    // Sort by week descending (most recent first)
+    allCompletedExercises.sort((a, b) => b.week - a.week);
 
     for (const exercise of workout.exercises) {
       const exerciseKey = formatExerciseName(exercise.name, exercise.variant);
 
-      // Find previous weeks with same workout name
-      const prevWorkouts = programWorkouts
-        .filter(
-          (w) =>
-            w.name === currentWorkoutName && w.week < currentWeek && w.date,
-        )
-        .sort((a, b) => b.week - a.week);
+      // Find the most recent instance of this exercise
+      const prev = allCompletedExercises.find(
+        (e) => e.name === exercise.name && e.variant === exercise.variant,
+      );
 
-      for (const prevWorkout of prevWorkouts) {
-        const prevExercise = prevWorkout.exercises.find(
-          (e) => e.name === exercise.name && e.variant === exercise.variant,
-        );
-        if (!prevExercise) continue;
-
-        const completedSets = prevExercise.sets.filter(
-          (s) => s.achievedWeight !== undefined && s.achievedReps !== undefined,
-        );
-
-        if (completedSets.length > 0) {
-          stats[exerciseKey] = {
-            week: prevWorkout.week,
-            workout: prevWorkout.name,
-            sets: completedSets.map((s) => ({
-              weight: s.achievedWeight?.toString() || "",
-              reps: s.achievedReps?.toString() || "",
-              rir: s.achievedRir || "",
-              notes: s.notes || undefined,
-              restTime: s.achievedRestTime,
-            })),
-          };
-          break;
-        }
+      if (prev) {
+        stats[exerciseKey] = {
+          week: prev.week,
+          workout: prev.workout,
+          sets: prev.sets.map((s) => ({
+            weight: s.achievedWeight?.toString() || "",
+            reps: s.achievedReps?.toString() || "",
+            rir: s.achievedRir || "",
+            notes: s.notes || undefined,
+            restTime: s.achievedRestTime,
+          })),
+        };
       }
     }
     setPreviousStats(stats);
@@ -926,7 +954,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setWorkoutData(newData);
     setCompletedSets((prev) => new Set([...prev, rowIndex]));
 
-    // Save data immediately
+    // Save data immediately (cache only during workout)
     const doSave = async () => {
       if (!activeWorkout) return;
       setIsSaving(true);
@@ -943,7 +971,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             activeWorkout.workoutName,
           );
           if (updates.length > 0) {
-            await updateProgram.mutateAsync({
+            // Use cache-only update during workout
+            await updateProgramCache.mutateAsync({
               id: activeWorkout.programId,
               input: updates,
             });

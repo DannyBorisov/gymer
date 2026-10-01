@@ -4,11 +4,11 @@ import { createGSQL, prisma } from "../dal/index.js";
 import type { CreateExerciseBodyType } from "../schemas/exercises.js";
 
 export const getExercises: RouteHandler = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
 
   const [exercises, userExercises] = await Promise.all([
     prisma.exercises.findAll(),
-    createGSQL(tokens, this.sheets).userExercises.findAll(),
+    createGSQL(session, this.sheets).userExercises.findAll(),
   ]);
 
   const ownExercises = userExercises.map((ex) => ({
@@ -24,10 +24,11 @@ export const getExercises: RouteHandler = async function (request, reply) {
 export const createExercise: RouteHandler<{
   Body: CreateExerciseBodyType;
 }> = async function (request, reply) {
-  const { tokens } = getAuthSession(request);
+  const session = getAuthSession(request);
   const { name, muscleGroup } = request.body;
 
-  const gsql = createGSQL(tokens, this.sheets);
+  // Creating user exercise - sync to Sheets to persist
+  const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
   const exercise = await gsql.userExercises.create({ name, muscleGroup });
 
   return reply.send({ exercise });

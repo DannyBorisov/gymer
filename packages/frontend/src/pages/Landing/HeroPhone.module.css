@@ -1,0 +1,518 @@
+/* Hero Phone - Composed marketing visual with floating elements */
+
+.scene {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  height: 620px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   PHONE DEVICE
+   ============================================ */
+.phone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  z-index: 1;
+}
+
+.phoneFrame {
+  position: relative;
+  width: 280px;
+  background: #1a1a1c;
+  border-radius: 44px;
+  padding: 10px;
+  box-shadow:
+    0 50px 100px -20px rgba(0, 0, 0, 0.5),
+    0 30px 60px -15px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.notch {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 26px;
+  background: #000;
+  border-radius: 16px;
+  z-index: 5;
+}
+
+.screenshot {
+  width: 100%;
+  height: auto;
+  border-radius: 34px;
+  display: block;
+}
+
+/* ============================================
+   FLOATING CHART CARD (Main highlight)
+   ============================================ */
+.chartCard {
+  position: absolute;
+  top: 42%;
+  right: -10px;
+  width: 260px;
+  background: #1a1a1c;
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow:
+    0 25px 60px -15px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  z-index: 10;
+  animation: floatUp 3s ease-in-out infinite;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.exerciseName {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.gain {
+  font-size: 14px;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.chartMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 14px;
+}
+
+.chart {
+  position: relative;
+}
+
+.chartSvg {
+  width: 100%;
+  height: 60px;
+  overflow: visible;
+}
+
+.chartLine {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: drawLine 2s ease-out forwards;
+  animation-delay: 0.5s;
+}
+
+.chartDot {
+  opacity: 0;
+  animation: popIn 0.3s ease-out forwards;
+  animation-delay: 2.3s;
+}
+
+.chartLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 8px;
+  padding: 0 2px;
+}
+
+/* ============================================
+   PR BADGE
+   ============================================ */
+.prBadge {
+  position: absolute;
+  top: 12%;
+  right: 5%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  padding: 10px 16px;
+  border-radius: 14px;
+  box-shadow:
+    0 15px 40px -10px rgba(251, 191, 36, 0.4),
+    0 5px 15px -5px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  animation: floatUp 3.5s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
+
+.prIcon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  color: #000;
+}
+
+.prInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.prValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000;
+}
+
+.prLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================
+   SET CARD (Current workout)
+   ============================================ */
+.setCard {
+  position: absolute;
+  bottom: 18%;
+  left: -15px;
+  background: #1a1a1c;
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-shadow:
+    0 20px 50px -15px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  z-index: 10;
+  animation: floatUp 4s ease-in-out infinite;
+  animation-delay: 0.6s;
+}
+
+.setHeader {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 10px;
+}
+
+.setValues {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.setValue {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.setNum {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.setUnit {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.setX {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0 4px;
+}
+
+.setProgress {
+  display: flex;
+  gap: 6px;
+}
+
+.setDot {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.setDot.done {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.setDot.done::after {
+  content: "✓";
+  font-size: 12px;
+}
+
+.setDot.active {
+  background: #10b981;
+  color: #000;
+  font-weight: 600;
+}
+
+.setDot.active::after {
+  content: "3";
+}
+
+/* ============================================
+   STREAK BADGE
+   ============================================ */
+.streakBadge {
+  position: absolute;
+  top: 8%;
+  left: 8%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1a1c;
+  padding: 10px 16px;
+  border-radius: 12px;
+  box-shadow:
+    0 15px 40px -10px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  z-index: 10;
+  animation: floatUp 3.2s ease-in-out infinite;
+  animation-delay: 0.9s;
+}
+
+.streakFire {
+  font-size: 20px;
+}
+
+.streakNum {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.streakText {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes floatUp {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes drawLine {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+  .scene {
+    max-width: 480px;
+    height: 540px;
+  }
+
+  .phoneFrame {
+    width: 240px;
+    border-radius: 38px;
+    padding: 8px;
+  }
+
+  .notch {
+    width: 75px;
+    height: 22px;
+    top: 12px;
+  }
+
+  .screenshot {
+    border-radius: 30px;
+  }
+
+  .chartCard {
+    width: 220px;
+    right: -5px;
+    padding: 14px 16px;
+  }
+
+  .exerciseName {
+    font-size: 13px;
+  }
+
+  .prBadge {
+    padding: 8px 12px;
+  }
+
+  .prIcon {
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
+  }
+
+  .prValue {
+    font-size: 14px;
+  }
+
+  .setCard {
+    left: -5px;
+    padding: 12px 16px;
+  }
+
+  .setNum {
+    font-size: 26px;
+  }
+}
+
+@media (max-width: 600px) {
+  .scene {
+    max-width: 100%;
+    height: 480px;
+    padding: 0 10px;
+  }
+
+  .phone {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  .phoneFrame {
+    width: 220px;
+  }
+
+  .chartCard {
+    width: 190px;
+    right: 0;
+    top: 48%;
+    padding: 12px 14px;
+    border-radius: 14px;
+  }
+
+  .exerciseName {
+    font-size: 12px;
+  }
+
+  .gain {
+    font-size: 11px;
+    padding: 2px 6px;
+  }
+
+  .chartSvg {
+    height: 45px;
+  }
+
+  .prBadge {
+    top: 5%;
+    right: 2%;
+    padding: 6px 10px;
+    border-radius: 10px;
+  }
+
+  .prIcon {
+    width: 26px;
+    height: 26px;
+    font-size: 9px;
+  }
+
+  .prValue {
+    font-size: 12px;
+  }
+
+  .prLabel {
+    font-size: 9px;
+  }
+
+  .setCard {
+    bottom: 12%;
+    left: 0;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  .setNum {
+    font-size: 22px;
+  }
+
+  .setUnit {
+    font-size: 11px;
+  }
+
+  .setDot {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+  }
+
+  .streakBadge {
+    top: 4%;
+    left: 2%;
+    padding: 8px 12px;
+    border-radius: 10px;
+  }
+
+  .streakFire {
+    font-size: 16px;
+  }
+
+  .streakNum {
+    font-size: 18px;
+  }
+
+  .streakText {
+    font-size: 10px;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .chartCard,
+  .prBadge,
+  .setCard,
+  .streakBadge {
+    animation: none;
+  }
+
+  .chartLine {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .chartDot {
+    opacity: 1;
+    animation: none;
+  }
+}

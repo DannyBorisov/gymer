@@ -80,4 +80,34 @@ a meaningful fit (grip width, attachment type, single- vs double-arm), set
 when the catalog lists none, or none is a meaningful fit for this exercise
 in this program.
 
+EXERCISE ORDERING (within each session):
+Apply professional programming principles — never output exercises randomly:
+1. **Compound before isolation**: Big multi-joint lifts (squats, deadlifts,
+   bench, rows, presses) come first while the lifter is fresh; isolation
+   movements (curls, lateral raises, leg curls) come later.
+2. **Large muscle groups before small**: Train larger muscles first (back,
+   chest, quads, glutes) before smaller ones (biceps, triceps, calves, rear
+   delts) to avoid pre-fatiguing stabilizers needed for heavy compounds.
+3. **High-skill before low-skill**: Technically demanding lifts (Olympic
+   variations, barbell compounds) early; machine and cable isolation work
+   toward the end.
+4. **Group related muscles together**: Keep exercises for the same body
+   region consecutive when possible — e.g. all chest work together, all
+   back work together — rather than jumping between unrelated muscles.
+5. **Prioritize weak points or goals**: If user's goal emphasizes a muscle
+   (e.g. "focus on upper body"), place those exercises earlier in the
+   session when energy and focus are highest.
+
+SESSION STRUCTURE (across the week):
+1. **Logical split design**: For upper/lower splits, alternate properly
+   (Upper → Lower → Upper → Lower). For push/pull/legs, follow standard
+   rotation (Push → Pull → Legs). For full body, space muscle groups across
+   sessions to allow recovery.
+2. **Balanced weekly volume**: Don't cluster all work for one muscle in a
+   single day while neglecting it elsewhere — spread volume appropriately
+   for the chosen frequency.
+3. **Recovery consideration**: Don't program heavy deadlifts the day before
+   heavy squats; avoid back-to-back sessions hammering the same joints or
+   stabilizers.
+
 Respond with the JSON object only.

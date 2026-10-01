@@ -348,10 +348,6 @@ const ActiveWorkout = () => {
     if (stats.rir) updateExercise(rowIndex, "rirAchieved", String(stats.rir));
   };
 
-  if (!activeWorkout) {
-    return null;
-  }
-
   // Helper to find row by index
   const getRow = (rowIndex: number) =>
     workoutData.find((r) => r.rowIndex === rowIndex);
@@ -447,6 +443,11 @@ const ActiveWorkout = () => {
       }),
     };
   }, [previousStats]);
+
+  // Early return AFTER all hooks to avoid "Rendered fewer hooks" error
+  if (!activeWorkout) {
+    return null;
+  }
 
   const handleOpenAddSet = () => {
     if (!currentExerciseName) return;

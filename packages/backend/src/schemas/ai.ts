@@ -43,6 +43,7 @@ export type WorkoutChatBodyType = z.infer<typeof WorkoutChatBodySchema>;
 export const GenerateProgramBodySchema = z.object({
   durationWeeks: z.number(),
   frequency: z.number(),
+  goals: z.string().optional(),
 });
 export type GenerateProgramBodyType = z.infer<typeof GenerateProgramBodySchema>;
 

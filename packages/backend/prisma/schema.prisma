@@ -72,3 +72,66 @@ model Exercise {
   muscleGroup MuscleGroup
   variant     String[]    @default([])
 }
+
+// ============================================================================
+// PROGRAM CACHE - Mirrors Google Sheets data for fast reads
+// ============================================================================
+
+// Cached program data - avoids Sheets read quota
+model ProgramCache {
+  id        String   @id // Same as Google Sheet ID
+  userEmail String
+  name      String
+  data      Json     // Full program structure (workouts, exercises, sets, achieved data)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userEmail])
+}
+
+// Denormalized completed sets for fast analytics queries
+// Populated on workout completion, used by analytics endpoints
+model CompletedSetCache {
+  id        String   @id @default(cuid())
+  userEmail String
+  programId String?  // null for quick workouts
+  exercise  String   // Full name with variant
+  date      DateTime
+  weight    Float
+  reps      Int
+  rir       Int?
+  restTime  Int?     // seconds
+
+  @@index([userEmail, exercise])
+  @@index([userEmail, date])
+  @@index([programId])
+}
+
+// Cached quick workout data
+model QuickWorkoutCache {
+  id        String   @id // workoutId (e.g., "quick-1234567890")
+  userEmail String
+  data      Json     // Full quick workout structure
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userEmail])
+  @@index([userEmail, date])
+}
+
+// Raw sheet data cache - mirrors Google Sheets exactly
+// This is the primary cache layer that all GSQL models use
+model SheetCache {
+  id            String   @id @default(cuid())
+  userEmail     String
+  spreadsheetId String   // Google Sheets ID
+  data          Json     // Raw rows exactly as in Sheets: (string | number)[][]
+  needsSync     Boolean  @default(false) // True if local changes need to sync to Sheets
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSyncedAt  DateTime? // Last time data was synced to/from Sheets
+
+  @@unique([userEmail, spreadsheetId])
+  @@index([userEmail])
+  @@index([needsSync])
+}

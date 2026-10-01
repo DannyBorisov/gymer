@@ -54,3 +54,6 @@ export type {
   AiGenerationInput,
   ExerciseInput,
 } from "./postgres/index.js";
+
+// Cache layer for fast reads (avoids Google Sheets quota)
+export { ProgramCacheModel, QuickWorkoutCacheModel } from "./cache/index.js";
