@@ -1,16 +1,14 @@
 #!/bin/bash
 
 # Xcode Cloud post-clone script
-# Installs node_modules so Capacitor Swift Packages can be resolved
+# Installs node_modules, builds the web app, and syncs to iOS
 
 set -e
-
-echo "Installing Node.js dependencies..."
 
 # Navigate to the frontend package root (where package.json is)
 cd "$CI_PRIMARY_REPOSITORY_PATH/packages/frontend"
 
-# Install Node.js using nvm or brew if not available
+# Install Node.js using Homebrew if not available
 if ! command -v node &> /dev/null; then
     echo "Node.js not found, installing via Homebrew..."
     brew install node
@@ -20,6 +18,15 @@ echo "Node version: $(node --version)"
 echo "npm version: $(npm --version)"
 
 # Install dependencies
+echo "Installing dependencies..."
 npm ci
 
-echo "Node modules installed successfully"
+# Build the web app
+echo "Building web app..."
+npm run build
+
+# Sync to iOS (copies dist/ to ios/App/App/public and updates native project)
+echo "Syncing to iOS..."
+npx cap sync ios
+
+echo "Build and sync completed successfully"
