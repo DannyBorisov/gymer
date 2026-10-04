@@ -789,6 +789,82 @@ export class ProgramModel extends BaseModel {
   }
 
   /**
+   * Delete a set from an exercise, for this occurrence only (this week's
+   * workout). Removes the spreadsheet row and renumbers the remaining sets.
+   */
+  async deleteSet(
+    id: string,
+    week: number,
+    workoutName: string,
+    exerciseName: string,
+    setNumber: number,
+  ): Promise<void> {
+    const { sheetName, sheetId } = await this.sheets.getSpreadsheetMetadata(
+      this.tokens,
+      id,
+    );
+    const rows = await this.sheets.get(this.tokens, id, `${sheetName}!A:M`);
+    if (!rows || rows.length < 2) throw new Error("Program not found or empty");
+
+    const cols = ProgramSchema.columns;
+
+    // Find every row for this exercise, in this workout, in this week.
+    const matchingRows: { rowNumber: number; setNum: number }[] = [];
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const rowWeek = Number(row[cols.week.index]) || 0;
+      const rowWorkout = String(row[cols.workout.index] || "").trim();
+      const rowExercise = String(row[cols.exercise.index] || "").trim();
+      const rowSet = Number(row[cols.set.index]) || 0;
+      if (
+        rowWeek === week &&
+        rowWorkout === workoutName &&
+        rowExercise === exerciseName
+      ) {
+        matchingRows.push({ rowNumber: i + 1, setNum: rowSet }); // 1-indexed sheet row
+      }
+    }
+
+    if (matchingRows.length === 0) {
+      throw new Error(
+        `Exercise "${exerciseName}" not found in week ${week}, workout "${workoutName}"`,
+      );
+    }
+
+    // Find the row to delete
+    const rowToDelete = matchingRows.find((r) => r.setNum === setNumber);
+    if (!rowToDelete) {
+      throw new Error(
+        `Set ${setNumber} not found for "${exerciseName}" in week ${week}, workout "${workoutName}"`,
+      );
+    }
+
+    // Don't allow deleting if it's the only set
+    if (matchingRows.length === 1) {
+      throw new Error("Cannot delete the only set of an exercise");
+    }
+
+    // Delete the row
+    await this.sheets.deleteRow(this.tokens, id, sheetId, rowToDelete.rowNumber);
+
+    // Renumber remaining sets (rows after the deleted one shifted up by 1)
+    const rowsToRenumber = matchingRows
+      .filter((r) => r.setNum > setNumber)
+      .map((r) => ({
+        rowNumber: r.rowNumber - 1, // Shifted up after delete
+        newSetNum: r.setNum - 1,
+      }));
+
+    if (rowsToRenumber.length > 0) {
+      const updates = rowsToRenumber.map((r) => ({
+        range: `${sheetName}!E${r.rowNumber}`,
+        values: [[r.newSetNum]],
+      }));
+      await this.sheets.batchUpdate(this.tokens, id, updates);
+    }
+  }
+
+  /**
    * Delete a program
    */
   async delete(id: string): Promise<void> {

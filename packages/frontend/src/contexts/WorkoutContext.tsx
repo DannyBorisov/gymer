@@ -12,6 +12,7 @@ import {
   useUpdateProgram,
   useUpdateProgramCache,
   useAddSet,
+  useDeleteSet,
   type ProgramUpdateInput,
 } from "../api/programs";
 import type {
@@ -122,6 +123,7 @@ interface WorkoutContextType {
     targetReps?: number,
     targetRir?: string,
   ) => Promise<void>;
+  deleteSetFromExercise: (exerciseName: string, setNumber: number) => Promise<void>;
   stopWorkout: () => Promise<void>;
   setIsTimerRunning: (running: boolean) => void;
   updateExercise: (
@@ -268,6 +270,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const updateProgram = useUpdateProgram(); // Full sync (Sheets + cache) - for completion
   const updateProgramCache = useUpdateProgramCache(); // Cache only - for during workout
   const addSetMutation = useAddSet();
+  const deleteSetMutation = useDeleteSet();
   const saveQuickWorkout = useSaveQuickWorkout();
   // Reference data for PR detection; only fetched once a workout is active
   const { data: bestsData } = useGetExerciseBests(Boolean(activeWorkout));
@@ -885,6 +888,63 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setWorkoutData(updatedRows);
   };
 
+  // Deletes a set from an exercise in the current program workout.
+  // Removes the row from the spreadsheet and updates local state.
+  const deleteSetFromExercise = async (
+    exerciseName: string,
+    setNumber: number,
+  ) => {
+    if (!activeWorkout || isQuickWorkout) return;
+
+    const rows = workoutDataRef.current;
+    const exerciseRows = rows.filter((r) => r.exercise === exerciseName);
+
+    // Don't allow deleting the only set
+    if (exerciseRows.length <= 1) return;
+
+    const rowToDelete = exerciseRows.find((r) => r.set === setNumber);
+    if (!rowToDelete) return;
+
+    const deleteAt = rows.findIndex((r) => r === rowToDelete);
+
+    await deleteSetMutation.mutateAsync({
+      id: activeWorkout.programId,
+      week: activeWorkout.week,
+      workoutName: activeWorkout.workoutName,
+      exerciseName,
+      setNumber,
+    });
+
+    // Remove the row and renumber
+    const filtered = rows.filter((_, idx) => idx !== deleteAt);
+
+    // Renumber set numbers for this exercise
+    let setNum = 1;
+    const updatedRows = filtered.map((row, idx) => {
+      if (row.exercise === exerciseName) {
+        return { ...row, rowIndex: idx, set: setNum++ };
+      }
+      return { ...row, rowIndex: idx };
+    });
+
+    // Update completedSets - remove the deleted row and shift down
+    setCompletedSets((prev) => {
+      const newSet = new Set<number>();
+      for (const oldRowIndex of prev) {
+        if (oldRowIndex < deleteAt) {
+          newSet.add(oldRowIndex);
+        } else if (oldRowIndex > deleteAt) {
+          newSet.add(oldRowIndex - 1);
+        }
+        // Skip if oldRowIndex === deleteAt (deleted row)
+      }
+      return newSet;
+    });
+
+    workoutDataRef.current = updatedRows;
+    setWorkoutData(updatedRows);
+  };
+
   const stopWorkout = async () => {
     setIsTimerRunning(false);
     timerStartRef.current = 0;
@@ -1164,6 +1224,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         startQuickWorkout,
         addExerciseToWorkout,
         addSetToExercise,
+        deleteSetFromExercise,
         stopWorkout,
         setIsTimerRunning,
         updateExercise,

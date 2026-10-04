@@ -101,6 +101,18 @@ export const programsApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ week, workoutName, exerciseName, targetReps, targetRir }),
     }),
+  deleteSet: (
+    id: string,
+    week: number,
+    workoutName: string,
+    exerciseName: string,
+    setNumber: number,
+  ) =>
+    request<{ success: boolean }>(`/api/programs/${id}/delete-set`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ week, workoutName, exerciseName, setNumber }),
+    }),
 };
 
 export const programQueryKeys = {
@@ -189,6 +201,28 @@ export function useAddSet() {
       targetReps?: number;
       targetRir?: string;
     }) => programsApi.addSet(id, week, workoutName, exerciseName, targetReps, targetRir),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: programQueryKeys.detail(variables.id) });
+    },
+  });
+}
+
+export function useDeleteSet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      week,
+      workoutName,
+      exerciseName,
+      setNumber,
+    }: {
+      id: string;
+      week: number;
+      workoutName: string;
+      exerciseName: string;
+      setNumber: number;
+    }) => programsApi.deleteSet(id, week, workoutName, exerciseName, setNumber),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: programQueryKeys.detail(variables.id) });
     },

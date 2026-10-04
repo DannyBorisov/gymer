@@ -10,6 +10,7 @@ import {
   TrendingUp,
   MessageCircle,
   Flame,
+  Trash2,
 } from "lucide-react";
 import {
   HistoryIcon,
@@ -70,11 +71,13 @@ const ActiveWorkout = () => {
     setCurrentSetIndex,
     addExerciseToWorkout,
     addSetToExercise,
+    deleteSetFromExercise,
     swapExercise,
   } = useWorkout();
 
   const [showNotes, setShowNotes] = useState(false);
   const [isAddingSet, setIsAddingSet] = useState(false);
+  const [isDeletingSet, setIsDeletingSet] = useState(false);
   const [showAddSetDrawer, setShowAddSetDrawer] = useState(false);
   const [warmupMode, setWarmupMode] = useState(false);
   const [newSetReps, setNewSetReps] = useState("");
@@ -496,6 +499,26 @@ const ActiveWorkout = () => {
       console.error("Failed to add set:", error);
     } finally {
       setIsAddingSet(false);
+    }
+  };
+
+  const handleDeleteSet = async () => {
+    if (!currentExerciseName || !currentSet || isDeletingSet) return;
+    // Don't allow deleting the only set
+    if (currentExerciseSets.length <= 1) return;
+
+    setIsDeletingSet(true);
+    try {
+      await deleteSetFromExercise(currentExerciseName, currentSet.set);
+      setShowMoreMenu(false);
+      // Move to previous set if we deleted the last one
+      if (currentSetIndex >= currentExerciseSets.length - 1) {
+        setCurrentSetIndex(Math.max(0, currentSetIndex - 1));
+      }
+    } catch (error) {
+      console.error("Failed to delete set:", error);
+    } finally {
+      setIsDeletingSet(false);
     }
   };
 
@@ -1143,6 +1166,16 @@ const ActiveWorkout = () => {
             >
               <SkipForward size={20} />
               <span>Skip set</span>
+            </button>
+          )}
+          {!isQuickWorkout && currentExerciseSets.length > 1 && (
+            <button
+              className={`${styles.optionItem} ${styles.optionItemDanger}`}
+              onClick={handleDeleteSet}
+              disabled={isDeletingSet}
+            >
+              <Trash2 size={20} />
+              <span>{isDeletingSet ? "Deleting..." : "Delete set"}</span>
             </button>
           )}
           <button

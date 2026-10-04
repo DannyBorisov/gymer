@@ -1,7 +1,8 @@
 import type { RouteHandler } from "fastify";
 import config from "../config.js";
 import { setSession, getSession } from "../lib/session.js";
-import { encrypt } from "../lib/encryption.js";
+import { encrypt, encryptTokens } from "../lib/encryption.js";
+import { prisma } from "../dal/postgres/index.js";
 import type {
   GetAuthUrlQueryType,
   HandleCallbackQueryType,
@@ -46,6 +47,14 @@ export const handleCallback: RouteHandler<{
       );
     }
 
+    // Save encrypted tokens for background sync
+    try {
+      const encryptedTokens = encryptTokens(tokens);
+      await prisma.userTokens.upsert(user.email, encryptedTokens);
+    } catch (tokenError) {
+      this.log.warn({ err: tokenError }, "Failed to save user tokens");
+    }
+
     setSession(reply, { tokens, user });
     return reply.redirect(config.env.FRONTEND_URL);
   } catch (error) {
@@ -85,6 +94,14 @@ export const handleNativeAuth: RouteHandler<{
         { err: firestoreError },
         "Failed to upsert user to Firestore",
       );
+    }
+
+    // Save encrypted tokens for background sync
+    try {
+      const encryptedTokens = encryptTokens(tokens);
+      await prisma.userTokens.upsert(user.email, encryptedTokens);
+    } catch (tokenError) {
+      this.log.warn({ err: tokenError }, "Failed to save user tokens");
     }
 
     const sessionToken = encrypt({ tokens, user });

@@ -135,3 +135,10 @@ model SheetCache {
   @@index([userEmail])
   @@index([needsSync])
 }
+
+// User OAuth tokens for background sync operations
+model UserToken {
+  userEmail       String   @id
+  encryptedTokens String   // AES-256 encrypted JSON of { access_token, refresh_token, expiry_date }
+  updatedAt       DateTime @updatedAt
+}

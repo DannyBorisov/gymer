@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Raw sheet data cache - mirrors Google Sheets exactly
+model SheetCache {
+  id            String   @id @default(cuid())
+  userEmail     String
+  spreadsheetId String   // Google Sheets ID
+  data          Json     // Raw rows exactly as in Sheets: (string | number)[][]
+  needsSync     Boolean  @default(false) // True if local changes need to sync to Sheets
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSyncedAt  DateTime? // Last time data was synced to/from Sheets
+
+  @@unique([userEmail, spreadsheetId])
+  @@index([userEmail])
+  @@index([needsSync])
+}
+
+// User OAuth tokens for background sync operations
+model UserToken {
+  userEmail       String   @id
+  encryptedTokens String   // AES-256 encrypted JSON of { access_token, refresh_token, expiry_date }
+  updatedAt       DateTime @updatedAt
+}

@@ -12,6 +12,8 @@ import type {
   RenameProgramBodyType,
   AddSetParamsType,
   AddSetBodyType,
+  DeleteSetParamsType,
+  DeleteSetBodyType,
   EditProgramParamsType,
   EditProgramBodyType,
   UpdateProgramCacheParamsType,
@@ -184,6 +186,33 @@ export const addSet: RouteHandler<{
   } catch (error) {
     this.log.error(error);
     return reply.status(500).send({ error: "Failed to add set" });
+  }
+};
+
+export const deleteSet: RouteHandler<{
+  Params: DeleteSetParamsType;
+  Body: DeleteSetBodyType;
+}> = async function (request, reply) {
+  const session = getAuthSession(request);
+  const { id } = request.params;
+  const { week, workoutName, exerciseName, setNumber } = request.body;
+
+  if (!week || !workoutName || !exerciseName || !setNumber) {
+    return reply
+      .status(400)
+      .send({ error: "week, workoutName, exerciseName, and setNumber are required" });
+  }
+
+  try {
+    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    await gsql.programs.deleteSet(id, week, workoutName, exerciseName, setNumber);
+    const program = await gsql.programs.find(id);
+
+    return { success: true, program };
+  } catch (error) {
+    this.log.error(error);
+    const message = error instanceof Error ? error.message : "Failed to delete set";
+    return reply.status(500).send({ error: message });
   }
 };
 

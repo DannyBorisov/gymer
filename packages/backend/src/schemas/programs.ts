@@ -127,6 +127,19 @@ export const AddSetBodySchema = z.object({
 });
 export type AddSetBodyType = z.infer<typeof AddSetBodySchema>;
 
+export const DeleteSetParamsSchema = z.object({
+  id: z.string(),
+});
+export type DeleteSetParamsType = z.infer<typeof DeleteSetParamsSchema>;
+
+export const DeleteSetBodySchema = z.object({
+  week: z.number(),
+  workoutName: z.string(),
+  exerciseName: z.string(),
+  setNumber: z.number(),
+});
+export type DeleteSetBodyType = z.infer<typeof DeleteSetBodySchema>;
+
 // Cache-only update (no Sheets sync) - used during active workout
 export const UpdateProgramCacheParamsSchema = z.object({
   id: z.string(),

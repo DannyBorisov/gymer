@@ -11,6 +11,7 @@ import {
   copyProgram,
   renameProgram,
   addSet,
+  deleteSet,
 } from "../handlers/programs.js";
 import type {
   CreateProgramBodyType,
@@ -27,6 +28,8 @@ import type {
   RenameProgramBodyType,
   AddSetParamsType,
   AddSetBodyType,
+  DeleteSetParamsType,
+  DeleteSetBodyType,
 } from "../schemas/programs.js";
 
 const ProgramsRoutes: FastifyPluginAsync = async (server) => {
@@ -85,6 +88,12 @@ const ProgramsRoutes: FastifyPluginAsync = async (server) => {
     "/:id/add-set",
     { preHandler: requireAuth },
     addSet,
+  );
+
+  server.post<{ Params: DeleteSetParamsType; Body: DeleteSetBodyType }>(
+    "/:id/delete-set",
+    { preHandler: requireAuth },
+    deleteSet,
   );
 };
 

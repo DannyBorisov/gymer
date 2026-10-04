@@ -300,6 +300,36 @@ export class GoogleSheets {
     });
   }
 
+  /**
+   * Delete a single row at the given 1-indexed sheet row position,
+   * shifting all rows below it up by one.
+   */
+  async deleteRow(
+    tokens: Tokens,
+    spreadsheetId: string,
+    sheetId: number,
+    rowIndex: number,
+  ): Promise<void> {
+    const sheets = this.getSheetsClient(tokens);
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex: rowIndex - 1,
+                endIndex: rowIndex,
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
   async appendRows(
     tokens: Tokens,
     spreadsheetId: string,

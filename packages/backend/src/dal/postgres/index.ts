@@ -1,6 +1,7 @@
 import { OnboardingModel } from "./OnboardingModel.js";
 import { AiGenerationModel } from "./AiGenerationModel.js";
 import { ExerciseModel } from "./ExerciseModel.js";
+import { UserTokenModel } from "./UserTokenModel.js";
 
 /**
  * Postgres data access (via Prisma), grouped by model.
@@ -14,6 +15,7 @@ export const prisma = {
   onboarding: new OnboardingModel(),
   aiGenerations: new AiGenerationModel(),
   exercises: new ExerciseModel(),
+  userTokens: new UserTokenModel(),
 };
 
 export type { OnboardingInput } from "./OnboardingModel.js";
