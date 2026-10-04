@@ -82,7 +82,10 @@ export function parseProgramRows(
     const weekNum = Number(row[cols.week.index]) || 0;
     const workoutName = String(row[cols.workout.index] || '').trim();
     const exerciseName = String(row[cols.exercise.index] || '').trim();
-    const setNum = Number(row[cols.set.index]) || 0;
+    const setStr = String(row[cols.set.index] || '').trim();
+    // Parse set column: "W1" = warmup set 1, "1" = working set 1
+    const isWarmupSet = setStr.toUpperCase().startsWith('W');
+    const setNum = parseInt(isWarmupSet ? setStr.slice(1) : setStr, 10) || 0;
 
     if (weekNum > maxWeek) maxWeek = weekNum;
 
@@ -143,6 +146,7 @@ export function parseProgramRows(
       achievedRir: String(row[cols.rirAchieved.index] || '') || undefined,
       achievedRestTime: achievedRestTimeStr ? parseInt(achievedRestTimeStr, 10) : undefined,
       notes: String(row[cols.notes.index] || '') || undefined,
+      setType: isWarmupSet ? 'warmup' : undefined,
     };
 
     workoutData.exercises.get(exerciseName)!.push(set);
@@ -220,6 +224,7 @@ export function stripRowIndex(program: ProgramWithRowIndex): Program {
           achievedRir: set.achievedRir,
           achievedRestTime: set.achievedRestTime,
           notes: set.notes,
+          setType: set.setType,
         })),
       })),
     })),

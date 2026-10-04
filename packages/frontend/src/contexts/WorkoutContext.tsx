@@ -32,6 +32,8 @@ import {
   cancelRestTimerNotification,
 } from "../utils/sound";
 
+export type SetType = "working" | "warmup";
+
 // Internal row-based format for UI
 export interface ExerciseRow {
   rowIndex: number;
@@ -45,6 +47,7 @@ export interface ExerciseRow {
   rirAchieved: string;
   achievedRestTime?: number;
   notes: string;
+  setType?: SetType;
 }
 
 // Re-export API Workout type for external use
@@ -131,8 +134,8 @@ interface WorkoutContextType {
     field: "weight" | "repsAchieved" | "rirAchieved",
     delta: number,
   ) => void;
-  completeSet: (rowIndex: number) => void;
-  completeWorkout: (rowIndex: number) => Promise<void>;
+  completeSet: (rowIndex: number, setType?: SetType) => void;
+  completeWorkout: (rowIndex: number, setType?: SetType) => Promise<void>;
   setCurrentExerciseIndex: (index: number) => void;
   setCurrentSetIndex: (index: number) => void;
   saveWorkout: (includeDate?: boolean) => Promise<void>;
@@ -140,6 +143,34 @@ interface WorkoutContextType {
 }
 
 const WorkoutContext = createContext<WorkoutContextType | null>(null);
+
+// Generate set label (W1, W2 for warmups; 1, 2 for working sets)
+const generateSetLabel = (
+  row: ExerciseRow,
+  allRows: ExerciseRow[],
+): string | undefined => {
+  // Only generate label if this is a warmup set or there are warmup sets for this exercise
+  const exerciseRows = allRows.filter((r) => r.exercise === row.exercise);
+  const hasWarmups = exerciseRows.some((r) => r.setType === "warmup");
+
+  if (!hasWarmups) return undefined; // No label needed, sheet already has correct numbers
+
+  if (row.setType === "warmup") {
+    // Count warmup sets before this one (in row order)
+    const warmupIndex =
+      exerciseRows
+        .filter((r) => r.setType === "warmup")
+        .findIndex((r) => r.rowIndex === row.rowIndex) + 1;
+    return `W${warmupIndex}`;
+  } else {
+    // Working set - count working sets before this one
+    const workingIndex =
+      exerciseRows
+        .filter((r) => r.setType !== "warmup")
+        .findIndex((r) => r.rowIndex === row.rowIndex) + 1;
+    return String(workingIndex);
+  }
+};
 
 // Rows with logged data, as Prisma-like batch updates for PATCH /api/programs/:id
 const buildSetUpdates = (
@@ -165,6 +196,8 @@ const buildSetUpdates = (
         achievedRir: row.rirAchieved || undefined,
         achievedRestTime: row.achievedRestTime,
         notes: row.notes || undefined,
+        setType: row.setType,
+        setLabel: generateSetLabel(row, rows),
       },
     }));
 
@@ -590,6 +623,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           rirAchieved: set.achievedRir || "",
           achievedRestTime: set.achievedRestTime,
           notes: set.notes || "",
+          setType: set.setType,
         });
       }
     }
@@ -922,7 +956,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     hasUnsavedChangesRef.current = true;
   };
 
-  const completeSet = (rowIndex: number) => {
+  const completeSet = (rowIndex: number, setType?: SetType) => {
     // Calculate rest time since last set completion
     const now = Date.now();
     let restTime: number | undefined;
@@ -945,6 +979,10 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       }
       if (restTime !== undefined) {
         updates.achievedRestTime = restTime;
+      }
+      // Set the set type (warmup or working)
+      if (setType !== undefined) {
+        updates.setType = setType;
       }
       return { ...row, ...updates };
     });
@@ -1010,13 +1048,19 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const completeWorkout = async (rowIndex: number) => {
+  const completeWorkout = async (rowIndex: number, setType?: SetType) => {
     // Build updated data from ref (always has latest data, avoids race conditions)
-    const newData = workoutDataRef.current.map((row) =>
-      row.rowIndex === rowIndex && !row.repsAchieved
-        ? { ...row, repsAchieved: row.targetReps.toString() }
-        : row,
-    );
+    const newData = workoutDataRef.current.map((row) => {
+      if (row.rowIndex !== rowIndex) return row;
+      const updates: Partial<ExerciseRow> = {};
+      if (!row.repsAchieved) {
+        updates.repsAchieved = row.targetReps.toString();
+      }
+      if (setType !== undefined) {
+        updates.setType = setType;
+      }
+      return { ...row, ...updates };
+    });
 
     // Update both ref and state
     workoutDataRef.current = newData;

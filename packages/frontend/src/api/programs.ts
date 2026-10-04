@@ -30,6 +30,8 @@ export interface ProgramWhere {
   workout?: WorkoutWhere;
 }
 
+export type SetType = "working" | "warmup";
+
 // Update data types
 export interface SetUpdateData {
   achievedWeight?: number;
@@ -37,6 +39,8 @@ export interface SetUpdateData {
   achievedRir?: string;
   achievedRestTime?: number;
   notes?: string;
+  setType?: SetType;
+  setLabel?: string; // "W1", "W2" for warmup, "1", "2" for working
 }
 
 export interface WorkoutUpdateData {

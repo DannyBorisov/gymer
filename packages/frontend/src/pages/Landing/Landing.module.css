@@ -89,6 +89,10 @@
 /* ============================================
    HERO
    ============================================ */
+.heroWrapper {
+  background: #0a0a0b;
+}
+
 .hero {
   min-height: 100vh;
   display: grid;
@@ -98,7 +102,6 @@
   padding: 120px 48px 80px;
   max-width: 1300px;
   margin: 0 auto;
-  background: #0a0a0b;
 }
 
 .heroContent {

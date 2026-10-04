@@ -485,6 +485,13 @@ export class ProgramModel extends BaseModel {
             values: [[setData.achievedRestTime]],
           });
         }
+        // Update set column with label (e.g., "W1" for warmup, "1" for working)
+        if (setData.setLabel !== undefined) {
+          updates.push({
+            range: `${sheetName}!${cols.set.column}${set.rowIndex}`,
+            values: [[setData.setLabel]],
+          });
+        }
       }
     }
 
@@ -575,6 +582,14 @@ export class ProgramModel extends BaseModel {
       });
     }
 
+    // Update set column with label (e.g., "W1" for warmup, "1" for working)
+    if (data.setLabel !== undefined) {
+      updates.push({
+        range: `${sheetName}!${cols.set.column}${rowIndex}`,
+        values: [[data.setLabel]],
+      });
+    }
+
     if (updates.length > 0) {
       await this.sheets.batchUpdate(this.tokens, spreadsheetId, updates);
     }
@@ -584,6 +599,7 @@ export class ProgramModel extends BaseModel {
    * Get all completed sets from all programs for analytics.
    * Only includes sets from workouts that have both date AND duration,
    * meaning the workout was actually completed (not just started).
+   * Excludes warmup sets from analytics.
    */
   async getCompletedSets(): Promise<CompletedSet[]> {
     const programs = await this.findAll();
@@ -599,7 +615,7 @@ export class ProgramModel extends BaseModel {
         const rows = await this.sheets.get(
           this.tokens,
           program.id,
-          `${sheetName}!A:J`,
+          `${sheetName}!A:M`,
         );
         if (!rows || rows.length < 2) return;
 
@@ -613,9 +629,12 @@ export class ProgramModel extends BaseModel {
           const dateOrDuration = String(row[cols.date.index] || "").trim();
           const workout = String(row[cols.workout.index] || "").trim();
           const exercise = String(row[cols.exercise.index] || "").trim();
+          const setStr = String(row[cols.set.index] || "").trim();
           const weightStr = String(row[cols.weight.index] || "").trim();
           const repsStr = String(row[cols.repsAchieved.index] || "").trim();
           const rirStr = String(row[cols.rirAchieved.index] || "").trim();
+          // Warmup sets have "W" prefix (e.g., "W1", "W2")
+          const isWarmupSet = setStr.toUpperCase().startsWith("W");
 
           // Track date and duration for workout completion check
           if (isDateFormat(dateOrDuration)) {
@@ -637,7 +656,9 @@ export class ProgramModel extends BaseModel {
           rowInWorkout++;
 
           // Only include sets from completed workouts (have both date AND duration)
+          // Exclude warmup sets from analytics
           if (!currentDate || !currentDuration || !exercise || !weightStr || !repsStr) continue;
+          if (isWarmupSet) continue;
 
           const weight = +weightStr;
           const reps = +repsStr;

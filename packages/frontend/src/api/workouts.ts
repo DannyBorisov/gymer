@@ -1,6 +1,8 @@
 import { request } from "./index";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+export type SetType = "working" | "warmup";
+
 export interface WorkoutSet {
   targetReps: number;
   targetRir: string;
@@ -10,6 +12,7 @@ export interface WorkoutSet {
   achievedRir?: string;
   achievedRestTime?: number;
   notes?: string;
+  setType?: SetType;
 }
 
 export interface WorkoutExercise {

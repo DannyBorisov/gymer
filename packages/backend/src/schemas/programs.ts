@@ -44,6 +44,8 @@ const SetUpdateDataSchema = z.object({
   achievedReps: z.number().optional(),
   achievedRir: z.string().optional(),
   notes: z.string().optional(),
+  setType: z.enum(["working", "warmup"]).optional(),
+  setLabel: z.string().optional(), // "W1", "W2" for warmup, "1", "2" for working
 });
 
 const WorkoutUpdateDataSchema = z.object({

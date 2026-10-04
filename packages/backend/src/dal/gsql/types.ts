@@ -22,6 +22,8 @@ export interface CreateUserExerciseInput {
 
 // ============ Program Models ============
 
+export type SetType = "working" | "warmup";
+
 export interface Set {
   targetReps: number;
   targetRir: string;
@@ -31,6 +33,7 @@ export interface Set {
   achievedRir?: string;
   achievedRestTime?: number;
   notes?: string;
+  setType?: SetType;
 }
 
 export interface Exercise {
@@ -87,6 +90,8 @@ export interface SetUpdateData {
   achievedRir?: string;
   achievedRestTime?: number;
   notes?: string;
+  setType?: SetType;
+  setLabel?: string; // If provided, updates the Set column (e.g., "W1" for warmup, "1" for working)
 }
 
 export interface WorkoutUpdateData {

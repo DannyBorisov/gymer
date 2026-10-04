@@ -5,24 +5,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="68e4137f-b74f-4996-a02a-e6e8883b648a" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/gradle.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/gradle.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/gsql.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/gsql.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/models/ProgramModel.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/models/ProgramModel.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/schemas/program.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/schemas/program.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/types.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/utils/parser.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/dal/gsql/utils/parser.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/backend/src/handlers/ai.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/handlers/ai.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/android/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/android/app/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../packages/backend/src/schemas/programs.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/backend/src/schemas/programs.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/frontend/src/api/programs.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/api/programs.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/frontend/src/api/workouts.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/api/workouts.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/components/Layout/Layout.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/components/Layout/Layout.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/components/ui/Chart/Chart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/components/ui/Chart/Chart.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/frontend/src/contexts/WorkoutContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/contexts/WorkoutContext.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/index.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/index.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/ActiveWorkout/ActiveWorkout.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/ActiveWorkout/ActiveWorkout.module.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/ActiveWorkout/ActiveWorkout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/ActiveWorkout/ActiveWorkout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/CreateProgram.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/CreateProgram.module.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/CreateProgram.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/CreateProgram.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/components/ExerciseRow.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/CreateProgram/components/ExerciseRow.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/types/shared.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/types/shared.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/Landing/Landing.module.css" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/Landing/Landing.module.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../packages/frontend/src/pages/Landing/Landing.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../packages/frontend/src/pages/Landing/Landing.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

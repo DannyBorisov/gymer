@@ -9,6 +9,7 @@ import {
   SkipForward,
   TrendingUp,
   MessageCircle,
+  Flame,
 } from "lucide-react";
 import {
   HistoryIcon,
@@ -75,6 +76,7 @@ const ActiveWorkout = () => {
   const [showNotes, setShowNotes] = useState(false);
   const [isAddingSet, setIsAddingSet] = useState(false);
   const [showAddSetDrawer, setShowAddSetDrawer] = useState(false);
+  const [warmupMode, setWarmupMode] = useState(false);
   const [newSetReps, setNewSetReps] = useState("");
   const [newSetRir, setNewSetRir] = useState("");
   const [showSetComplete, setShowSetComplete] = useState(false);
@@ -247,10 +249,31 @@ const ActiveWorkout = () => {
   };
 
   // Handle completing a set, celebrating progression at the end of an exercise.
-  const handleCompleteSet = (rowIndex: number, isExerciseComplete: boolean) => {
-    completeSet(rowIndex);
+  const handleCompleteSet = async (rowIndex: number, isExerciseComplete: boolean) => {
+    // Pass setType when in warmup mode
+    completeSet(rowIndex, warmupMode ? "warmup" : undefined);
     setShowSetComplete(true);
     setTimeout(() => setShowSetComplete(false), 1000);
+
+    // In warmup mode, add another warmup set after completing and navigate to it
+    if (warmupMode && !isQuickWorkout && activeWorkout) {
+      try {
+        const currentRow = getRow(rowIndex);
+        await addSetToExercise(
+          currentExerciseName,
+          currentRow?.targetReps,
+          undefined, // No RIR for warmup sets
+        );
+        // Navigate to the new set (last one in the exercise)
+        // The addSetToExercise will have updated workoutData, so we need to
+        // get the updated exercise sets count. Since state updates are async,
+        // we set to current + 1 which will be the new set index.
+        setCurrentSetIndex(currentSetIndex + 1);
+      } catch (error) {
+        console.error("Failed to add warmup set:", error);
+      }
+      return; // Don't do normal set advancement in warmup mode
+    }
 
     if (!isExerciseComplete) return;
 
@@ -279,9 +302,10 @@ const ActiveWorkout = () => {
     setShowSetComplete(true);
     setTimeout(() => setShowSetComplete(false), 400);
 
+    // Check progression before completing (skip for warmup sets)
     const row = workoutData.find((r) => r.rowIndex === rowIndex);
-    const progression = row ? checkForProgression(row.exercise) : null;
-    await completeWorkout(rowIndex);
+    const progression = !warmupMode && row ? checkForProgression(row.exercise) : null;
+    await completeWorkout(rowIndex, warmupMode ? "warmup" : undefined);
 
     if (progression && row) {
       celebrateProgression(row.exercise, progression);
@@ -654,8 +678,15 @@ const ActiveWorkout = () => {
               </button>
             );
           })()}
-          <span className={styles.targetText}>
-            {currentSet.targetReps} reps @ {currentSet.rir} RIR
+          <span className={`${styles.targetText} ${warmupMode || currentSetData?.setType === "warmup" ? styles.targetTextWarmup : ""}`}>
+            {warmupMode || currentSetData?.setType === "warmup" ? (
+              <>
+                <Flame size={14} />
+                {currentSet.targetReps} reps (warmup)
+              </>
+            ) : (
+              `${currentSet.targetReps} reps @ ${currentSet.rir} RIR`
+            )}
           </span>
         </div>
       )}
@@ -721,38 +752,57 @@ const ActiveWorkout = () => {
               </div>
             )}
             <div className={styles.inputsCenter}>
-              {/* Set dots */}
-              <div className={styles.setDots}>
-                {currentExerciseSets.map((set, idx) => {
-                  const setData = getRow(set.rowIndex);
-                  const setIsDone = setData?.weight && setData?.repsAchieved;
-                  return (
+              {/* Set dots - hidden in warmup mode */}
+              {!warmupMode && (
+                <div className={styles.setDots}>
+                  {(() => {
+                    // Calculate separate warmup and working set numbers
+                    let warmupCount = 0;
+                    let workingCount = 0;
+                    return currentExerciseSets.map((set, idx) => {
+                      const setData = getRow(set.rowIndex);
+                      const setIsDone = setData?.weight && setData?.repsAchieved;
+                      const isWarmupSet = setData?.setType === "warmup";
+
+                      // Calculate label based on set type
+                      let label: string;
+                      if (isWarmupSet) {
+                        warmupCount++;
+                        label = `W${warmupCount}`;
+                      } else {
+                        workingCount++;
+                        label = String(workingCount);
+                      }
+
+                      return (
+                        <button
+                          key={set.rowIndex}
+                          onClick={() => {
+                            setCurrentSetIndex(idx);
+                            setShowNotes(false);
+                          }}
+                          className={`${styles.setDot} ${
+                            idx === currentSetIndex ? styles.setDotActive : ""
+                          } ${setIsDone ? styles.setDotDone : ""} ${isWarmupSet ? styles.setDotWarmup : ""}`}
+                          aria-label={isWarmupSet ? `Warmup set ${warmupCount}` : `Set ${workingCount}`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    });
+                  })()}
+                  {!isQuickWorkout && (
                     <button
-                      key={set.rowIndex}
-                      onClick={() => {
-                        setCurrentSetIndex(idx);
-                        setShowNotes(false);
-                      }}
-                      className={`${styles.setDot} ${
-                        idx === currentSetIndex ? styles.setDotActive : ""
-                      } ${setIsDone ? styles.setDotDone : ""}`}
-                      aria-label={`Set ${set.set}`}
+                      onClick={handleOpenAddSet}
+                      disabled={isAddingSet}
+                      className={styles.setDotAdd}
+                      aria-label="Add a set"
                     >
-                      {idx + 1}
+                      <Plus size={14} />
                     </button>
-                  );
-                })}
-                {!isQuickWorkout && (
-                  <button
-                    onClick={handleOpenAddSet}
-                    disabled={isAddingSet}
-                    className={styles.setDotAdd}
-                    aria-label="Add a set"
-                  >
-                    <Plus size={14} />
-                  </button>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
 
               <div className={styles.inputSection}>
                 <ScrollableInput
@@ -782,21 +832,24 @@ const ActiveWorkout = () => {
                   placeholder={currentSet.targetReps.toString()}
                   dark
                 />
-                <ScrollableInput
-                  label="RIR"
-                  labelInfo="Reps in Reserve — how many more reps you could have done before failure."
-                  value={getRow(currentSet.rowIndex)?.rirAchieved || ""}
-                  onChange={(val) =>
-                    updateExercise(currentSet.rowIndex, "rirAchieved", val)
-                  }
-                  onAdjust={(delta) =>
-                    adjustValue(currentSet.rowIndex, "rirAchieved", delta)
-                  }
-                  step={1}
-                  placeholder={currentSet.rir}
-                  max={10}
-                  dark
-                />
+                {/* Hide RIR for warmup sets - warmup mode or existing warmup set */}
+                {!warmupMode && currentSetData?.setType !== "warmup" && (
+                  <ScrollableInput
+                    label="RIR"
+                    labelInfo="Reps in Reserve — how many more reps you could have done before failure."
+                    value={getRow(currentSet.rowIndex)?.rirAchieved || ""}
+                    onChange={(val) =>
+                      updateExercise(currentSet.rowIndex, "rirAchieved", val)
+                    }
+                    onAdjust={(delta) =>
+                      adjustValue(currentSet.rowIndex, "rirAchieved", delta)
+                    }
+                    step={1}
+                    placeholder={currentSet.rir}
+                    max={10}
+                    dark
+                  />
+                )}
               </div>
 
               {/* Notes */}
@@ -854,112 +907,121 @@ const ActiveWorkout = () => {
 
               {!isWorkoutComplete && (
                 <>
-                  {/* Secondary row: quick fill + rest timer adjust */}
-                  <div className={styles.secondaryButtonsRow}>
-                    {/* Quick fill buttons */}
-                    {(prevStats?.sets[currentSetIndex] || (previousSet && getRow(previousSet.rowIndex)?.repsAchieved)) && (
-                      <div className={styles.quickFillGroup}>
-                        {prevStats?.sets[currentSetIndex] && (
-                          <button
-                            className={styles.quickFillBtn}
-                            onClick={() =>
-                              copyFromLastWeek(
-                                currentSet.rowIndex,
-                                prevStats.sets[currentSetIndex],
-                              )
-                            }
-                          >
-                            <HistoryIcon size={16} />
-                            <span className={styles.quickFillBtnText}>
-                              {prevStats.sets[currentSetIndex].weight} × {prevStats.sets[currentSetIndex].reps}
-                            </span>
-                          </button>
-                        )}
-                        {previousSet && getRow(previousSet.rowIndex)?.repsAchieved && (
-                          <button
-                            className={styles.quickFillBtn}
-                            onClick={() =>
-                              copyFromPreviousSet(
-                                currentSet,
-                                getRow(previousSet.rowIndex)!,
-                              )
-                            }
-                          >
-                            <span className={styles.quickFillBtnLabel}>Set {previousSet.set}</span>
-                            <span className={styles.quickFillBtnText}>
-                              {getRow(previousSet.rowIndex)?.weight} × {getRow(previousSet.rowIndex)?.repsAchieved}
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
+                  {/* Secondary row: quick fill + rest timer adjust (hidden in warmup mode) */}
+                  {!warmupMode && (
+                    <div className={styles.secondaryButtonsRow}>
+                      {/* Quick fill buttons */}
+                      {(prevStats?.sets[currentSetIndex] || (previousSet && getRow(previousSet.rowIndex)?.repsAchieved)) && (
+                        <div className={styles.quickFillGroup}>
+                          {prevStats?.sets[currentSetIndex] && (
+                            <button
+                              className={styles.quickFillBtn}
+                              onClick={() =>
+                                copyFromLastWeek(
+                                  currentSet.rowIndex,
+                                  prevStats.sets[currentSetIndex],
+                                )
+                              }
+                            >
+                              <HistoryIcon size={16} />
+                              <span className={styles.quickFillBtnText}>
+                                {prevStats.sets[currentSetIndex].weight} × {prevStats.sets[currentSetIndex].reps}
+                              </span>
+                            </button>
+                          )}
+                          {previousSet && getRow(previousSet.rowIndex)?.repsAchieved && (
+                            <button
+                              className={styles.quickFillBtn}
+                              onClick={() =>
+                                copyFromPreviousSet(
+                                  currentSet,
+                                  getRow(previousSet.rowIndex)!,
+                                )
+                              }
+                            >
+                              <span className={styles.quickFillBtnLabel}>Set {previousSet.set}</span>
+                              <span className={styles.quickFillBtnText}>
+                                {getRow(previousSet.rowIndex)?.weight} × {getRow(previousSet.rowIndex)?.repsAchieved}
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      )}
 
-                    {/* Rest timer adjust */}
-                    {isRestTimerActive && (
-                      <div className={styles.restTimerAdjust}>
-                        <button
-                          type="button"
-                          className={styles.adjustBtn}
-                          onClick={() => {
-                            adjustRestTimer(-REST_ADJUSTMENT_SECONDS);
-                            void hapticLight();
-                          }}
-                        >
-                          -{REST_ADJUSTMENT_SECONDS}
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.adjustBtn}
-                          onClick={() => {
-                            adjustRestTimer(REST_ADJUSTMENT_SECONDS);
-                            void hapticLight();
-                          }}
-                        >
-                          +{REST_ADJUSTMENT_SECONDS}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                      {/* Rest timer adjust */}
+                      {isRestTimerActive && (
+                        <div className={styles.restTimerAdjust}>
+                          <button
+                            type="button"
+                            className={styles.adjustBtn}
+                            onClick={() => {
+                              adjustRestTimer(-REST_ADJUSTMENT_SECONDS);
+                              void hapticLight();
+                            }}
+                          >
+                            -{REST_ADJUSTMENT_SECONDS}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.adjustBtn}
+                            onClick={() => {
+                              adjustRestTimer(REST_ADJUSTMENT_SECONDS);
+                              void hapticLight();
+                            }}
+                          >
+                            +{REST_ADJUSTMENT_SECONDS}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className={styles.mainButtonsRow}>
                     <Button
-                      icon={<Check size={24} />}
+                      icon={warmupMode ? <Flame size={24} /> : <Check size={24} />}
                       disabled={!getRow(currentSet.rowIndex)?.repsAchieved}
                       onClick={() =>
-                        isLastSet
-                          ? handleCompleteWorkout(currentSet.rowIndex)
-                          : handleCompleteSet(
-                              currentSet.rowIndex,
-                              currentSetIndex === currentExerciseSets.length - 1,
-                            )
+                        warmupMode
+                          ? handleCompleteSet(currentSet.rowIndex, false)
+                          : isLastSet
+                            ? handleCompleteWorkout(currentSet.rowIndex)
+                            : handleCompleteSet(
+                                currentSet.rowIndex,
+                                currentSetIndex === currentExerciseSets.length - 1,
+                              )
                       }
-                      className={`${styles.completeBtn} ${isSetCompleted ? styles.completeBtnDone : ""}`}
+                      className={`${styles.completeBtn} ${warmupMode ? styles.completeBtnWarmup : ""} ${isSetCompleted ? styles.completeBtnDone : ""}`}
                     >
-                      {isLastSet
-                        ? "Complete workout"
-                        : currentSetIndex === currentExerciseSets.length - 1
-                          ? "Complete exercise"
-                          : "Complete set"}
+                      {warmupMode
+                        ? "Log warmup"
+                        : isLastSet
+                          ? "Complete workout"
+                          : currentSetIndex === currentExerciseSets.length - 1
+                            ? "Complete exercise"
+                            : "Complete set"}
                     </Button>
 
-                    <button
-                      onClick={() =>
-                        isRestTimerActive
-                          ? handleStopRestTimer()
-                          : handleStartRestTimer(currentExerciseName)
-                      }
-                      className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ""} ${isOverTargetRest ? styles.restTimerBtnOverTarget : ""}`}
-                    >
-                      <Timer size={20} className={isOverTargetRest ? styles.timerIconWarning : ""} />
-                      <span className={styles.restTimerValue}>
-                        {formatRestTimer(restTimer)}
-                        {currentTargetRestTime !== undefined && isRestTimerActive && (
-                          <span className={styles.restTargetIndicator}>
-                            /{formatRestTimer(currentTargetRestTime)}
-                          </span>
-                        )}
-                      </span>
-                    </button>
+                    {/* Rest timer button (hidden in warmup mode) */}
+                    {!warmupMode && (
+                      <button
+                        onClick={() =>
+                          isRestTimerActive
+                            ? handleStopRestTimer()
+                            : handleStartRestTimer(currentExerciseName)
+                        }
+                        className={`${styles.restTimerBtn} ${isRestTimerActive ? styles.restTimerBtnActive : ""} ${isOverTargetRest ? styles.restTimerBtnOverTarget : ""}`}
+                      >
+                        <Timer size={20} className={isOverTargetRest ? styles.timerIconWarning : ""} />
+                        <span className={styles.restTimerValue}>
+                          {formatRestTimer(restTimer)}
+                          {currentTargetRestTime !== undefined && isRestTimerActive && (
+                            <span className={styles.restTargetIndicator}>
+                              /{formatRestTimer(currentTargetRestTime)}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -995,7 +1057,9 @@ const ActiveWorkout = () => {
         dark
       >
         <div className={styles.addSetDrawer}>
-          <h2 className={styles.addSetTitle}>Add a set</h2>
+          <h2 className={styles.addSetTitle}>
+            {warmupMode ? "Add warmup set" : "Add a set"}
+          </h2>
           <p className={styles.addSetSubtitle}>{currentExerciseName}</p>
 
           <div className={styles.addSetInputs}>
@@ -1011,24 +1075,27 @@ const ActiveWorkout = () => {
               step={1}
               dark
             />
-            <ScrollableInput
-              label="RIR"
-              labelInfo="Reps in Reserve — how many more reps you could have done before failure."
-              value={newSetRir}
-              onChange={setNewSetRir}
-              onAdjust={(delta) =>
-                setNewSetRir((prev) =>
-                  String(Math.max(0, (parseInt(prev, 10) || 0) + delta)),
-                )
-              }
-              step={1}
-              max={10}
-              dark
-            />
+            {/* Hide RIR for warmup sets */}
+            {!warmupMode && (
+              <ScrollableInput
+                label="RIR"
+                labelInfo="Reps in Reserve — how many more reps you could have done before failure."
+                value={newSetRir}
+                onChange={setNewSetRir}
+                onAdjust={(delta) =>
+                  setNewSetRir((prev) =>
+                    String(Math.max(0, (parseInt(prev, 10) || 0) + delta)),
+                  )
+                }
+                step={1}
+                max={10}
+                dark
+              />
+            )}
           </div>
 
           <Button onClick={handleConfirmAddSet} disabled={isAddingSet}>
-            {isAddingSet ? "Adding..." : "Add Set"}
+            {isAddingSet ? "Adding..." : warmupMode ? "Add Warmup" : "Add Set"}
           </Button>
         </div>
       </SwipeableDrawer>
@@ -1041,6 +1108,19 @@ const ActiveWorkout = () => {
         dark
       >
         <div className={styles.optionsDrawer}>
+          {/* Warmup Mode Toggle */}
+          <div className={styles.optionToggle}>
+            <div className={styles.optionToggleInfo}>
+              <Flame size={20} />
+              <span>Warmup Mode</span>
+            </div>
+            <button
+              className={`${styles.switch} ${warmupMode ? styles.switchOn : ""}`}
+              onClick={() => setWarmupMode(!warmupMode)}
+            >
+              <span className={styles.switchKnob} />
+            </button>
+          </div>
           {Object.keys(previousStats).length > 0 && (
             <button
               className={styles.optionItem}

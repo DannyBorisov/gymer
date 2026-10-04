@@ -39,8 +39,9 @@ const Landing = () => {
       </header>
 
       {/* Hero */}
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
+      <div className={styles.heroWrapper}>
+        <section className={styles.hero}>
+          <div className={styles.heroContent}>
           <h1>
             Stop Guessing.
             <br />
@@ -83,10 +84,11 @@ const Landing = () => {
             <span>2,400+ reviews</span>
           </div>
         </div>
-        <div className={styles.heroVisual}>
-          <HeroPhone />
-        </div>
-      </section>
+          <div className={styles.heroVisual}>
+            <HeroPhone />
+          </div>
+        </section>
+      </div>
 
       {/* Features */}
       <section className={styles.features} id="features">

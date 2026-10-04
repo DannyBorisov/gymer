@@ -100,6 +100,7 @@ export type {
   CreateBodyWeightInput,
   // Program Models
   Set,
+  SetType,
   Exercise,
   Workout,
   Program,
