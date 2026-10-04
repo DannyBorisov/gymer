@@ -20,7 +20,7 @@ let package = Package(
         .package(name: "CapacitorKeyboard", path: "../../../../../node_modules/@capacitor/keyboard"),
         .package(name: "CapacitorLocalNotifications", path: "../../../../../node_modules/@capacitor/local-notifications"),
         .package(name: "RevenuecatPurchasesCapacitor", path: "../../../../../node_modules/@revenuecat/purchases-capacitor"),
-        .package(name: "CapacitorLiveActivities", path: "../../../../../node_modules/capacitor-live-activities")
+        .package(name: "CapacitorLiveActivities", path: "../../../node_modules/capacitor-live-activities")
     ],
     targets: [
         .target(
