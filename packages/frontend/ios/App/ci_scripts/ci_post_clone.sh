@@ -29,4 +29,9 @@ npm run build
 echo "Syncing to iOS..."
 npx cap sync ios
 
+# Resolve Swift packages after node_modules are in place
+echo "Resolving Swift packages..."
+cd "$CI_PRIMARY_REPOSITORY_PATH/packages/frontend/ios/App"
+xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+
 echo "Build and sync completed successfully"
