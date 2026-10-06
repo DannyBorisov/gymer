@@ -101,10 +101,10 @@
   width: 100%;
   padding: 1rem;
   margin-bottom: 0.75rem;
-  background: var(--accent-green-soft);
-  border: 1px solid var(--accent-green);
+  background: var(--accent-primary-soft);
+  border: 1px solid var(--accent-primary);
   border-radius: var(--radius-lg);
-  color: var(--accent-green);
+  color: var(--accent-primary);
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
@@ -287,7 +287,7 @@
 
 .goalsInput:focus {
   outline: none;
-  border-color: var(--accent-green);
+  border-color: var(--accent-primary);
 }
 
 .goalsInput::placeholder {
@@ -362,6 +362,46 @@
 
 .addWorkoutBtn:active {
   background: var(--bg-hover);
+}
+
+/* Saved Templates */
+.savedTemplates {
+  margin-bottom: 1rem;
+}
+
+.savedTemplatesLabel {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.savedTemplatesBubbles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.savedTemplateBubble {
+  padding: 0.375rem 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.savedTemplateBubble:hover {
+  background: var(--bg-interactive);
+  border-color: var(--border-emphasis);
+}
+
+.savedTemplateBubble:active {
+  transform: scale(0.97);
 }
 
 .workoutsGrid {
@@ -495,8 +535,8 @@
 }
 
 .emptyExercisesOver {
-  border-color: var(--accent-green);
-  background: var(--accent-green-soft);
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-soft);
   color: var(--text-primary);
 }
 
@@ -626,7 +666,7 @@
 .variantInput:focus,
 .restInput:focus {
   outline: none;
-  border-color: var(--accent-green);
+  border-color: var(--accent-primary);
 }
 
 /* Exercise inputs (sets/reps/rir) */
@@ -681,7 +721,7 @@
 
 .numberInput:focus {
   outline: none;
-  background: var(--accent-green-soft);
+  background: var(--accent-primary-soft);
 }
 
 .numberInput::placeholder {
@@ -791,7 +831,7 @@
 }
 
 .dragOverlay .exerciseRow {
-  border-color: var(--accent-green);
+  border-color: var(--accent-primary);
 }
 
 /* ============================================================

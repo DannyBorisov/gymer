@@ -5,14 +5,27 @@ import { TrashIcon, ChevronLeftIcon } from "../../assets/icons";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import { useQuickWorkout } from "../../contexts/QuickWorkoutContext";
 import { useWorkout } from "../../contexts/WorkoutContext";
+import { useGetWorkoutTemplates, type WorkoutTemplate } from "../../api/workouts";
 import styles from "./QuickWorkout.module.css";
 
 const QuickWorkout = () => {
   const navigate = useNavigate();
   const { pendingExercises: exercises, setPendingExercises: setExercises, setFloatingAction } = useQuickWorkout();
   const { startQuickWorkout } = useWorkout();
+  const { data: templatesData } = useGetWorkoutTemplates();
+  const templates = templatesData?.templates || [];
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const handleSelectTemplate = (template: WorkoutTemplate) => {
+    const newExercises = template.exercises.map((ex) => ({
+      name: ex.name,
+      sets: ex.sets,
+      reps: ex.reps,
+      rir: ex.rir,
+    }));
+    setExercises(newExercises);
+  };
 
   // Use ref to avoid stale closure in handler
   const exercisesRef = useRef(exercises);
@@ -115,6 +128,25 @@ const QuickWorkout = () => {
         <h1 className={styles.title}>Quick Workout</h1>
         <p className={styles.subtitle}>Build your workout, then start training</p>
       </div>
+
+      {/* Saved Workout Templates */}
+      {templates.length > 0 && exercises.length === 0 && (
+        <div className={styles.templatesSection}>
+          <span className={styles.templatesLabel}>Saved Workouts</span>
+          <div className={styles.templatesBubbles}>
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className={styles.templateBubble}
+                onClick={() => handleSelectTemplate(template)}
+              >
+                {template.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Exercises Section */}
       <div className={styles.exercisesContainer}>

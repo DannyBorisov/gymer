@@ -46,6 +46,20 @@ export interface QuickWorkoutPayload {
   sets: QuickWorkoutSet[];
 }
 
+export interface TemplateExercise {
+  name: string;
+  sets: number;
+  reps: number;
+  rir: number;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  exercises: TemplateExercise[];
+  createdAt: string;
+}
+
 export const workoutsApi = {
   history: () => request<{ workouts: Workout[] }>("/api/workouts/history"),
   quickExercises: () =>
@@ -56,11 +70,22 @@ export const workoutsApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
+  templates: () =>
+    request<{ templates: WorkoutTemplate[] }>("/api/workout-templates"),
+  createTemplate: (data: { name: string; exercises: TemplateExercise[] }) =>
+    request<{ template: WorkoutTemplate }>("/api/workout-templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+  deleteTemplate: (id: string) =>
+    request<void>(`/api/workout-templates/${id}`, { method: "DELETE" }),
 };
 
 export const workoutQueryKeys = {
   history: ["workouts", "history"] as const,
   quickExercises: ["workouts", "quickExercises"] as const,
+  templates: ["workouts", "templates"] as const,
 };
 
 export function useGetWorkoutHistory() {
@@ -83,5 +108,31 @@ export function useSaveQuickWorkout() {
     mutationFn: (payload: QuickWorkoutPayload) => workoutsApi.saveQuick(payload),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: workoutQueryKeys.history }),
+  });
+}
+
+export function useGetWorkoutTemplates() {
+  return useQuery({
+    queryKey: workoutQueryKeys.templates,
+    queryFn: workoutsApi.templates,
+  });
+}
+
+export function useCreateWorkoutTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name: string; exercises: TemplateExercise[] }) =>
+      workoutsApi.createTemplate(data),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.templates }),
+  });
+}
+
+export function useDeleteWorkoutTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => workoutsApi.deleteTemplate(id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: workoutQueryKeys.templates }),
   });
 }

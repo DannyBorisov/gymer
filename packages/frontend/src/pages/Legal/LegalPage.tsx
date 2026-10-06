@@ -14,48 +14,48 @@ const documents: Record<
 > = {
   terms: {
     title: "Terms of Service",
-    intro: "These terms explain the basic rules for using Gymerr.",
+    intro: "These terms explain the basic rules for using ikkos.",
     sections: [
       {
-        heading: "Using Gymerr",
+        heading: "Using ikkos",
         content:
-          "Gymerr is a workout tracking tool. You are responsible for the information you enter and for keeping your Google account secure. You must use the service lawfully and avoid attempting to disrupt, abuse, or gain unauthorized access to the service.",
+          "ikkos is a workout tracking tool. You are responsible for the information you enter and for keeping your Google account secure. You must use the service lawfully and avoid attempting to disrupt, abuse, or gain unauthorized access to the service.",
       },
       {
         heading: "Your data",
         content:
-          "Gymerr uses Google OAuth and Google Sheets to provide its workout tracking features. Your workout data is stored in a Google Sheet in your own Google Drive and belongs to you. Deleting your Gymerr account does not delete this spreadsheet or its data — since it lives in your Google Drive, you manage and delete it yourself from there.",
+          "ikkos uses Google OAuth and Google Sheets to provide its workout tracking features. Your workout data is stored in a Google Sheet in your own Google Drive and belongs to you. Deleting your ikkos account does not delete this spreadsheet or its data — since it lives in your Google Drive, you manage and delete it yourself from there.",
       },
       {
         heading: "Health and safety",
         content:
-          "Gymerr does not provide medical, fitness, or professional health advice. Use your own judgment, follow appropriate instruction, and consult a qualified professional when needed. Stop exercising if you feel unwell or unsafe.",
+          "ikkos does not provide medical, fitness, or professional health advice. Use your own judgment, follow appropriate instruction, and consult a qualified professional when needed. Stop exercising if you feel unwell or unsafe.",
       },
       {
         heading: "Availability",
         content:
-          "We aim to keep Gymerr useful and available, but the service is provided as-is and may change, be interrupted, or be discontinued. We are not responsible for loss caused by outages, third-party services, or inaccurate workout information.",
+          "We aim to keep ikkos useful and available, but the service is provided as-is and may change, be interrupted, or be discontinued. We are not responsible for loss caused by outages, third-party services, or inaccurate workout information.",
       },
       {
         heading: "Changes",
         content:
-          "We may update these terms as Gymerr changes. Continued use of the service after an update means you accept the revised terms.",
+          "We may update these terms as ikkos changes. Continued use of the service after an update means you accept the revised terms.",
       },
       {
         heading: "Contact",
-        content: "Questions about these terms? Reach us at contact@gymerr.co.",
+        content: "Questions about these terms? Reach us at contact@ikkos.co.",
       },
     ],
   },
   privacy: {
     title: "Privacy Policy",
     intro:
-      "This policy describes what Gymerr handles when you use the service.",
+      "This policy describes what ikkos handles when you use the service.",
     sections: [
       {
         heading: "Information we receive",
         content:
-          "When you sign in with Google, Gymerr receives basic profile information such as your name, email address, and profile image. Workout information is the data you choose to enter into the app.",
+          "When you sign in with Google, ikkos receives basic profile information such as your name, email address, and profile image. Workout information is the data you choose to enter into the app.",
       },
       {
         heading: "How we use information",
@@ -65,12 +65,12 @@ const documents: Record<
       {
         heading: "Google services",
         content:
-          "Gymerr uses Google OAuth, Google Drive, and Google Sheets. We request access needed for spreadsheets created by Gymerr. Google handles its services under its own privacy policy and terms.",
+          "ikkos uses Google OAuth, Google Drive, and Google Sheets. We request access needed for spreadsheets created by ikkos. Google handles its services under its own privacy policy and terms.",
       },
       {
         heading: "Storage and choices",
         content:
-          "The web app uses browser storage for a session token. You can sign out to remove that token from the device and revoke Gymerr access from your Google Account security settings. You can also delete Gymerr spreadsheets from Google Drive.",
+          "The web app uses browser storage for a session token. You can sign out to remove that token from the device and revoke ikkos access from your Google Account security settings. You can also delete ikkos spreadsheets from Google Drive.",
       },
       {
         heading: "Sharing and retention",
@@ -80,7 +80,7 @@ const documents: Record<
       {
         heading: "Account deletion",
         content:
-          "Your workout data lives in a Google Sheet in your own Google Drive, not on our servers. If you delete your Gymerr account, this spreadsheet and its data are not deleted — since it belongs to you, you can view, export, or delete it at any time directly from your Google Drive.",
+          "Your workout data lives in a Google Sheet in your own Google Drive, not on our servers. If you delete your ikkos account, this spreadsheet and its data are not deleted — since it belongs to you, you can view, export, or delete it at any time directly from your Google Drive.",
       },
       {
         heading: "Updates",
@@ -90,23 +90,23 @@ const documents: Record<
       {
         heading: "Contact",
         content:
-          "Questions about this policy or your data? Reach us at contact@gymerr.co.",
+          "Questions about this policy or your data? Reach us at contact@ikkos.co.",
       },
     ],
   },
   "delete-account": {
     title: "Delete Your Account",
-    intro: "How to remove your Gymerr account and what happens to your data.",
+    intro: "How to remove your ikkos account and what happens to your data.",
     sections: [
       {
         heading: "How to delete your account",
         content:
-          "Open Gymerr, go to Profile, and choose Delete Account. This removes your Gymerr sign-in and profile information. If you can't access the app, email contact@gymerr.co from the address associated with your account and we'll delete it for you.",
+          "Open ikkos, go to Profile, and choose Delete Account. This removes your ikkos sign-in and profile information. If you can't access the app, email contact@ikkos.co from the address associated with your account and we'll delete it for you.",
       },
       {
         heading: "What gets deleted",
         content:
-          "Deleting your account removes your Gymerr profile and revokes the app's access to your Google account.",
+          "Deleting your account removes your ikkos profile and revokes the app's access to your Google account.",
       },
       {
         heading: "What isn't deleted",
@@ -116,7 +116,7 @@ const documents: Record<
       {
         heading: "Contact",
         content:
-          "Questions about deleting your account or your data? Reach us at contact@gymerr.co.",
+          "Questions about deleting your account or your data? Reach us at contact@ikkos.co.",
       },
     ],
   },
@@ -143,11 +143,11 @@ const LegalPage = () => {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <Link to="/" className={styles.brand} aria-label="Back to Gymerr home">
+        <Link to="/" className={styles.brand} aria-label="Back to ikkos home">
           <span className={styles.brandIcon}>
             <DumbbellOutlineIcon size={18} />
           </span>
-          <span>Gymerr</span>
+          <span>ikkos</span>
         </Link>
         <Link to="/" className={styles.backLink}>
           <ArrowLeftIcon size={16} />
@@ -156,7 +156,7 @@ const LegalPage = () => {
       </header>
 
       <article className={styles.document}>
-        <p className={styles.eyebrow}>Gymerr</p>
+        <p className={styles.eyebrow}>ikkos</p>
         <h1>{document.title}</h1>
         <p className={styles.intro}>{document.intro}</p>
         <p className={styles.updated}>Effective August 28, 2026</p>

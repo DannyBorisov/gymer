@@ -1,5 +1,5 @@
 {
-  "name": "@gymerr/sheets-sync",
+  "name": "@ikkos/sheets-sync",
   "version": "1.0.0",
   "type": "module",
   "main": "dist/index.js",

@@ -1,5 +1,5 @@
 export const ProgramSchema = {
-  appProperty: { key: 'createdBy', value: 'gymerr' },
+  appProperty: { key: 'createdBy', value: 'ikkos' },
   columns: {
     date: { index: 0, column: 'A' },
     week: { index: 1, column: 'B' },

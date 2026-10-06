@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { authApiRoutes } from "./auth.js";
 import ProgramsRoutes from "./programs.js";
-import { quickWorkoutRoutes, workoutRoutes } from "./workouts.js";
+import { quickWorkoutRoutes, workoutRoutes, workoutTemplateRoutes } from "./workouts.js";
 import AnalyticsRoutes from "./analytics.js";
 import ProfileRoutes from "./profile.js";
 import AiRoutes from "./ai.js";
@@ -25,6 +25,7 @@ const routes: FastifyPluginAsync = async (server) => {
   server.register(AiRoutes, { prefix: "/ai" });
   server.register(OnboardingRoutes, { prefix: "/onboarding" });
   server.register(ExercisesRoutes, { prefix: "/exercises" });
+  server.register(workoutTemplateRoutes, { prefix: "/workout-templates" });
 };
 
 export default routes;

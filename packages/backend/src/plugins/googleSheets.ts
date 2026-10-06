@@ -19,13 +19,13 @@ const BASE_QUERY =
   "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
 
 export const AppProperties = {
-  program: { key: "createdBy", value: "gymerr" },
+  program: { key: "createdBy", value: "ikkos" },
   quickWorkouts: {
-    key: "gymerrQuickWorkouts",
+    key: "ikkosQuickWorkouts",
     value: "true",
     title: "Quick Workouts",
   },
-  bodyWeight: { key: "gymerrBodyWeight", value: "true", title: "Body Weight" },
+  bodyWeight: { key: "ikkosBodyWeight", value: "true", title: "Body Weight" },
 } as const;
 
 export type AppPropertyType = keyof typeof AppProperties;

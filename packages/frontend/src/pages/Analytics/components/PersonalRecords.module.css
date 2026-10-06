@@ -94,8 +94,8 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.5rem;
-  background: rgba(var(--color-green-500-rgb), 0.15);
-  color: var(--accent-green);
+  background: rgba(var(--color-primary-500-rgb), 0.15);
+  color: var(--accent-primary);
   font-size: 0.6875rem;
   font-weight: 600;
   border-radius: 4px;

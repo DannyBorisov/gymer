@@ -3,8 +3,8 @@ import config from "./config.js";
 export default {
   origin: [
     config.env.FRONTEND_URL,
-    "https://gymerr.co",
-    "https://www.gymerr.co",
+    "https://ikkos.co",
+    "https://www.ikkos.co",
     "capacitor://localhost",
     "ionic://localhost",
   ],

@@ -7,7 +7,7 @@ const DEFAULT_REMINDER_MINUTE = 0;
 
 const WEIGHT_REMINDER_ID = 1001;
 const TEST_NOTIFICATION_ID = 9999;
-const CHANNEL_ID = 'gymerr_reminders';
+const CHANNEL_ID = 'ikkos_reminders';
 
 // Create notification channel for Android (required for heads-up notifications)
 export async function createNotificationChannel(): Promise<void> {
@@ -17,7 +17,7 @@ export async function createNotificationChannel(): Promise<void> {
 
   await LocalNotifications.createChannel({
     id: CHANNEL_ID,
-    name: 'Gymerr Reminders',
+    name: 'ikkos Reminders',
     description: 'Workout and weight reminders',
     importance: 5, // IMPORTANCE_HIGH - shows as heads-up
     visibility: 1, // PUBLIC

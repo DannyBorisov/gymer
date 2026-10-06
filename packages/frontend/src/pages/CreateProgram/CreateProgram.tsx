@@ -20,6 +20,7 @@ import {
   useGetProgram,
 } from "../../api/programs";
 import { useGenerateAiProgram } from "../../api/ai";
+import { useGetWorkoutTemplates } from "../../api/workouts";
 import { presets } from "../../data/presets";
 import { ExerciseDrawer } from "../../components/ExerciseDrawer/ExerciseDrawer";
 import type { Program } from "../../types/program";
@@ -54,6 +55,7 @@ const CreateProgram = () => {
     updateDynamicRir,
     updateStartingRir,
     addWorkout,
+    addWorkoutFromTemplate,
     removeWorkout,
     updateWorkoutName,
     addExercises,
@@ -72,6 +74,8 @@ const CreateProgram = () => {
   const generateProgram = useGenerateAiProgram();
   const { data: existingProgramResponse, isLoading: isLoadingExisting } =
     useGetProgram<FetchedProgram>(editingProgramId);
+  const { data: templatesData } = useGetWorkoutTemplates();
+  const savedTemplates = templatesData?.templates || [];
 
   const [mode, setMode] = useState<"templates" | "ai" | "edit">(
     isEditingExisting ? "edit" : "templates",
@@ -513,6 +517,27 @@ const CreateProgram = () => {
               Add
             </button>
           </div>
+
+          {/* Saved Workout Templates */}
+          {savedTemplates.length > 0 && (
+            <div className={styles.savedTemplates}>
+              <span className={styles.savedTemplatesLabel}>
+                Import from saved
+              </span>
+              <div className={styles.savedTemplatesBubbles}>
+                {savedTemplates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    className={styles.savedTemplateBubble}
+                    onClick={() => addWorkoutFromTemplate(template)}
+                  >
+                    {template.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <DndContext
             sensors={exerciseDnd.sensors}

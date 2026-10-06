@@ -1,6 +1,6 @@
 export const BodyWeightSchema = {
-  sheetName: 'Gymerr Body Weight',
-  appProperty: { key: 'gymerrBodyWeight', value: 'true' },
+  sheetName: 'ikkos Body Weight',
+  appProperty: { key: 'ikkosBodyWeight', value: 'true' },
   columns: {
     date: { index: 0, column: 'A' },
     weight: { index: 1, column: 'B' },

@@ -45,16 +45,16 @@
 
 .avatar {
   object-fit: cover;
-  border: 2px solid var(--accent-green);
+  border: 2px solid var(--accent-primary);
 }
 
 .avatarFallback {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent-green-soft);
-  border: 2px solid var(--accent-green);
-  color: var(--accent-green);
+  background: var(--accent-primary-soft);
+  border: 2px solid var(--accent-primary);
+  color: var(--accent-primary);
   font-size: 1.125rem;
   font-weight: 700;
 }
@@ -98,7 +98,7 @@
 }
 
 .sectionIcon {
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 .sectionTitle {
@@ -177,7 +177,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.625rem 0;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   font-size: 0.875rem;
   font-weight: 500;
 }
@@ -204,7 +204,7 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--accent-green);
+  border-color: var(--accent-primary);
 }
 
 .saveBtn {
@@ -357,7 +357,7 @@
 
 .timeInput:focus {
   outline: none;
-  box-shadow: 0 0 0 2px var(--accent-green);
+  box-shadow: 0 0 0 2px var(--accent-primary);
 }
 
 /* Switch */
@@ -374,7 +374,7 @@
 }
 
 .switchOn {
-  background: var(--accent-green);
+  background: var(--accent-primary);
 }
 
 .switchKnob {

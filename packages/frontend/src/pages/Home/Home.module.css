@@ -133,7 +133,7 @@
 }
 
 .statPill svg {
-  color: var(--accent-green);
+  color: var(--accent-primary);
   flex-shrink: 0;
 }
 
@@ -247,7 +247,7 @@
 .heroLabel {
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -282,8 +282,8 @@
   justify-content: space-between;
   width: 100%;
   padding: 1.25rem;
-  background: linear-gradient(135deg, rgba(var(--color-green-500-rgb), 0.15) 0%, rgba(var(--color-green-500-rgb), 0.05) 100%);
-  border: 1px solid rgba(var(--color-green-500-rgb), 0.2);
+  background: linear-gradient(135deg, rgba(var(--color-primary-500-rgb), 0.15) 0%, rgba(var(--color-primary-500-rgb), 0.05) 100%);
+  border: 1px solid rgba(var(--color-primary-500-rgb), 0.2);
   border-radius: var(--radius-xl);
   cursor: pointer;
   text-align: left;
@@ -293,7 +293,7 @@
 
 .progressCard:active {
   transform: scale(0.98);
-  border-color: rgba(var(--color-green-500-rgb), 0.4);
+  border-color: rgba(var(--color-primary-500-rgb), 0.4);
 }
 
 .progressCardContent {
@@ -323,11 +323,11 @@
   gap: 0.375rem;
   margin-top: 0.5rem;
   padding: 0.375rem 0.75rem;
-  background: rgba(var(--color-green-500-rgb), 0.15);
+  background: rgba(var(--color-primary-500-rgb), 0.15);
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 .progressCard .progressCircleWrap {
@@ -370,7 +370,7 @@
   padding: 0;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   cursor: pointer;
 }
 
@@ -452,10 +452,10 @@
 
 @keyframes progressPulse {
   0%, 100% {
-    filter: drop-shadow(0 0 4px var(--accent-green));
+    filter: drop-shadow(0 0 4px var(--accent-primary));
   }
   50% {
-    filter: drop-shadow(0 0 12px var(--accent-green));
+    filter: drop-shadow(0 0 12px var(--accent-primary));
   }
 }
 
@@ -468,7 +468,7 @@
 }
 
 .progressRingFill {
-  stroke: var(--accent-green);
+  stroke: var(--accent-primary);
   transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -530,7 +530,7 @@
 }
 
 .programNameBtn:active {
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 .programName {
@@ -653,7 +653,7 @@
 
 .primaryCta:active {
   transform: translateY(2px) scale(0.98);
-  box-shadow: 0 4px 12px -4px rgba(var(--color-green-500-rgb), 0.4);
+  box-shadow: 0 4px 12px -4px rgba(var(--color-primary-500-rgb), 0.4);
 }
 
 .secondaryCta {
@@ -755,9 +755,9 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--accent-green-soft);
+  background: var(--accent-primary-soft);
   border-radius: 10px;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   flex-shrink: 0;
 }
 

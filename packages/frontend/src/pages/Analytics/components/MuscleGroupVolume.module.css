@@ -58,7 +58,7 @@
 
 .bar {
   height: 100%;
-  background: var(--accent-green);
+  background: var(--accent-primary);
   border-radius: 4px;
   min-width: 4px;
   transition: width 0.3s ease;

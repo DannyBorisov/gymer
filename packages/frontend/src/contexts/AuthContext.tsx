@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Listen for deep link callbacks on native platforms
     if (Capacitor.isNativePlatform()) {
       App.addListener("appUrlOpen", async (event) => {
-        // Handle gymerr://auth/callback?code=xxx
+        // Handle ikkos://auth/callback?code=xxx
         if (event.url.includes("auth/callback")) {
           // Close the in-app browser
           await Browser.close();

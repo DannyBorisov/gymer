@@ -106,9 +106,9 @@
   justify-content: center;
   width: 72px;
   height: 72px;
-  background: var(--accent-green-soft);
+  background: var(--accent-primary-soft);
   border-radius: 24px;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   margin-bottom: 1.25rem;
   animation: iconPulse 2s ease-in-out infinite;
 }
@@ -185,7 +185,7 @@
   gap: 1rem;
   padding: 1rem;
   background: var(--bg-secondary);
-  border: 1px solid var(--accent-green);
+  border: 1px solid var(--accent-primary);
   border-radius: var(--radius-xl);
   cursor: pointer;
   transition: background 0.15s ease;
@@ -196,7 +196,7 @@
 }
 
 .activeCard:focus-visible {
-  outline: 2px solid var(--accent-green);
+  outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
 }
 
@@ -218,7 +218,7 @@
 }
 
 .progressRingFill {
-  stroke: var(--accent-green);
+  stroke: var(--accent-primary);
   transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -343,10 +343,10 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.375rem 0.625rem;
-  background: var(--accent-green-soft);
+  background: var(--accent-primary-soft);
   border: none;
   border-radius: 6px;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
@@ -354,7 +354,7 @@
 }
 
 .setActiveBtn:active {
-  background: rgba(var(--color-green-500-rgb), 0.25);
+  background: rgba(var(--color-primary-500-rgb), 0.25);
 }
 
 .chevron {

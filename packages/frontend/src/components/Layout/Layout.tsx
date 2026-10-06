@@ -99,7 +99,7 @@ const Layout = ({ children }: LayoutProps) => {
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
           <DumbbellOutlineIcon size={24} />
-          <span>Gymerr</span>
+          <span>ikkos</span>
         </div>
 
         <nav className={styles.nav}>

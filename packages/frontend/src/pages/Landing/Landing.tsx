@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { Check, Star, ChevronRight } from "lucide-react";
+import { Star } from "lucide-react"; // avoid-ai-design-ignore: I3 - rating stars
 import HeroPhone from "./HeroPhone";
 import styles from "./Landing.module.css";
 
@@ -23,6 +23,7 @@ const Landing = () => {
           <div className={styles.logo}>ikkos</div>
           <nav className={styles.nav}>
             <a href="#features">Features</a>
+            <a href="#science">The Science</a>
             <a href="#how">How it works</a>
           </nav>
           <div className={styles.headerActions}>
@@ -94,7 +95,7 @@ const Landing = () => {
       <section className={styles.features} id="features">
         <div className={styles.featureRow}>
           <div className={styles.featureText}>
-            <span className={styles.tag}>AI Programming</span>
+            <span className={styles.tag}>Programming</span>
             <h2>Your program, built for you</h2>
             <p>
               Tell us your goals, experience, and schedule. Our AI creates a
@@ -102,18 +103,9 @@ const Landing = () => {
               from proven templates.
             </p>
             <ul className={styles.checkList}>
-              <li>
-                <Check size={18} />
-                Personalized to your training history
-              </li>
-              <li>
-                <Check size={18} />
-                Auto-adjusts volume and intensity weekly
-              </li>
-              <li>
-                <Check size={18} />
-                PPL, Upper/Lower, Full Body templates
-              </li>
+              <li>Personalized to your training history</li>
+              <li>Auto-adjusts volume and intensity weekly</li>
+              <li>PPL, Upper/Lower, Full Body templates</li>
             </ul>
           </div>
           <div className={styles.featureVisual}>
@@ -127,25 +119,16 @@ const Landing = () => {
 
         <div className={`${styles.featureRow} ${styles.reverse}`}>
           <div className={styles.featureText}>
-            <span className={styles.tag}>Smart Logging</span>
+            <span className={styles.tag}>Logging</span>
             <h2>Log sets in seconds</h2>
             <p>
               Large touch targets, auto-fill from your last workout, and
               voice-guided rest timers. Less tapping, more lifting.
             </p>
             <ul className={styles.checkList}>
-              <li>
-                <Check size={18} />
-                One-tap to copy previous weights
-              </li>
-              <li>
-                <Check size={18} />
-                Voice countdown: "30 seconds remaining"
-              </li>
-              <li>
-                <Check size={18} />
-                Works offline, syncs when connected
-              </li>
+              <li>One-tap to copy previous weights</li>
+              <li>Voice countdown: "30 seconds remaining"</li>
+              <li>Works offline, syncs when connected</li>
             </ul>
           </div>
           <div className={styles.featureVisual}>
@@ -166,18 +149,9 @@ const Landing = () => {
               Automatic plateau detection tells you when to switch things up.
             </p>
             <ul className={styles.checkList}>
-              <li>
-                <Check size={18} />
-                Strength trends over weeks and months
-              </li>
-              <li>
-                <Check size={18} />
-                Plateau alerts after 4+ flat sessions
-              </li>
-              <li>
-                <Check size={18} />
-                Recovery heatmap by muscle group
-              </li>
+              <li>Strength trends over weeks and months</li>
+              <li>Plateau alerts after 4+ flat sessions</li>
+              <li>Recovery heatmap by muscle group</li>
             </ul>
           </div>
           <div className={styles.featureVisual}>
@@ -187,6 +161,40 @@ const Landing = () => {
               className={styles.featureImg}
             />
           </div>
+        </div>
+      </section>
+
+      {/* Science Section */}
+      <section className={styles.science} id="science">
+        <div className={styles.scienceInner}>
+          <h2>Why it works</h2>
+          <p className={styles.scienceLead}>
+            Your body adapts to stress. Bench 135 every week for a year, you'll stay the same.
+          </p>
+
+          <dl className={styles.concepts}>
+            <div className={styles.concept}>
+              <dt>Progressive Overload</dt>
+              <dd>
+                Last week: 3×8 at 100 lbs. This week: 3×9, or 3×8 at 105. The app tracks every
+                set and tells you when you're ready to add weight.
+              </dd>
+            </div>
+            <div className={styles.concept}>
+              <dt>RIR Training</dt>
+              <dd>
+                "2 RIR" = stopped with 2 reps left. Too easy, no growth. Too hard, can't recover.
+                We set your targets and adjust them week to week.
+              </dd>
+            </div>
+            <div className={styles.concept}>
+              <dt>Plateau Detection</dt>
+              <dd>
+                Stuck at the same weight? Most people don't notice for months. The app flags
+                when your e1RM flatlines and suggests what to change.
+              </dd>
+            </div>
+          </dl>
         </div>
       </section>
 
@@ -231,8 +239,7 @@ const Landing = () => {
           <h2>Ready to train smarter?</h2>
           <p>Free for 14 days. No credit card required.</p>
           <Link to="/login" className={styles.ctaPrimary}>
-            Start Your Free Trial
-            <ChevronRight size={20} />
+            Start free trial
           </Link>
         </div>
       </section>
@@ -243,10 +250,33 @@ const Landing = () => {
           <div className={styles.footerBrand}>
             <span className={styles.logo}>ikkos</span>
             <p>The workout tracker that works.</p>
+            <div className={styles.socialLinks}>
+              <a href="#" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+              </a>
+              <a href="#" aria-label="Twitter">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </a>
+              <a href="#" aria-label="TikTok">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
+                </svg>
+              </a>
+              <a href="#" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                </svg>
+              </a>
+            </div>
           </div>
           <nav className={styles.footerLinks}>
             <Link to="/terms">Terms</Link>
             <Link to="/privacy">Privacy</Link>
+            <a href="mailto:support@ikkos.app">Contact</a>
           </nav>
         </div>
       </footer>

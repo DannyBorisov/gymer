@@ -1,4 +1,4 @@
-/* Gymerr Design System Variables */
+/* ikkos Design System Variables */
 /* Dark, minimal aesthetic - see /CLAUDE.md for full guidelines */
 
 :root {
@@ -14,14 +14,14 @@
   --color-zinc-800: #27272a;
   --color-zinc-500: #71717a;
   --color-zinc-400: #a1a1aa;
-  --color-green-500: #04d482;
+  --color-primary-500: #c9432a;
   --color-red-500: #ef4444;
   --color-amber-500: #f59e0b;
 
   /* RGB triplets for building tinted backgrounds/borders at any opacity,
-     e.g. rgba(var(--color-green-500-rgb), 0.14). Keep in sync with the
+     e.g. rgba(var(--color-primary-500-rgb), 0.14). Keep in sync with the
      hex primitives above. */
-  --color-green-500-rgb: 4, 212, 130;
+  --color-primary-500-rgb: 201, 67, 42;
   --color-red-500-rgb: 239, 68, 68;
   --color-amber-500-rgb: 245, 158, 11;
 
@@ -37,7 +37,7 @@
   --on-surface-primary: var(--color-white); /* Headings, main text */
   --on-surface-secondary: var(--color-zinc-400); /* Body text, labels */
   --on-surface-tertiary: var(--color-zinc-500); /* Placeholders, hints */
-  --primary-default: var(--color-green-500); /* CTAs, active states, accent */
+  --primary-default: var(--color-primary-500); /* CTAs, active states, accent */
   --on-primary: var(--color-black); /* Text on primary color */
   --error-default: var(--color-red-500); /* Negative changes, errors */
   --warning-default: var(--color-amber-500); /* Coach cues, alerts */
@@ -67,15 +67,18 @@
 
   /* Accent colors - use sparingly */
   --accent-orange: #f97316;
-  --accent-green: var(--primary-default);
-  --accent-green-strong: #03b571;
-  --accent-green-soft: rgba(4, 212, 130, 0.14);
+  --accent-green: #10b981; /* Keep green for positive data (progress, gains) */
+  --accent-green-strong: #059669;
+  --accent-green-soft: rgba(16, 185, 129, 0.14);
+  --accent-primary: var(--primary-default);
+  --accent-primary-strong: #a8351f;
+  --accent-primary-soft: rgba(201, 67, 42, 0.14);
   --accent-red: var(--error-default);
   --accent-amber: var(--warning-default);
 
   /* Signature gradient for hero moments (primary CTA, active set) */
-  --accent-gradient: linear-gradient(135deg, #04d482 0%, #03b571 100%);
-  --accent-glow: 0 8px 24px -6px rgba(4, 212, 130, 0.45);
+  --accent-gradient: linear-gradient(135deg, #c9432a 0%, #a8351f 100%);
+  --accent-glow: 0 8px 24px -6px rgba(201, 67, 42, 0.45);
 
   /* Backdrop */
   --backdrop: rgba(0, 0, 0, 0.7);

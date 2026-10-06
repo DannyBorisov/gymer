@@ -7,7 +7,7 @@ Connecting Postgres for the Onboarding feature. Dev environment only for now.
 - [x] `docker-compose.yml` at repo root: `frontend`, `backend`, `db` (postgres:16-alpine)
 - [x] `packages/frontend/Dockerfile.dev` (Vite dev server, port 5173)
 - [x] `packages/backend/Dockerfile.dev` (tsx watch, port 3002)
-- [x] Named volume for postgres data (`gymerr_pgdata`)
+- [x] Named volume for postgres data (`ikkos_pgdata`)
 - [x] `db` healthcheck; `backend` waits for it (`depends_on: condition: service_healthy`)
 - [x] Host port 5433→5432 (avoids clash with a local Postgres); compose network uses `db:5432`
 
@@ -60,7 +60,7 @@ Connecting Postgres for the Onboarding feature. Dev environment only for now.
 
 - [x] `DATABASE_URL` added to `config.ts` zod schema (required)
 - [x] `packages/backend/.env` + `.env.local` + root `.env.example`
-- [x] compose sets `DATABASE_URL=postgresql://gymerr:gymerr@db:5432/gymerr?schema=public` for `backend`
+- [x] compose sets `DATABASE_URL=postgresql://ikkos:ikkos@db:5432/ikkos?schema=public` for `backend`
 
 ## Verify
 

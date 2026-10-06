@@ -206,14 +206,14 @@
   width: 72px;
   height: 72px;
   border-radius: 20px;
-  background: var(--accent-green-soft);
-  color: var(--accent-green);
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
   margin-bottom: 1.25rem;
 }
 
 .conceptIconGreen {
   background: rgba(4, 212, 130, 0.12);
-  color: #04d482;
+  color: var(--accent-primary);
 }
 
 .conceptIconBlue {
@@ -267,7 +267,7 @@
   padding: 0.875rem 1rem;
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  border-left: 3px solid var(--accent-green);
+  border-left: 3px solid var(--accent-primary);
   text-align: left;
   font-size: 0.875rem !important;
 }
@@ -293,7 +293,7 @@
 .rirValue {
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   font-variant-numeric: tabular-nums;
   min-width: 48px;
 }
@@ -349,8 +349,8 @@
   height: 3px;
   background: linear-gradient(
     90deg,
-    var(--accent-green) 0%,
-    var(--accent-green) 30%,
+    var(--accent-primary) 0%,
+    var(--accent-primary) 30%,
     #f97316 50%,
     #f97316 100%
   );
@@ -411,8 +411,8 @@
 }
 
 .goalCardActive {
-  background: var(--accent-green-soft);
-  border-color: var(--accent-green);
+  background: var(--accent-primary-soft);
+  border-color: var(--accent-primary);
 }
 
 .goalLabel {
@@ -427,7 +427,7 @@
 }
 
 .goalCardActive .goalLabel {
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 /* ============================================================
@@ -461,8 +461,8 @@
 }
 
 .experienceCardActive {
-  background: var(--accent-green-soft);
-  border-color: var(--accent-green);
+  background: var(--accent-primary-soft);
+  border-color: var(--accent-primary);
 }
 
 .experienceLabel {
@@ -477,7 +477,7 @@
 }
 
 .experienceCardActive .experienceLabel {
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 /* ============================================================
@@ -490,8 +490,8 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: var(--accent-green-soft);
-  color: var(--accent-green);
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
   margin-bottom: 1.5rem;
 }
 
@@ -549,7 +549,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   margin-bottom: 0.25rem;
 }
 

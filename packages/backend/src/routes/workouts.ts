@@ -5,11 +5,16 @@ import {
   saveQuickWorkout,
   getWorkoutHistory,
   getWorkoutDetail,
+  getWorkoutTemplates,
+  createWorkoutTemplate,
+  deleteWorkoutTemplate,
 } from "../handlers/workouts.js";
 import type {
   SaveQuickWorkoutBodyType,
   GetWorkoutDetailParamsType,
   GetWorkoutDetailQueryType,
+  CreateWorkoutTemplateBodyType,
+  DeleteWorkoutTemplateParamsType,
 } from "../schemas/workouts.js";
 
 const quickWorkoutRoutes: FastifyPluginAsync = async (server) => {
@@ -22,6 +27,22 @@ const quickWorkoutRoutes: FastifyPluginAsync = async (server) => {
   );
 };
 
+const workoutTemplateRoutes: FastifyPluginAsync = async (server) => {
+  server.get("/", { preHandler: requireAuth }, getWorkoutTemplates);
+
+  server.post<{ Body: CreateWorkoutTemplateBodyType }>(
+    "/",
+    { preHandler: requireAuth },
+    createWorkoutTemplate,
+  );
+
+  server.delete<{ Params: DeleteWorkoutTemplateParamsType }>(
+    "/:id",
+    { preHandler: requireAuth },
+    deleteWorkoutTemplate,
+  );
+};
+
 const workoutRoutes: FastifyPluginAsync = async (server) => {
   server.get("/history", { preHandler: requireAuth }, getWorkoutHistory);
   server.get<{
@@ -30,4 +51,4 @@ const workoutRoutes: FastifyPluginAsync = async (server) => {
   }>("/:id", { preHandler: requireAuth }, getWorkoutDetail);
 };
 
-export { quickWorkoutRoutes, workoutRoutes };
+export { quickWorkoutRoutes, workoutRoutes, workoutTemplateRoutes };

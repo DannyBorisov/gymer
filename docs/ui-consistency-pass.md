@@ -72,7 +72,7 @@ a tiny empty square).
 ## 7. Missing header/eyebrow label on some screens
 
 Home and Profile both have a small green all-caps "eyebrow" label above the
-page title (e.g. "GYMERR / TODAY", "ACCOUNT"). Analytics and History skip
+page title (e.g. "IKKOS / TODAY", "ACCOUNT"). Analytics and History skip
 this, making the app feel less consistent page-to-page.
 
 **Fix**: add matching eyebrow labels to Analytics ("ANALYTICS") and History

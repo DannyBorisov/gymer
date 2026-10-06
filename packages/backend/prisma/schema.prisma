@@ -142,3 +142,14 @@ model UserToken {
   encryptedTokens String   // AES-256 encrypted JSON of { access_token, refresh_token, expiry_date }
   updatedAt       DateTime @updatedAt
 }
+
+// Saved workout templates - reusable workout structures from programs
+model WorkoutTemplate {
+  id        String   @id @default(cuid())
+  userEmail String
+  name      String   // e.g. "Push Day", "Upper Body"
+  exercises Json     // Array of { name, sets, reps, rir }
+  createdAt DateTime @default(now())
+
+  @@index([userEmail])
+}

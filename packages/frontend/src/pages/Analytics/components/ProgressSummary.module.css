@@ -45,7 +45,7 @@
 }
 
 .positive {
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 .negative {

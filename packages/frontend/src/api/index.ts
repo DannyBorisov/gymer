@@ -1,7 +1,7 @@
 import { Capacitor, CapacitorHttp } from "@capacitor/core";
 
 export const API_BASE = Capacitor.isNativePlatform()
-  ? "https://api.gymerr.co"
+  ? "https://api.ikkos.co"
   : import.meta.env.VITE_API_URL;
 
 function getAuthHeaders(): Record<string, string> {

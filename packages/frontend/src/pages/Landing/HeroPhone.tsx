@@ -1,3 +1,4 @@
+// avoid-ai-design-ignore: SD8 - green is the app's semantic color for progress/gains
 import styles from "./HeroPhone.module.css";
 
 const HeroPhone = () => {

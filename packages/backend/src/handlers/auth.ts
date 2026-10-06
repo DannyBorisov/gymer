@@ -30,7 +30,7 @@ export const handleCallback: RouteHandler<{
   // For native app, pass code directly - app will exchange it
   if (state === "native") {
     return reply.redirect(
-      `gymerr://auth/callback?code=${encodeURIComponent(code)}`,
+      `ikkos://auth/callback?code=${encodeURIComponent(code)}`,
     );
   }
 

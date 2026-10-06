@@ -2,7 +2,7 @@
  * Seeds the Exercise table from the Jefit-derived exercise fixture
  * (prisma/exercise_seed.json). Safe to re-run: clears existing rows first.
  *
- * Usage: npm run prisma:seed:exercises -w @gymerr/backend
+ * Usage: npm run prisma:seed:exercises -w @ikkos/backend
  */
 import { PrismaClient } from "@prisma/client";
 import seedData from "./exercise_seed.json" with { type: "json" };

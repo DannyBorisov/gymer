@@ -35,3 +35,25 @@ export const GetWorkoutDetailQuerySchema = z.object({
 export type GetWorkoutDetailQueryType = z.infer<
   typeof GetWorkoutDetailQuerySchema
 >;
+
+const TemplateExerciseSchema = z.object({
+  name: z.string(),
+  sets: z.number(),
+  reps: z.number(),
+  rir: z.number(),
+});
+
+export const CreateWorkoutTemplateBodySchema = z.object({
+  name: z.string(),
+  exercises: z.array(TemplateExerciseSchema),
+});
+export type CreateWorkoutTemplateBodyType = z.infer<
+  typeof CreateWorkoutTemplateBodySchema
+>;
+
+export const DeleteWorkoutTemplateParamsSchema = z.object({
+  id: z.string(),
+});
+export type DeleteWorkoutTemplateParamsType = z.infer<
+  typeof DeleteWorkoutTemplateParamsSchema
+>;

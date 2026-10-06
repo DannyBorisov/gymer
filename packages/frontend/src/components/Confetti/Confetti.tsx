@@ -8,21 +8,27 @@ interface ConfettiProps {
 
 interface Particle {
   id: number;
-  x: number;
   color: string;
-  delay: number;
-  rotation: number;
   scale: number;
+  shape: "square" | "rect" | "circle";
+  angle: number;
+  distance: number;
+  spin: number;
+  delay: number;
 }
 
 const COLORS = [
-  "#04d482", // accent green
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#3b82f6", // blue
-  "#8b5cf6", // purple
-  "#ec4899", // pink
+  "#c9432a",
+  "#f97316",
+  "#eab308",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#ffffff",
+  "#10b981",
 ];
+
+const SHAPES: Particle["shape"][] = ["square", "rect", "circle"];
 
 export const Confetti = ({ trigger, onComplete }: ConfettiProps) => {
   const [particles, setParticles] = useState<Particle[]>([]);
@@ -32,24 +38,25 @@ export const Confetti = ({ trigger, onComplete }: ConfettiProps) => {
     if (trigger && !isActive) {
       setIsActive(true);
 
-      // Generate 16 particles with varied properties
-      const newParticles: Particle[] = Array.from({ length: 16 }, (_, i) => ({
+      // Generate particles exploding in all directions from center
+      const newParticles: Particle[] = Array.from({ length: 240 }, (_, i) => ({
         id: i,
-        x: 20 + Math.random() * 60, // spread across 20-80% of width
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        delay: Math.random() * 0.3,
-        rotation: Math.random() * 360,
-        scale: 0.6 + Math.random() * 0.6,
+        scale: 0.5 + Math.random() * 1,
+        shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
+        angle: Math.random() * 360, // all directions
+        distance: 30 + Math.random() * 50, // how far to explode (in vmin)
+        spin: Math.random() * 1080,
+        delay: Math.random() * 0.15,
       }));
 
       setParticles(newParticles);
 
-      // Clean up after animation completes
       const timer = setTimeout(() => {
         setParticles([]);
         setIsActive(false);
         onComplete?.();
-      }, 3000);
+      }, 2500);
 
       return () => clearTimeout(timer);
     }
@@ -62,13 +69,15 @@ export const Confetti = ({ trigger, onComplete }: ConfettiProps) => {
       {particles.map((particle) => (
         <div
           key={particle.id}
-          className={styles.particle}
+          className={`${styles.particle} ${styles[particle.shape]}`}
           style={{
-            left: `${particle.x}%`,
             backgroundColor: particle.color,
             animationDelay: `${particle.delay}s`,
-            transform: `rotate(${particle.rotation}deg) scale(${particle.scale})`,
-          }}
+            "--angle": `${particle.angle}deg`,
+            "--distance": `${particle.distance}vmin`,
+            "--spin": `${particle.spin}deg`,
+            "--scale": particle.scale,
+          } as React.CSSProperties}
         />
       ))}
     </div>

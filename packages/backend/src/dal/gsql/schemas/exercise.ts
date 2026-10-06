@@ -1,6 +1,6 @@
 export const ExerciseSchema = {
-  sheetName: 'Gymerr Exercises',
-  appProperty: { key: 'gymerrExercises', value: 'true' },
+  sheetName: 'ikkos Exercises',
+  appProperty: { key: 'ikkosExercises', value: 'true' },
   columns: {
     name: { index: 0, column: 'A' },
     muscleGroup: { index: 1, column: 'B' },

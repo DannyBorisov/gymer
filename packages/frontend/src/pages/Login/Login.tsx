@@ -1,7 +1,7 @@
 import { useAuth } from "../../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import logo from "../../assets/gymerr-logo.png";
+import logo from "../../assets/ikkos-logo.png";
 import styles from "./Login.module.css";
 
 const GoogleIcon = () => (
@@ -44,8 +44,8 @@ const Login = () => {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.logo}>
-          <img src={logo} alt="Gymerr" className={styles.logoIcon} />
-          <span className={styles.logoText}>Gymerr</span>
+          <img src={logo} alt="ikkos" className={styles.logoIcon} />
+          <span className={styles.logoText}>ikkos</span>
         </div>
 
         <div className={styles.kicker}>TRAIN WITH INTENT</div>
@@ -66,10 +66,7 @@ const Login = () => {
         </p>
       </div>
 
-      <div className={styles.background}>
-        <div className={styles.gradient1} />
-        <div className={styles.gradient2} />
-      </div>
+      <div className={styles.background} />
     </div>
   );
 };

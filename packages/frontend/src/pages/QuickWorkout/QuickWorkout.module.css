@@ -55,6 +55,48 @@
   margin: 0;
 }
 
+/* Saved Templates */
+.templatesSection {
+  margin-bottom: 1.5rem;
+}
+
+.templatesLabel {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.templatesBubbles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.templateBubble {
+  padding: 0.5rem 0.875rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.templateBubble:hover {
+  background: var(--bg-interactive);
+  border-color: var(--border-emphasis);
+}
+
+.templateBubble:active {
+  transform: scale(0.97);
+}
+
 /* Exercises Container */
 .exercisesContainer {
   display: block;

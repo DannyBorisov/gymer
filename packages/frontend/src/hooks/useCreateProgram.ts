@@ -47,6 +47,23 @@ export const useCreateProgram = () => {
     }));
   };
 
+  const addWorkoutFromTemplate = (template: {
+    name: string;
+    exercises: { name: string; sets: number; reps: number; rir: number }[];
+  }) => {
+    const exercises: Exercise[] = template.exercises.map((ex) => ({
+      id: newExerciseId(),
+      name: ex.name,
+      sets: ex.sets,
+      reps: ex.reps,
+      rir: ex.rir,
+    }));
+    setProgram((prev) => ({
+      ...prev,
+      workouts: [...prev.workouts, { name: template.name, exercises }],
+    }));
+  };
+
   const removeWorkout = (workoutIndex: number) => {
     setProgram((prev) => ({
       ...prev,
@@ -203,6 +220,7 @@ export const useCreateProgram = () => {
     updateDynamicRir,
     updateStartingRir,
     addWorkout,
+    addWorkoutFromTemplate,
     removeWorkout,
     updateWorkoutName,
     addExercises,

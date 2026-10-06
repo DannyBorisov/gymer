@@ -1,18 +1,18 @@
 {
-  "name": "gymerr",
+  "name": "ikkos",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev:frontend": "npm run dev -w @gymerr/frontend",
-    "dev:backend": "npm run dev -w @gymerr/backend",
+    "dev:frontend": "npm run dev -w @ikkos/frontend",
+    "dev:backend": "npm run dev -w @ikkos/backend",
     "dev": "docker compose down -v && docker compose up",
-    "build": "npm run build -w @gymerr/backend && npm run build -w @gymerr/frontend",
-    "build:frontend": "npm run build -w @gymerr/frontend",
-    "build:backend": "npm run build -w @gymerr/backend",
-    "deploy:ios": "npm run cap:sync -w @gymerr/frontend"
+    "build": "npm run build -w @ikkos/backend && npm run build -w @ikkos/frontend",
+    "build:frontend": "npm run build -w @ikkos/frontend",
+    "build:backend": "npm run build -w @ikkos/backend",
+    "deploy:ios": "npm run cap:sync -w @ikkos/frontend"
   },
   "devDependencies": {
     "patch-package": "^8.0.1"

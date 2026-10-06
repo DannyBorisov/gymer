@@ -1,6 +1,6 @@
-# Gymerr — Design Inspiration & Direction
+# ikkos — Design Inspiration & Direction
 
-A reference for making Gymerr feel friendly, calm, and beautiful. Draws on the
+A reference for making ikkos feel friendly, calm, and beautiful. Draws on the
 visual language that dominates the fitness-app space (Nike Training Club, Strong,
 Hevy, Gentler Streak, Fitbod, Whoop, Ladder, Peloton, Apple Fitness) — the same
 work that surfaces in a `dribbble.com/search/fitness-app` scan.
@@ -11,7 +11,7 @@ No code here. This is the "why" and "what it should feel like".
 
 ## 1. The feeling we're aiming for
 
-| Principle | What it means for Gymerr |
+| Principle | What it means for ikkos |
 | --- | --- |
 | **Calm, not loud** | One clear action per screen. The gym is already stressful; the app should feel like a quiet coach, not a scoreboard. |
 | **Effort is the hero** | The biggest, boldest element on any screen is the thing the user is doing right now — the current set, the timer, the next workout. |
@@ -166,7 +166,7 @@ From the `fitness-app` results (Sans Brothers, Paperpillar, Musemind, Bato/iPUMP
 - **Two dominant color schools:**
   1. *Warm light* — off-white/cream base, one soft accent (coral, lime, lavender), pastel category tints per card, black text. Feels friendly, calm, "wellness". (Paperpillar "Let's start strong!", the lavender Daily-Challenge shot.)
   2. *Deep dark + electric green* — near-black, neon-green accent, glowing anatomy/muscle visuals. Feels serious, "AI coach", performance. (Musemind, iPUMPD, Hurmes.)
-  Gymerr is already in camp 2 — lean in on the warmth and green, and offer camp 1 as the light mode.
+  ikkos is already in camp 2 — lean in on the warmth and green, and offer camp 1 as the light mode.
 - **Big friendly greeting + avatar** top-left of Home ("Hello, Sophia" / "Welcome back 👋" with a photo). Small, human, sets a warm tone.
 - **A single "start strong / continue workout" card** as the hero — exactly the "one Today card" recommendation. Often with a rounded progress ring showing % through the plan.
 - **Pastel-tinted plan rows** — each workout/exercise row gets its own soft background tint + a small icon chip. Makes a list scannable and playful without photos.

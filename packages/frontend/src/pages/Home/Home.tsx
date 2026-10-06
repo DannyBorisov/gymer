@@ -15,7 +15,7 @@ import { parseDate } from "../../lib/date";
 import { AnimatedNumber } from "../../components/ui/AnimatedNumber";
 import { Confetti } from "../../components/Confetti";
 import { Button } from "../../components/ui/Button";
-import gymerrLogo from "../../assets/gymerr-logo.png";
+import ikkosLogo from "../../assets/ikkos-logo.png";
 import styles from "./Home.module.css";
 
 interface Program {
@@ -418,7 +418,7 @@ const Home = () => {
               <div className={`${styles.progressCircleWrap} ${isProgressMilestone(programProgress.percent) ? styles.progressMilestone : ""}`}>
                 <ProgressRing progress={programProgress.percent} size={100} strokeWidth={6} animate={hasAnimated} />
                 <div className={styles.progressCircleInner}>
-                  <img src={gymerrLogo} alt="Gymerr" className={styles.progressLogo} />
+                  <img src={ikkosLogo} alt="ikkos" className={styles.progressLogo} />
                 </div>
               </div>
             </button>

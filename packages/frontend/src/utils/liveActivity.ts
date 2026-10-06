@@ -359,7 +359,7 @@ const promptEnableLiveActivities = async (): Promise<void> => {
   await Dialog.alert({
     title: "Enable Live Activities",
     message:
-      "To see your workout timer on the Lock Screen and Dynamic Island, go to Settings → Gymerr → enable Live Activities.",
+      "To see your workout timer on the Lock Screen and Dynamic Island, go to Settings → ikkos → enable Live Activities.",
     buttonTitle: "OK",
   });
 };
@@ -415,7 +415,7 @@ export const startWorkoutLiveActivity = async (
       layout: createLayout(workoutStartTime),
       dynamicIslandLayout: createDynamicIslandLayout(workoutStartTime),
       behavior: {
-        widgetUrl: "gymerr://workout",
+        widgetUrl: "ikkos://workout",
         backgroundTint: "#0a0a0a",
       },
       data: {
@@ -462,7 +462,7 @@ export const updateRestTimer = async (
         layout: createLayoutWithRest(workoutStartTime, restStartTime),
         dynamicIslandLayout: createDynamicIslandLayoutWithRest(workoutStartTime, restStartTime),
         behavior: {
-          widgetUrl: "gymerr://workout",
+          widgetUrl: "ikkos://workout",
           backgroundTint: "#0a0a0a",
         },
         data: {
@@ -477,7 +477,7 @@ export const updateRestTimer = async (
         layout: createLayout(workoutStartTime),
         dynamicIslandLayout: createDynamicIslandLayout(workoutStartTime),
         behavior: {
-          widgetUrl: "gymerr://workout",
+          widgetUrl: "ikkos://workout",
           backgroundTint: "#0a0a0a",
         },
         data: {

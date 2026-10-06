@@ -6,7 +6,11 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { useSaveQuickWorkout } from "../api/workouts";
+import {
+  useSaveQuickWorkout,
+  useCreateWorkoutTemplate,
+  useGetWorkoutTemplates,
+} from "../api/workouts";
 import { useGetExerciseBests } from "../api/analytics";
 import {
   useUpdateProgram,
@@ -272,6 +276,8 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const addSetMutation = useAddSet();
   const deleteSetMutation = useDeleteSet();
   const saveQuickWorkout = useSaveQuickWorkout();
+  const createWorkoutTemplate = useCreateWorkoutTemplate();
+  const { data: templatesData } = useGetWorkoutTemplates();
   // Reference data for PR detection; only fetched once a workout is active
   const { data: bestsData } = useGetExerciseBests(Boolean(activeWorkout));
   const exerciseBests: Record<string, ExerciseBest> = bestsData?.bests ?? {};
@@ -744,6 +750,24 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       startWorkoutLiveActivity(workout.name, firstExercise);
     }
     setIsQuickWorkout(false);
+
+    // Save workout as template if it doesn't exist yet
+    const existingTemplates = templatesData?.templates || [];
+    const templateExists = existingTemplates.some(
+      (t) => t.name === workout.name,
+    );
+    if (!templateExists && workout.exercises.length > 0) {
+      const templateExercises = workout.exercises.map((ex) => ({
+        name: formatExerciseName(ex.name, ex.variant),
+        sets: ex.sets.length,
+        reps: ex.sets[0]?.targetReps || 10,
+        rir: parseInt(ex.sets[0]?.targetRir || "2", 10) || 2,
+      }));
+      createWorkoutTemplate.mutate({
+        name: workout.name,
+        exercises: templateExercises,
+      });
+    }
   };
 
   const startQuickWorkout = (exercises: QuickExercise[]) => {

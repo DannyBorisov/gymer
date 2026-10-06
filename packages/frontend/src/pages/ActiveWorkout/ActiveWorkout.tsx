@@ -442,6 +442,24 @@ const ActiveWorkout = () => {
     return exercise?.muscleGroup;
   })();
 
+  // Count warmup sets for the current exercise
+  const warmupSetCount = currentExerciseSets.filter(
+    (set) => getRow(set.rowIndex)?.setType === "warmup"
+  ).length;
+
+  // Get only working sets (non-warmup) for display when not in warmup mode
+  const workingSets = currentExerciseSets.filter(
+    (set) => getRow(set.rowIndex)?.setType !== "warmup"
+  );
+
+  // Get only warmup sets for display when in warmup mode
+  const warmupSets = currentExerciseSets.filter(
+    (set) => getRow(set.rowIndex)?.setType === "warmup"
+  );
+
+  // The sets to display based on warmup mode
+  const displaySets = warmupMode ? warmupSets : workingSets;
+
   // Target rest time for current exercise (use first set's target since it's exercise-level)
   const currentTargetRestTime = currentExerciseSets[0]?.targetRestTime;
   const isOverTargetRest = currentTargetRestTime !== undefined && restTimer > currentTargetRestTime;
@@ -775,57 +793,54 @@ const ActiveWorkout = () => {
               </div>
             )}
             <div className={styles.inputsCenter}>
-              {/* Set dots - hidden in warmup mode */}
-              {!warmupMode && (
-                <div className={styles.setDots}>
-                  {(() => {
-                    // Calculate separate warmup and working set numbers
-                    let warmupCount = 0;
-                    let workingCount = 0;
-                    return currentExerciseSets.map((set, idx) => {
-                      const setData = getRow(set.rowIndex);
-                      const setIsDone = setData?.weight && setData?.repsAchieved;
-                      const isWarmupSet = setData?.setType === "warmup";
-
-                      // Calculate label based on set type
-                      let label: string;
-                      if (isWarmupSet) {
-                        warmupCount++;
-                        label = `W${warmupCount}`;
-                      } else {
-                        workingCount++;
-                        label = String(workingCount);
-                      }
-
-                      return (
-                        <button
-                          key={set.rowIndex}
-                          onClick={() => {
-                            setCurrentSetIndex(idx);
-                            setShowNotes(false);
-                          }}
-                          className={`${styles.setDot} ${
-                            idx === currentSetIndex ? styles.setDotActive : ""
-                          } ${setIsDone ? styles.setDotDone : ""} ${isWarmupSet ? styles.setDotWarmup : ""}`}
-                          aria-label={isWarmupSet ? `Warmup set ${warmupCount}` : `Set ${workingCount}`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    });
-                  })()}
-                  {!isQuickWorkout && (
-                    <button
-                      onClick={handleOpenAddSet}
-                      disabled={isAddingSet}
-                      className={styles.setDotAdd}
-                      aria-label="Add a set"
-                    >
-                      <Plus size={14} />
-                    </button>
+              {/* Set dots with warmup toggle */}
+              <div className={styles.setDots}>
+                {/* Warmup toggle - round like other dots */}
+                <button
+                  onClick={() => setWarmupMode(!warmupMode)}
+                  className={`${styles.warmupChip} ${warmupMode ? styles.warmupChipActive : ""}`}
+                  aria-label={warmupMode ? "Exit warmup mode" : "Enter warmup mode"}
+                >
+                  <Flame size={16} />
+                  {!warmupMode && warmupSetCount > 0 && (
+                    <span className={styles.warmupChipBadge}>{warmupSetCount}</span>
                   )}
-                </div>
-              )}
+                </button>
+
+                {/* Set dots - show working sets or warmup sets based on mode */}
+                {displaySets.map((set, idx) => {
+                  const setData = getRow(set.rowIndex);
+                  const setIsDone = setData?.weight && setData?.repsAchieved;
+                  // Find the actual index in currentExerciseSets for navigation
+                  const actualIdx = currentExerciseSets.findIndex((s) => s.rowIndex === set.rowIndex);
+
+                  return (
+                    <button
+                      key={set.rowIndex}
+                      onClick={() => {
+                        setCurrentSetIndex(actualIdx);
+                        setShowNotes(false);
+                      }}
+                      className={`${styles.setDot} ${
+                        actualIdx === currentSetIndex ? styles.setDotActive : ""
+                      } ${setIsDone ? styles.setDotDone : ""} ${warmupMode ? styles.setDotWarmup : ""}`}
+                      aria-label={warmupMode ? `Warmup set ${idx + 1}` : `Set ${idx + 1}`}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
+                {!isQuickWorkout && (
+                  <button
+                    onClick={handleOpenAddSet}
+                    disabled={isAddingSet}
+                    className={styles.setDotAdd}
+                    aria-label="Add a set"
+                  >
+                    <Plus size={14} />
+                  </button>
+                )}
+              </div>
 
               <div className={styles.inputSection}>
                 <ScrollableInput
@@ -1131,19 +1146,6 @@ const ActiveWorkout = () => {
         dark
       >
         <div className={styles.optionsDrawer}>
-          {/* Warmup Mode Toggle */}
-          <div className={styles.optionToggle}>
-            <div className={styles.optionToggleInfo}>
-              <Flame size={20} />
-              <span>Warmup Mode</span>
-            </div>
-            <button
-              className={`${styles.switch} ${warmupMode ? styles.switchOn : ""}`}
-              onClick={() => setWarmupMode(!warmupMode)}
-            >
-              <span className={styles.switchKnob} />
-            </button>
-          </div>
           {Object.keys(previousStats).length > 0 && (
             <button
               className={styles.optionItem}

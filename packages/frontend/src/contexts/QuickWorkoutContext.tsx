@@ -109,7 +109,7 @@ interface QuickWorkoutContextType {
 
 const QuickWorkoutContext = createContext<QuickWorkoutContextType | null>(null);
 
-const STORAGE_KEY = "gymerr_quick_workout";
+const STORAGE_KEY = "ikkos_quick_workout";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 11);

@@ -29,9 +29,9 @@
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem 0.75rem;
-  background: var(--accent-green-soft);
+  background: var(--accent-primary-soft);
   border-radius: 999px;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   font-size: 0.8125rem;
   font-weight: 600;
 }
@@ -252,9 +252,9 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: var(--accent-green-soft);
+  background: var(--accent-primary-soft);
   border-radius: 12px;
-  color: var(--accent-green);
+  color: var(--accent-primary);
   flex-shrink: 0;
 }
 

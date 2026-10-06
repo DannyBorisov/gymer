@@ -225,8 +225,8 @@ Usage examples:
 ### `schemas/bodyWeight.ts`
 ```typescript
 export const BodyWeightSchema = {
-  sheetName: 'Gymerr Body Weight',
-  appProperty: { key: 'gymerrBodyWeight', value: 'true' },
+  sheetName: 'ikkos Body Weight',
+  appProperty: { key: 'ikkosBodyWeight', value: 'true' },
   columns: {
     date: { index: 0, column: 'A' },
     weight: { index: 1, column: 'B' },
@@ -238,7 +238,7 @@ export const BodyWeightSchema = {
 ### `schemas/program.ts`
 ```typescript
 export const ProgramSchema = {
-  appProperty: { key: 'createdBy', value: 'gymerr' },
+  appProperty: { key: 'createdBy', value: 'ikkos' },
   columns: {
     date: { index: 0, column: 'A' },
     week: { index: 1, column: 'B' },

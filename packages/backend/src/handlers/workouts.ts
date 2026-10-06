@@ -1,11 +1,13 @@
 import type { RouteHandler } from "fastify";
 import { getAuthSession } from "../middlewares/auth.js";
-import { createGSQL } from "../dal/index.js";
+import { createGSQL, prisma } from "../dal/index.js";
 import { formatDate } from "../dal/gsql/utils/dateUtils.js";
 import type {
   SaveQuickWorkoutBodyType,
   GetWorkoutDetailParamsType,
   GetWorkoutDetailQueryType,
+  CreateWorkoutTemplateBodyType,
+  DeleteWorkoutTemplateParamsType,
 } from "../schemas/workouts.js";
 
 export const getExercises: RouteHandler = async function (request, reply) {
@@ -192,5 +194,68 @@ export const getWorkoutHistory: RouteHandler = async function (request, reply) {
   } catch (error) {
     this.log.error(error);
     return reply.status(500).send({ error: "Failed to fetch workout history" });
+  }
+};
+
+export const getWorkoutTemplates: RouteHandler = async function (
+  request,
+  reply,
+) {
+  const session = getAuthSession(request);
+  if (!session.user?.email) {
+    return reply.status(401).send({ error: "Unauthorized" });
+  }
+
+  try {
+    const templates = await prisma.workoutTemplates.findAll(session.user.email);
+    return { templates };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to fetch workout templates" });
+  }
+};
+
+export const createWorkoutTemplate: RouteHandler<{
+  Body: CreateWorkoutTemplateBodyType;
+}> = async function (request, reply) {
+  const session = getAuthSession(request);
+  if (!session.user?.email) {
+    return reply.status(401).send({ error: "Unauthorized" });
+  }
+
+  const { name, exercises } = request.body;
+
+  if (!name || !exercises || exercises.length === 0) {
+    return reply.status(400).send({ error: "Missing required fields" });
+  }
+
+  try {
+    const template = await prisma.workoutTemplates.create(session.user.email, {
+      name,
+      exercises,
+    });
+    return { template };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to create workout template" });
+  }
+};
+
+export const deleteWorkoutTemplate: RouteHandler<{
+  Params: DeleteWorkoutTemplateParamsType;
+}> = async function (request, reply) {
+  const session = getAuthSession(request);
+  if (!session.user?.email) {
+    return reply.status(401).send({ error: "Unauthorized" });
+  }
+
+  const { id } = request.params;
+
+  try {
+    await prisma.workoutTemplates.delete(id, session.user.email);
+    return { success: true };
+  } catch (error) {
+    this.log.error(error);
+    return reply.status(500).send({ error: "Failed to delete workout template" });
   }
 };

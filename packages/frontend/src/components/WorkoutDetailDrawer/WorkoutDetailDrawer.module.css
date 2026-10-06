@@ -85,7 +85,7 @@
 }
 
 .exerciseCardCurrent {
-  background: var(--accent-green-soft);
+  background: var(--accent-primary-soft);
   margin: 0 -1.25rem;
   padding: 1rem 1.25rem;
   border-radius: var(--radius-md);
@@ -103,11 +103,11 @@
 
 .exerciseVariant {
   padding: 0.125rem 0.5rem;
-  background: var(--accent-green-soft);
+  background: var(--accent-primary-soft);
   border-radius: 999px;
   font-size: 0.6875rem;
   font-weight: 600;
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 .setsList {
@@ -126,7 +126,7 @@
 }
 
 .setRowCurrent {
-  background: var(--accent-green);
+  background: var(--accent-primary);
   color: white;
 }
 

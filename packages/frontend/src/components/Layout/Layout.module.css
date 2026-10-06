@@ -272,7 +272,7 @@
 }
 
 .toggleBtnActive {
-  background: var(--accent-green);
+  background: var(--accent-primary);
 }
 
 .toggleKnob {
@@ -489,7 +489,7 @@
 }
 
 .bottomNavActive {
-  color: var(--accent-green);
+  color: var(--accent-primary);
 }
 
 /* Icon wrapper */

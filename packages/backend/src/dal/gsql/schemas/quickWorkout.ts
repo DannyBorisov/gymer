@@ -1,6 +1,6 @@
 export const QuickWorkoutSchema = {
-  appProperty: { key: 'quickWorkouts', value: 'gymerr' },
-  sheetName: 'Gymerr Quick Workouts',
+  appProperty: { key: 'quickWorkouts', value: 'ikkos' },
+  sheetName: 'ikkos Quick Workouts',
   columns: {
     date: { index: 0, column: 'A' },
     workoutId: { index: 1, column: 'B' },
