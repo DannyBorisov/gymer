@@ -6,7 +6,6 @@ import {
   listPrograms,
   getProgram,
   updateProgram,
-  updateProgramCache,
   deleteProgram,
   copyProgram,
   renameProgram,
@@ -20,8 +19,6 @@ import type {
   GetProgramParamsType,
   UpdateProgramParamsType,
   UpdateProgramBodyType,
-  UpdateProgramCacheParamsType,
-  UpdateProgramCacheBodyType,
   DeleteProgramParamsType,
   CopyProgramParamsType,
   RenameProgramParamsType,
@@ -57,13 +54,6 @@ const ProgramsRoutes: FastifyPluginAsync = async (server) => {
     "/:id",
     { preHandler: requireAuth },
     updateProgram,
-  );
-
-  // Cache-only update (no Sheets sync) - used during active workout
-  server.patch<{ Params: UpdateProgramCacheParamsType; Body: UpdateProgramCacheBodyType }>(
-    "/:id/cache",
-    { preHandler: requireAuth },
-    updateProgramCache,
   );
 
   server.delete<{ Params: DeleteProgramParamsType }>(

@@ -3,6 +3,8 @@ import { AiGenerationModel } from "./AiGenerationModel.js";
 import { ExerciseModel } from "./ExerciseModel.js";
 import { UserTokenModel } from "./UserTokenModel.js";
 import { WorkoutTemplateModel } from "./WorkoutTemplateModel.js";
+import { UserExerciseModel } from "./UserExerciseModel.js";
+import { CalendarNoteModel } from "./CalendarNoteModel.js";
 
 /**
  * Postgres data access (via Prisma), grouped by model.
@@ -18,12 +20,16 @@ export const prisma = {
   exercises: new ExerciseModel(),
   userTokens: new UserTokenModel(),
   workoutTemplates: new WorkoutTemplateModel(),
+  userExercises: new UserExerciseModel(),
+  calendarNotes: new CalendarNoteModel(),
 };
 
 export type { OnboardingInput } from "./OnboardingModel.js";
 export type { AiGenerationInput } from "./AiGenerationModel.js";
 export type { ExerciseInput } from "./ExerciseModel.js";
 export type { WorkoutTemplateInput, TemplateExercise } from "./WorkoutTemplateModel.js";
+export type { UserExerciseInput } from "./UserExerciseModel.js";
+export type { CalendarNoteInput } from "./CalendarNoteModel.js";
 export {
   Gender,
   Goal,

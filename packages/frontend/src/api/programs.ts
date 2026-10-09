@@ -71,12 +71,6 @@ export const programsApi = {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   }),
-  // Cache-only update (no Sheets sync) - used during active workout
-  updateCache: (id: string, input: ProgramUpdateInput | ProgramUpdateInput[]) => request<{ success: boolean }>(`/api/programs/${id}/cache`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  }),
   delete: (id: string) => request<{ success: boolean }>(`/api/programs/${id}`, {
     method: "DELETE",
   }),
@@ -247,19 +241,3 @@ export function useUpdateProgram() {
   });
 }
 
-/**
- * Cache-only update - writes to PostgreSQL cache, skips Google Sheets.
- * Used during active workout (every 5 seconds) to avoid Sheets quota.
- */
-export function useUpdateProgramCache() {
-  return useMutation({
-    mutationFn: ({
-      id,
-      input,
-    }: {
-      id: string;
-      input: ProgramUpdateInput | ProgramUpdateInput[];
-    }) => programsApi.updateCache(id, input),
-    // No query invalidation - cache updates are silent during workout
-  });
-}

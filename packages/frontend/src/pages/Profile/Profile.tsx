@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { Check, Loader2, Scale, Bell, Volume2, LogOut } from "lucide-react";
+import { Check, Loader2, Scale, Bell, Volume2, LogOut, Calendar, Database } from "lucide-react";
 import { ChevronDownIcon, ChevronUpIcon } from "../../assets/icons";
 import { Chart } from "../../components/ui/Chart";
+import { WorkoutCalendar } from "../../components/WorkoutCalendar";
 import { useGetBodyWeight, useSaveBodyWeight } from "../../api/profile";
 import { parseDate } from "../../lib/date";
 import { useAuth } from "../../contexts/AuthContext";
@@ -44,6 +45,9 @@ const Profile = () => {
   const [avatarError, setAvatarError] = useState(false);
   const [weightInput, setWeightInput] = useState("");
   const [showWeightHistory, setShowWeightHistory] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<{ migrated: number; skipped: number; errors: number } | null>(null);
   const { data: weightData, isLoading: isLoadingWeight } = useGetBodyWeight();
   const saveBodyWeight = useSaveBodyWeight();
   const weightEntries = weightData?.entries || [];
@@ -118,6 +122,25 @@ const Profile = () => {
     }
   };
 
+  const handleMigrate = async () => {
+    setIsMigrating(true);
+    setMigrateResult(null);
+    try {
+      const res = await fetch("http://localhost:3002/api/migrate", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.summary) {
+        setMigrateResult(data.summary);
+      }
+    } catch (error) {
+      console.error("Migration failed:", error);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -125,7 +148,23 @@ const Profile = () => {
       {/* Header */}
       <header className={styles.header}>
         <h1 className={styles.title}>Profile</h1>
+        <button
+          className={styles.calendarBtn}
+          onClick={() => {
+            hapticSelection();
+            setShowCalendar(true);
+          }}
+        >
+          <Calendar size={16} />
+          <span>Calendar</span>
+        </button>
       </header>
+
+      {/* Calendar Drawer */}
+      <WorkoutCalendar
+        isOpen={showCalendar}
+        onClose={() => setShowCalendar(false)}
+      />
 
       {/* User Card */}
       <div className={styles.userCard}>
@@ -360,6 +399,56 @@ const Profile = () => {
               </button>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Data Migration */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <Database size={18} className={styles.sectionIcon} />
+          <div>
+            <h2 className={styles.sectionTitle}>Data Migration</h2>
+            <span className={styles.sectionMeta}>Import from Google Sheets</span>
+          </div>
+        </div>
+
+        <div className={styles.card}>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+            Migrate your workout data from Google Sheets to the new storage system.
+          </p>
+          <button
+            className={styles.saveBtn}
+            onClick={handleMigrate}
+            disabled={isMigrating}
+            style={{ width: "100%", justifyContent: "center", padding: "0.75rem" }}
+          >
+            {isMigrating ? (
+              <>
+                <Loader2 size={18} className={styles.spinner} />
+                <span style={{ marginLeft: "0.5rem" }}>Migrating...</span>
+              </>
+            ) : (
+              <>
+                <Database size={18} />
+                <span style={{ marginLeft: "0.5rem" }}>Migrate Data</span>
+              </>
+            )}
+          </button>
+          {migrateResult && (
+            <div style={{ marginTop: "0.75rem", fontSize: "0.875rem" }}>
+              <span style={{ color: "var(--success)" }}>✓ {migrateResult.migrated} migrated</span>
+              {migrateResult.skipped > 0 && (
+                <span style={{ marginLeft: "1rem", color: "var(--text-secondary)" }}>
+                  {migrateResult.skipped} skipped
+                </span>
+              )}
+              {migrateResult.errors > 0 && (
+                <span style={{ marginLeft: "1rem", color: "var(--error)" }}>
+                  {migrateResult.errors} errors
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

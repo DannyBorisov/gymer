@@ -10,6 +10,9 @@
    HEADER
    ============================================================ */
 .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 1.5rem;
 }
 
@@ -19,6 +22,33 @@
   color: var(--text-primary);
   margin: 0;
   letter-spacing: -0.03em;
+}
+
+/* Glass Pill Button (iPhone-style) */
+.calendarBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 100px;
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.calendarBtn:active {
+  background: rgba(255, 255, 255, 0.14);
+  transform: scale(0.97);
+}
+
+.calendarBtn svg {
+  color: var(--accent-primary);
 }
 
 /* ============================================================

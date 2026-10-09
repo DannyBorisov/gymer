@@ -35,7 +35,7 @@ export const saveQuickWorkout: RouteHandler<{
 
   try {
     // Quick workout is a completed workout, so sync to Sheets
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session, this.sheets);
     const workout = await gsql.quickWorkouts.create(request.body);
     return { success: true, workout };
   } catch (error) {

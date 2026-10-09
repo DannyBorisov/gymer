@@ -14,7 +14,6 @@ import {
 import { useGetExerciseBests } from "../api/analytics";
 import {
   useUpdateProgram,
-  useUpdateProgramCache,
   useAddSet,
   useDeleteSet,
   type ProgramUpdateInput,
@@ -271,8 +270,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [isQuickWorkout, setIsQuickWorkout] = useState(false);
 
   // Server calls
-  const updateProgram = useUpdateProgram(); // Full sync (Sheets + cache) - for completion
-  const updateProgramCache = useUpdateProgramCache(); // Cache only - for during workout
+  const updateProgram = useUpdateProgram();
   const addSetMutation = useAddSet();
   const deleteSetMutation = useDeleteSet();
   const saveQuickWorkout = useSaveQuickWorkout();
@@ -407,7 +405,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
         const updates = buildSetUpdates(data, week, workoutName);
         if (updates.length > 0) {
           // Use cache-only update to avoid Sheets quota during workout
-          await updateProgramCache.mutateAsync({ id: programId, input: updates });
+          await updateProgram.mutateAsync({ id: programId, input: updates });
         }
         setHasUnsavedChanges(false);
         hasUnsavedChangesRef.current = false;
@@ -441,7 +439,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           await updateProgram.mutateAsync({ id: programId, input: updates });
         } else {
           // Intermediate save - cache only
-          await updateProgramCache.mutateAsync({ id: programId, input: updates });
+          await updateProgram.mutateAsync({ id: programId, input: updates });
         }
       }
       setHasUnsavedChanges(false);
@@ -557,7 +555,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
             );
             if (updates.length > 0) {
               // Use cache-only update during workout
-              await updateProgramCache.mutateAsync({
+              await updateProgram.mutateAsync({
                 id: activeWorkout.programId,
                 input: updates,
               });
@@ -1094,7 +1092,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
           );
           if (updates.length > 0) {
             // Use cache-only update during workout
-            await updateProgramCache.mutateAsync({
+            await updateProgram.mutateAsync({
               id: activeWorkout.programId,
               input: updates,
             });

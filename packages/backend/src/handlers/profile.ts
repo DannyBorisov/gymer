@@ -19,7 +19,7 @@ export const saveBodyWeight: RouteHandler<{
     return reply.status(400).send({ error: "Weight is required" });
   }
 
-  const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+  const gsql = createGSQL(session, this.sheets);
   await gsql.bodyWeight.create({ weight: request.body.weight });
   return { success: true };
 };

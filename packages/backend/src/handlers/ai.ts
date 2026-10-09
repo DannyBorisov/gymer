@@ -413,7 +413,7 @@ Design a training program for this user.
       await this.genai.generateProgram<CreateProgramInput>(fullPrompt);
 
     // Creating AI-generated program - sync to Sheets to persist
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session, this.sheets);
     const program = await gsql.programs.create(generated);
 
     await prisma.aiGenerations.create(session.user.email, {

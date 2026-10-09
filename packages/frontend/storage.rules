@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Users can only access their own files
+    match /users/{userEmail}/{allPaths=**} {
+      // Allow authenticated users to read/write their own data
+      // Note: Backend uses Admin SDK which bypasses these rules
+      allow read, write: if request.auth != null
+        && request.auth.token.email.replace('@', '_at_').replace('.', '_') == userEmail;
+    }
+
+    // Block all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

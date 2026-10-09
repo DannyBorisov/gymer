@@ -55,5 +55,5 @@ export type {
   ExerciseInput,
 } from "./postgres/index.js";
 
-// Cache layer for fast reads (avoids Google Sheets quota)
-export { ProgramCacheModel, QuickWorkoutCacheModel } from "./cache/index.js";
+// Firebase Storage layer (replaces Google Sheets + cache)
+export { FirebaseStorage, FirebaseSheets } from "./firebase/index.js";

@@ -1,4 +1,4 @@
-import { google, sheets_v4 } from "googleapis";
+import { google, sheets_v4, drive_v3 } from "googleapis";
 import type { TokenData } from "./encryption.js";
 
 export class GoogleSheetsClient {
@@ -34,6 +34,10 @@ export class GoogleSheetsClient {
     return google.sheets({ version: "v4", auth: this.getAuth(tokens) });
   }
 
+  private getDriveClient(tokens: TokenData): drive_v3.Drive {
+    return google.drive({ version: "v3", auth: this.getAuth(tokens) });
+  }
+
   async getSheetMetadata(
     tokens: TokenData,
     spreadsheetId: string,
@@ -45,6 +49,57 @@ export class GoogleSheetsClient {
     });
     const sheetName = response.data.sheets?.[0]?.properties?.title || "Sheet1";
     return { sheetName };
+  }
+
+  /**
+   * Find an existing sheet by app properties, or create a new one
+   */
+  async findOrCreateSheet(
+    tokens: TokenData,
+    title: string,
+    appProperties: Record<string, string>,
+  ): Promise<string> {
+    const drive = this.getDriveClient(tokens);
+    const sheets = this.getSheetsClient(tokens);
+
+    // Build query to find sheet by app properties
+    const appPropsQuery = Object.entries(appProperties)
+      .map(([key, value]) => `appProperties has { key='${key}' and value='${value}' }`)
+      .join(" and ");
+
+    const query = `mimeType='application/vnd.google-apps.spreadsheet' and trashed=false${
+      appPropsQuery ? ` and ${appPropsQuery}` : ""
+    }`;
+
+    // Try to find existing sheet
+    const response = await drive.files.list({
+      q: query,
+      fields: "files(id, name)",
+      pageSize: 1,
+    });
+
+    if (response.data.files && response.data.files.length > 0) {
+      return response.data.files[0].id!;
+    }
+
+    // Create new sheet
+    const createResponse = await sheets.spreadsheets.create({
+      requestBody: {
+        properties: { title },
+      },
+    });
+
+    const spreadsheetId = createResponse.data.spreadsheetId!;
+
+    // Set app properties
+    if (Object.keys(appProperties).length > 0) {
+      await drive.files.update({
+        fileId: spreadsheetId,
+        requestBody: { appProperties },
+      });
+    }
+
+    return spreadsheetId;
   }
 
   async clearAndWrite(

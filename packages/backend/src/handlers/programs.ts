@@ -16,8 +16,6 @@ import type {
   DeleteSetBodyType,
   EditProgramParamsType,
   EditProgramBodyType,
-  UpdateProgramCacheParamsType,
-  UpdateProgramCacheBodyType,
 } from "../schemas/programs.js";
 
 export const createProgram: RouteHandler<{
@@ -25,8 +23,7 @@ export const createProgram: RouteHandler<{
 }> = async function (request) {
   const session = getAuthSession(request);
 
-  // Creating a program structure - sync to Sheets to persist
-  const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+  const gsql = createGSQL(session);
   const program = await gsql.programs.create({
     name: request.body.name,
     durationWeeks: request.body.durationWeeks,
@@ -47,8 +44,7 @@ export const editProgram: RouteHandler<{
   const { id } = request.params;
 
   try {
-    // Editing program structure - sync to Sheets to persist
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session);
     const program = await gsql.programs.editStructure(id, {
       name: request.body.name,
       durationWeeks: request.body.durationWeeks,
@@ -68,7 +64,7 @@ export const editProgram: RouteHandler<{
 export const listPrograms: RouteHandler = async function (request) {
   const session = getAuthSession(request);
 
-  const gsql = createGSQL(session, this.sheets);
+  const gsql = createGSQL(session);
   const programs = await gsql.programs.findAll();
   return { programs };
 };
@@ -80,7 +76,7 @@ export const getProgram: RouteHandler<{
   const { id } = request.params;
 
   try {
-    const gsql = createGSQL(session, this.sheets);
+    const gsql = createGSQL(session);
     const programData = await gsql.programs.find(id);
 
     if (!programData) {
@@ -101,8 +97,7 @@ export const deleteProgram: RouteHandler<{
   const { id } = request.params;
 
   try {
-    // Deleting program - sync to Sheets to persist
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session);
     await gsql.programs.delete(id);
 
     return { success: true };
@@ -119,8 +114,7 @@ export const copyProgram: RouteHandler<{
   const { id } = request.params;
 
   try {
-    // Copying program - sync to Sheets to persist
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session);
     const program = await gsql.programs.copy(id);
 
     return { success: true, program };
@@ -143,8 +137,7 @@ export const renameProgram: RouteHandler<{
   }
 
   try {
-    // Renaming program - sync to Sheets to persist
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session);
     const program = await gsql.programs.rename(id, name.trim());
 
     return { success: true, program };
@@ -170,8 +163,7 @@ export const addSet: RouteHandler<{
   }
 
   try {
-    // Adding set to program structure - sync to Sheets to persist
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session);
     await gsql.programs.addSet(
       id,
       week,
@@ -204,7 +196,7 @@ export const deleteSet: RouteHandler<{
   }
 
   try {
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session);
     await gsql.programs.deleteSet(id, week, workoutName, exerciseName, setNumber);
     const program = await gsql.programs.find(id);
 
@@ -216,39 +208,6 @@ export const deleteSet: RouteHandler<{
   }
 };
 
-/**
- * Cache-only update - writes to cache, no Sheets sync.
- * Used during active workout (every 5 seconds) to avoid Sheets quota.
- */
-export const updateProgramCache: RouteHandler<{
-  Params: UpdateProgramCacheParamsType;
-  Body: UpdateProgramCacheBodyType;
-}> = async function (request, reply) {
-  const session = getAuthSession(request);
-  const { id } = request.params;
-
-  if (!session.user?.email) {
-    return reply.status(401).send({ error: "User email required for cache" });
-  }
-
-  try {
-    // Cache only - no Sheets sync
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: false });
-
-    const updates = Array.isArray(request.body) ? request.body : [request.body];
-    await gsql.programs.updateMany(id, updates);
-
-    return { success: true };
-  } catch (error) {
-    this.log.error(error, "[updateProgramCache] Error");
-    return reply.status(500).send({ error: "Failed to update program cache" });
-  }
-};
-
-/**
- * Full update - writes to cache AND syncs to Google Sheets.
- * Used on workout completion to persist data to Sheets.
- */
 export const updateProgram: RouteHandler<{
   Params: UpdateProgramParamsType;
   Body: UpdateProgramBodyType;
@@ -257,10 +216,10 @@ export const updateProgram: RouteHandler<{
   const { id } = request.params;
 
   try {
-    // Full sync to Sheets
-    const gsql = createGSQL(session, this.sheets, { syncToSheets: true });
+    const gsql = createGSQL(session);
 
     const updates = Array.isArray(request.body) ? request.body : [request.body];
+    console.log('[updateProgram] Received updates:', JSON.stringify(updates, null, 2));
     await gsql.programs.updateMany(id, updates);
 
     return { success: true };

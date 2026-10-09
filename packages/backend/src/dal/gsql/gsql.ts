@@ -1,24 +1,21 @@
-import type { GoogleSheets } from '../../plugins/googleSheets.js';
-import type { AuthenticatedSession } from '../../middlewares/auth.js';
-import { CachedGoogleSheets } from '../cache/CachedGoogleSheets.js';
-import { BodyWeightModel } from './models/BodyWeightModel.js';
-import { ProgramModel } from './models/ProgramModel.js';
-import { QuickWorkoutModel } from './models/QuickWorkoutModel.js';
-import { AnalyticsModel } from './models/AnalyticsModel.js';
-import { UserExerciseModel } from './models/UserExerciseModel.js';
-import type { AuthTokens } from './models/BaseModel.js';
-
-// Union type for sheets client (either direct or cached)
-type SheetsClient = GoogleSheets | CachedGoogleSheets;
+import type { GoogleSheets } from "../../plugins/googleSheets.js";
+import type { AuthenticatedSession } from "../../middlewares/auth.js";
+import { FirebaseSheets } from "../firebase/FirebaseSheets.js";
+import { BodyWeightModel } from "./models/BodyWeightModel.js";
+import { ProgramModel } from "./models/ProgramModel.js";
+import { QuickWorkoutModel } from "./models/QuickWorkoutModel.js";
+import { AnalyticsModel } from "./models/AnalyticsModel.js";
+import { UserExerciseModel } from "./models/UserExerciseModel.js";
+import type { AuthTokens } from "./models/BaseModel.js";
 
 /**
- * GSQL - Google Sheets Query Language
+ * GSQL - Data Access Layer
  *
- * ORM-like data access layer for Google Sheets
+ * ORM-like data access layer using Firebase Storage as the backend.
  *
  * @example
  * ```typescript
- * const gsql = createGSQL(tokens, sheets);
+ * const gsql = createGSQL(session);
  *
  * // Body Weight
  * const entries = await gsql.bodyWeight.findAll();
@@ -26,7 +23,7 @@ type SheetsClient = GoogleSheets | CachedGoogleSheets;
  *
  * // Programs
  * const programs = await gsql.programs.findAll();
- * const program = await gsql.programs.find('spreadsheetId');
+ * const program = await gsql.programs.find('programId');
  *
  * // Quick Workouts
  * await gsql.quickWorkouts.create({ workoutId, duration, sets });
@@ -47,9 +44,9 @@ export class GSQL {
   public readonly analytics: AnalyticsModel;
   public readonly userExercises: UserExerciseModel;
 
-  constructor(tokens: AuthTokens, sheets: SheetsClient) {
-    // Cast to GoogleSheets since CachedGoogleSheets has the same interface
-    const sheetsClient = sheets as GoogleSheets;
+  constructor(tokens: AuthTokens, sheets: FirebaseSheets) {
+    // FirebaseSheets implements the same interface as GoogleSheets
+    const sheetsClient = sheets as unknown as GoogleSheets;
     this.bodyWeight = new BodyWeightModel(sheetsClient, tokens);
     this.programs = new ProgramModel(sheetsClient, tokens);
     this.quickWorkouts = new QuickWorkoutModel(sheetsClient, tokens);
@@ -58,42 +55,32 @@ export class GSQL {
   }
 }
 
-export interface CreateGSQLOptions {
-  /** Whether to sync writes to Sheets immediately (default: false for cache-only) */
-  syncToSheets?: boolean;
-}
-
 /**
  * Factory function for creating GSQL instances
  *
+ * Uses Firebase Storage as the data backend.
+ *
  * @param session - Authenticated session with tokens and user
- * @param sheets - GoogleSheets instance
- * @param options - Optional caching options
+ * @param _sheets - Deprecated, kept for backward compatibility (not used)
  *
  * @example
- * // With caching (reads from cache, writes to cache only)
- * const gsql = createGSQL(session, sheets);
- *
- * // With caching + sync to Sheets on writes
- * const gsql = createGSQL(session, sheets, { syncToSheets: true });
+ * const gsql = createGSQL(session);
+ * const programs = await gsql.programs.findAll();
  */
 export function createGSQL(
   session: AuthenticatedSession,
-  sheets: GoogleSheets,
-  options?: CreateGSQLOptions,
-): GSQL {
+  _sheets?: GoogleSheets,
+) {
   const { tokens, user } = session;
-  if (user?.email) {
-    const cachedSheets = new CachedGoogleSheets(sheets, user.email, {
-      syncToSheets: options?.syncToSheets,
-    });
-    return new GSQL(tokens, cachedSheets);
+  if (!user?.email) {
+    throw new Error("User email is required for GSQL");
   }
-  return new GSQL(tokens, sheets);
+  const firebaseSheets = new FirebaseSheets(user.email);
+  return new GSQL(tokens, firebaseSheets);
 }
 
 // Re-export types for consumers
-export type { AuthTokens } from './models/BaseModel.js';
+export type { AuthTokens } from "./models/BaseModel.js";
 export type {
   // Body Weight
   BodyWeightEntry,
@@ -128,4 +115,4 @@ export type {
   // User Exercises
   UserExercise,
   CreateUserExerciseInput,
-} from './types.js';
+} from "./types.js";

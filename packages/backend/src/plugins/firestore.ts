@@ -14,7 +14,10 @@ function initializeFirebase(): Firestore {
   }
 
   const serviceAccount = JSON.parse(config.env.FIREBASE_SERVICE_ACCOUNT);
-  initializeApp({ credential: cert(serviceAccount) });
+  initializeApp({
+    credential: cert(serviceAccount),
+    storageBucket: config.env.FIREBASE_STORAGE_BUCKET,
+  });
   return getFirestore(config.env.FIRESTORE_DATABASE_ID);
 }
 

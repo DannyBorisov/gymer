@@ -406,8 +406,12 @@ export class ProgramModel extends BaseModel {
     );
     const updates: { range: string; values: (string | number)[][] }[] = [];
 
+    console.log('[updateMany] Processing', inputs.length, 'inputs');
+
     for (const input of inputs) {
       const { where, data } = input;
+
+      console.log('[updateMany] Input:', JSON.stringify({ where, data }));
 
       // Find the target workout
       const workout = program.workouts.find(
@@ -415,25 +419,39 @@ export class ProgramModel extends BaseModel {
           w.week === where.week &&
           (!where.workout || w.name === where.workout.name),
       );
-      if (!workout) continue;
+      if (!workout) {
+        console.log('[updateMany] Workout not found for week', where.week, 'name', where.workout?.name);
+        continue;
+      }
 
       // Workout-level update
       if (!where.workout?.exercise) {
         const workoutData = data as WorkoutUpdateData;
         const firstSetRowIndex = workout.exercises[0]?.sets[0]?.rowIndex;
+        console.log('[updateMany] Workout-level update:', {
+          week: where.week,
+          workoutName: where.workout?.name,
+          firstSetRowIndex,
+          date: workoutData.date,
+          duration: workoutData.duration,
+        });
         if (!firstSetRowIndex) continue;
 
         if (workoutData.date) {
-          updates.push({
+          const dateUpdate = {
             range: `${sheetName}!A${firstSetRowIndex}`,
             values: [[formatDateTime(workoutData.date)]],
-          });
+          };
+          console.log('[updateMany] Adding date update:', dateUpdate);
+          updates.push(dateUpdate);
         }
         if (workoutData.duration) {
-          updates.push({
+          const durationUpdate = {
             range: `${sheetName}!A${firstSetRowIndex + 1}`,
             values: [[workoutData.duration]],
-          });
+          };
+          console.log('[updateMany] Adding duration update:', durationUpdate);
+          updates.push(durationUpdate);
         }
         continue;
       }
@@ -495,8 +513,10 @@ export class ProgramModel extends BaseModel {
       }
     }
 
+    console.log('[updateMany] Total updates to apply:', updates.length);
     if (updates.length > 0) {
       await this.sheets.batchUpdate(this.tokens, id, updates);
+      console.log('[updateMany] batchUpdate complete');
     }
   }
 

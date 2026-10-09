@@ -139,15 +139,3 @@ export const DeleteSetBodySchema = z.object({
   setNumber: z.number(),
 });
 export type DeleteSetBodyType = z.infer<typeof DeleteSetBodySchema>;
-
-// Cache-only update (no Sheets sync) - used during active workout
-export const UpdateProgramCacheParamsSchema = z.object({
-  id: z.string(),
-});
-export type UpdateProgramCacheParamsType = z.infer<typeof UpdateProgramCacheParamsSchema>;
-
-export const UpdateProgramCacheBodySchema = z.union([
-  ProgramUpdateInputSchema,
-  z.array(ProgramUpdateInputSchema),
-]);
-export type UpdateProgramCacheBodyType = z.infer<typeof UpdateProgramCacheBodySchema>;

@@ -20,6 +20,7 @@ const EnvSchema = z.object({
   GOOGLE_REDIRECT_URI: z.string(),
   SESSION_SECRET: z.string().min(32),
   FIREBASE_SERVICE_ACCOUNT: z.string(),
+  FIREBASE_STORAGE_BUCKET: z.string(),
   FRONTEND_URL: z.string().default("http://localhost:5173"),
   FIRESTORE_DATABASE_ID: z.string().default("default"),
   GOOGLE_CLOUD_PROJECT_ID: z.string(),
